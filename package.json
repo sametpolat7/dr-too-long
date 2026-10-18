@@ -1,0 +1,26 @@
+{
+  "name": "dr-too-long",
+  "private": true,
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@12.11.2",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.0.0",
+      "onFail": "error"
+    }
+  },
+  "scripts": {
+    "dev": "pnpm --filter @dr-too-long/extension dev",
+    "build": "pnpm --recursive build",
+    "zip": "pnpm --filter @dr-too-long/extension zip",
+    "lint": "biome ci .",
+    "format": "biome check --write .",
+    "typecheck": "pnpm --recursive typecheck",
+    "check:manifest": "pnpm --filter @dr-too-long/extension check:manifest"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "lefthook": "2.2.2"
+  }
+}

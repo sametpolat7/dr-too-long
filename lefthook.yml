@@ -1,0 +1,25 @@
+pre-commit:
+  commands:
+    format-and-lint:
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+    no-api-keys:
+      run: |
+        ! git diff --cached --unified=0 | grep --extended-regexp '^\+.*sk-[A-Za-z0-9_-]{20,}'
+      fail_text: An API key appears in the staged changes. Remove it before committing.
+
+commit-msg:
+  commands:
+    conventional-title:
+      run: |
+        head -n 1 {1} | grep --quiet --extended-regexp \
+          '^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9-]+\))?!?: [^ ]'
+      fail_text: "Use a Conventional Commits title, for example 'feat(extension): add result card'."
+
+pre-push:
+  commands:
+    protect-main:
+      # Git writes one line per ref to stdin: <local ref> <local sha> <remote ref> <remote sha>
+      use_stdin: true
+      run: |
+        ! grep --quiet ' refs/heads/main '
+      fail_text: Pushes to main are not allowed. Push a branch and open a pull request.
