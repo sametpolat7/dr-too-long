@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+
+minimumReleaseAge: 1440 # minutes: skip versions published less than a day ago
+
+# Git hooks are installed manually, so lefthook's install script stays off.
+allowBuilds:
+  lefthook: false
