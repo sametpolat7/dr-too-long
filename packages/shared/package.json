@@ -1,6 +1,7 @@
 {
   "name": "@dr-too-long/shared",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "exports": {
     "./contracts": "./src/contracts/index.ts",
