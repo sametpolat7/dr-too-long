@@ -1,5 +1,9 @@
 packages:
   - apps/*
+  - packages/*
+
+catalog:
+  typescript: 6.0.3
 
 minimumReleaseAge: 1440 # minutes: skip versions published less than a day ago
 
