@@ -1,8 +1,6 @@
-export type ProviderId = 'anthropic' | 'openai';
-
 export interface ModelChoice {
-  provider: ProviderId;
+  provider: string;
   modelId: string;
 }
 
-export const ACTIVE_MODEL: ModelChoice = { provider: 'anthropic', modelId: 'claude-haiku-5-5' };
+export const ACTIVE_MODEL: ModelChoice = { provider: 'openai', modelId: 'gpt-6-luna' };
