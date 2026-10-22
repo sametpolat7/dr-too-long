@@ -18,7 +18,7 @@ Everything below stays out of Phase 1. This list changes only through a pull req
 
 ## Model
 
-- Providers are Anthropic and OpenAI only, selected in Options. Each provider has one fixed model.
+- Providers are Anthropic and OpenAI only. The developer sets the provider and model in `packages/shared/src/providers`; users never see or choose them.
 - No user-editable prompts and no remote prompt or config fetching. Prompts ship in the package.
 - No model call from the content script. The background service worker is the only caller.
 - No automatic regenerate and no retry loops. Regenerate and Retry are buttons.
