@@ -1,0 +1,36 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`summaryOutputSchema > produces a closed JSON Schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "points": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "sentences": {
+            "items": {
+              "type": "number",
+            },
+            "type": "array",
+          },
+          "text": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "text",
+          "sentences",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "points",
+  ],
+  "type": "object",
+}
+`;

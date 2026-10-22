@@ -31,6 +31,7 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 | `pnpm lint` | Checks formatting and lint rules with Biome |
 | `pnpm format` | Applies Biome formatting and safe fixes |
 | `pnpm typecheck` | Type-checks every package |
+| `pnpm test` | Runs the unit tests of every package |
 | `pnpm check:manifest` | Fails if the built manifest's permissions differ from `manifest-expected.json` |
 
 Chrome never lets an extension run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer.
