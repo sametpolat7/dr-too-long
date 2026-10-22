@@ -1,0 +1,21 @@
+{
+  "name": "@dr-too-long/shared",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./contracts": "./src/contracts/index.ts",
+    "./limits": "./src/limits/index.ts",
+    "./providers": "./src/providers/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "5.0.5"
+  }
+}
