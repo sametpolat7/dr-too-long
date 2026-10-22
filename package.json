@@ -17,6 +17,7 @@
     "lint": "biome ci .",
     "format": "biome check --write .",
     "typecheck": "pnpm --recursive typecheck",
+    "test": "pnpm --recursive test",
     "check:manifest": "pnpm --filter @dr-too-long/extension check:manifest"
   },
   "devDependencies": {
