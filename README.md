@@ -2,7 +2,9 @@
 
 A Chrome extension that turns selected text into a summary in your language with one click, so you can decide whether the whole text is worth reading. Every point in the summary is anchored to the passage it came from.
 
-**Privacy:** selected text, summaries and page URLs are never stored.
+**Data:** selected text, summaries and page addresses are never stored. From Phase 2, each request leaves an operational record (sizes, preset, languages, model, timings, cost, outcome) that engineering uses.
+
+**License:** proprietary, all rights reserved. The repository is private and not open source.
 
 **Status:** Phase 1 (Build core) in progress. What stays out of Phase 1 is listed in [docs/no-list.md](docs/no-list.md).
 
