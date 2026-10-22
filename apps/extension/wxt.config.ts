@@ -1,13 +1,16 @@
 import { defineConfig } from 'wxt';
 
+const MINIMUM_CHROME = 110;
+
 export default defineConfig({
   srcDir: 'src',
   imports: false,
   webExt: { disabled: true },
   zip: { name: 'dr-too-long' },
+  vite: () => ({ build: { target: `chrome${MINIMUM_CHROME}` } }),
   manifest: {
     name: 'Dr. Too Long',
     description: 'Turns selected text into a summary in your language with one click.',
-    minimum_chrome_version: '116',
+    minimum_chrome_version: String(MINIMUM_CHROME),
   },
 });
