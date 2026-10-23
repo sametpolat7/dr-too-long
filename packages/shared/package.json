@@ -6,7 +6,8 @@
   "exports": {
     "./contracts": "./src/contracts/index.ts",
     "./limits": "./src/limits/index.ts",
-    "./providers": "./src/providers/index.ts"
+    "./providers": "./src/providers/index.ts",
+    "./segmentation": "./src/segmentation/index.ts"
   },
   "scripts": {
     "test": "vitest run",
