@@ -1,0 +1,46 @@
+body {
+  margin: 0;
+  padding: 24px;
+  max-width: 560px;
+  font:
+    14px / 1.5 system-ui,
+    sans-serif;
+  color: #1a1a1a;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 16px;
+}
+
+form,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+input {
+  flex: 1 1 240px;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+button {
+  padding: 6px 12px;
+  font: inherit;
+}
+
+.status {
+  color: #555;
+}
+
+.error {
+  color: #b00020;
+}
+
+ol {
+  padding-left: 20px;
+}
