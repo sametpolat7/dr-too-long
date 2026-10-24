@@ -10,6 +10,7 @@ export type ErrorCode =
   | 'aborted'
   | 'disconnected'
   | 'invalid_output'
+  | 'no_selection'
   | 'too_long'
   | 'unsupported_selection'
   | 'provider';
