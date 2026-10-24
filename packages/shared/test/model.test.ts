@@ -129,6 +129,36 @@ describe('createSummarizer', () => {
     ]);
   });
 
+  it.each([
+    ['a 429 body', { error: { code: 'insufficient_quota' } }],
+    ['a failed stream frame', { response: { error: { code: 'insufficient_quota' } } }],
+    ['an error stream frame', { type: 'error', code: 'insufficient_quota' }],
+  ])('reports quota_exceeded when %s names insufficient_quota', async (_, data) => {
+    const error = new APICallError({
+      message: 'failed',
+      url: '',
+      requestBodyValues: {},
+      statusCode: 429,
+      data,
+    });
+    expect(await collect(failing(error))).toEqual([
+      { type: 'error', code: 'quota_exceeded', message: 'HTTP 429' },
+    ]);
+  });
+
+  it('keeps rate_limited for a 429 with another error code', async () => {
+    const error = new APICallError({
+      message: 'failed',
+      url: '',
+      requestBodyValues: {},
+      statusCode: 429,
+      data: { error: { code: 'rate_limit_exceeded' } },
+    });
+    expect(await collect(failing(error))).toEqual([
+      { type: 'error', code: 'rate_limited', message: 'HTTP 429' },
+    ]);
+  });
+
   it('reports network when the request never reaches the provider', async () => {
     const events = await collect(failing(new TypeError('Failed to fetch')));
     expect(events).toEqual([{ type: 'error', code: 'network', message: 'TypeError' }]);
