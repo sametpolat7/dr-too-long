@@ -46,6 +46,7 @@ Phase 1 runs on your own OpenAI API key. Create it in a dedicated OpenAI project
 - The key is stored in the extension's local storage, which Chrome does not encrypt. Only this extension's own code can read it, and it is never synced to your Google account.
 - The key travels only to `api.openai.com`, from the background service worker. Content scripts never see it.
 - With your own key, the text you select goes to OpenAI under your account and OpenAI's terms.
+- The key only works while the OpenAI account holds credit. OpenAI reports an empty balance as a quota error, and new credit can take a few minutes to become active.
 
 ## Pull requests
 
