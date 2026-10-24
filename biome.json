@@ -16,5 +16,36 @@
     "formatter": {
       "quoteStyle": "single"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/extension/src/content/**",
+        "apps/extension/src/entrypoints/*.content.{ts,tsx}",
+        "apps/extension/src/*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "**/settings/**",
+                      "wxt/utils/storage",
+                      "@dr-too-long/shared/model",
+                      "@dr-too-long/shared/providers"
+                    ],
+                    "message": "Content scripts never touch the API key or the model. The background worker owns both."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

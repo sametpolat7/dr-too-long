@@ -11,6 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check:manifest": "node scripts/check-manifest.ts",
+    "check:bundle": "node scripts/check-content-bundle.ts",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "24.19.2",
+    "happy-dom": "21.0.4",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wxt": "0.21.4"

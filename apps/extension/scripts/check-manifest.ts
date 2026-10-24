@@ -7,6 +7,7 @@ const GUARDED_KEYS = [
   'host_permissions',
   'optional_host_permissions',
   'content_scripts',
+  'web_accessible_resources',
   'commands',
   'minimum_chrome_version',
 ] as const;

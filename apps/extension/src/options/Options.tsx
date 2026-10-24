@@ -1,7 +1,8 @@
-import type { ErrorCode, Point, SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { Point, SummaryEvent } from '@dr-too-long/shared/contracts';
 import { ACTIVE_MODEL } from '@dr-too-long/shared/providers';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { browser } from 'wxt/browser';
+import { ERROR_MESSAGES } from '../error-messages.ts';
 import { readApiKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
 import { portSummarizer } from '../summarize-port.ts';
 
@@ -10,21 +11,6 @@ const SAMPLE = [
   'Historians later used the notebooks to date the decline of the harbour to one winter.',
   'A small museum now keeps them in the room where he wrote.',
 ];
-
-const ERROR_MESSAGES: Record<ErrorCode, string> = {
-  no_key: 'Save an API key first.',
-  unauthorized: 'The provider rejected the API key.',
-  rate_limited: 'The provider is rate limiting this key. Try again in a moment.',
-  quota_exceeded:
-    'The OpenAI account has no credit left. Add credit in its billing settings, then try again.',
-  network: 'The provider could not be reached.',
-  aborted: 'The run was cancelled.',
-  disconnected: 'The background worker stopped before the summary finished.',
-  invalid_output: 'The model returned no usable summary.',
-  too_long: 'The selection is too long.',
-  unsupported_selection: 'This selection cannot be summarized.',
-  provider: 'The provider returned an error.',
-};
 
 type Run =
   | { status: 'idle' }
