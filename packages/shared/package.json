@@ -3,6 +3,7 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     "./contracts": "./src/contracts/index.ts",
     "./limits": "./src/limits/index.ts",
