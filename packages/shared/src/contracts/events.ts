@@ -5,6 +5,7 @@ export type ErrorCode =
   | 'no_key'
   | 'unauthorized'
   | 'rate_limited'
+  | 'quota_exceeded'
   | 'network'
   | 'aborted'
   | 'disconnected'

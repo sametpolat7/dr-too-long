@@ -1,3 +1,4 @@
+import { ACTIVE_MODEL, PROVIDERS } from '@dr-too-long/shared/providers';
 import { defineConfig } from 'wxt';
 
 const MINIMUM_CHROME = 110;
@@ -12,5 +13,7 @@ export default defineConfig({
     name: 'Dr. Too Long',
     description: 'Turns selected text into a summary in your language with one click.',
     minimum_chrome_version: String(MINIMUM_CHROME),
+    permissions: ['storage'],
+    host_permissions: [`${PROVIDERS[ACTIVE_MODEL.provider].apiHost}/*`],
   },
 });
