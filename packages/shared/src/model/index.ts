@@ -7,6 +7,7 @@ import {
   Output,
   streamText,
 } from 'ai';
+import { z } from 'zod';
 import {
   buildPrompt,
   type ErrorCode,
@@ -89,11 +90,22 @@ function errorEvent(code: ErrorCode, message: string): SummaryEvent {
   return { type: 'error', code, message };
 }
 
+const providerError = z.object({ code: z.string() });
+
+// OpenAI puts its error object at the top of a 429 body or inside a failed stream frame.
+const providerErrorSchema = z.union([
+  z.object({ error: providerError }).transform(({ error }) => error),
+  z
+    .object({ response: z.object({ error: providerError }) })
+    .transform(({ response }) => response.error),
+  providerError,
+]);
+
 function toErrorCode(error: unknown, signal: AbortSignal): ErrorCode {
   if (signal.aborted) return 'aborted';
   if (APICallError.isInstance(error)) {
     if (error.statusCode === 401) return 'unauthorized';
-    if (error.statusCode === 429) return 'rate_limited';
+    if (error.statusCode === 429) return hasNoCredit(error) ? 'quota_exceeded' : 'rate_limited';
     return error.statusCode === undefined ? 'network' : 'provider';
   }
   if (error instanceof TypeError) return 'network';
@@ -101,6 +113,12 @@ function toErrorCode(error: unknown, signal: AbortSignal): ErrorCode {
     return 'invalid_output';
   }
   return 'provider';
+}
+
+// An empty balance is a 429 with code insufficient_quota, also when it ends a stream behind a 200.
+function hasNoCredit(error: APICallError): boolean {
+  const parsed = providerErrorSchema.safeParse(error.data);
+  return parsed.success && parsed.data.code === 'insufficient_quota';
 }
 
 // Never the provider's own message: an OpenAI 401 body echoes part of the key.
