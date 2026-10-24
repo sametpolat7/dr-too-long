@@ -19,7 +19,15 @@ export const portSummarizer: Summarizer = {
       closed = true;
       wake();
     });
-    signal.addEventListener('abort', () => port.disconnect(), { once: true });
+    signal.addEventListener(
+      'abort',
+      () => {
+        port.disconnect();
+        closed = true;
+        wake();
+      },
+      { once: true },
+    );
     port.postMessage(request);
 
     try {
