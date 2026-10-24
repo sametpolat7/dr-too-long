@@ -11,6 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check:manifest": "node scripts/check-manifest.ts",
+    "check:bundle": "node scripts/check-content-bundle.ts",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
