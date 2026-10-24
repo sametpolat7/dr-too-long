@@ -22,6 +22,7 @@ Load the build in Chrome:
 1. Open `chrome://extensions` and turn on **Developer mode**.
 2. Click **Load unpacked** and choose `apps/extension/.output/chrome-mv3`.
 3. After each rebuild, click the extension's **Reload** button.
+4. Open the extension's **Details** page, click **Extension options**, paste your OpenAI API key, click **Save**, then **Test key**. A three-point summary of a built-in sample streams in.
 
 For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev` instead. WXT does not launch a browser; you load the build into your own Chrome profile.
 
@@ -38,10 +39,18 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 
 Chrome never lets an extension run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer.
 
+## Your API key
+
+Phase 1 runs on your own OpenAI API key. Create it in a dedicated OpenAI project with a monthly budget cap and paste it only into the Options page, never into a file, an environment variable or CI.
+
+- The key is stored in the extension's local storage, which Chrome does not encrypt. Only this extension's own code can read it, and it is never synced to your Google account.
+- The key travels only to `api.openai.com`, from the background service worker. Content scripts never see it.
+- With your own key, the text you select goes to OpenAI under your account and OpenAI's terms.
+
 ## Pull requests
 
 - One branch and one pull request per change, with a [Conventional Commits](https://www.conventionalcommits.org) title.
-- Merge with **Squash and merge** once CI is green.
+- Merge with **Create a merge commit** once CI is green.
 - No direct pushes to `main`. The first commit was the only exception, because GitHub cannot open a pull request into an empty repository.
 
 Git hooks enforce this locally. Run `pnpm exec lefthook install` once after cloning. The hooks check formatting, block API keys in commits, check commit titles and refuse pushes to `main`. They are local only and `--no-verify` skips them, so they support the convention rather than enforce it.
