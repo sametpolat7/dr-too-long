@@ -26,7 +26,8 @@ export interface ModelSetup {
   providerOptions?: ProviderOptions;
 }
 
-// gpt-6-luna accepts reasoning effort 'none', its lowest-latency mode.
+// First of four candidates in the model eval of 2026-10-25 (apps/evals). Reasoning effort 'none',
+// its lowest-latency mode, lost nothing to 'low'.
 export const ACTIVE_MODEL: ModelChoice = {
   provider: 'openai',
   modelId: 'gpt-6-luna',
