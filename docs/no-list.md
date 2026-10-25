@@ -10,6 +10,7 @@ Everything below stays out of Phase 1. This list changes only through a pull req
 - No sidebar, popup, side panel or menu before the summary. Every gesture runs Summary directly.
 - No fourth preset, length sliders or tone options.
 - No user settings for the bubble delay, minimum length or selection cap. They are constants in `packages/shared`.
+- No language-specific sentence rules. ICU's root rules and a merge of uppercase initials set the boundaries in every language; no language's abbreviation or ordinal conventions are special-cased.
 
 ## Privacy
 
