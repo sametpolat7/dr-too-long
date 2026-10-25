@@ -1,6 +1,6 @@
 import type { CorpusItem } from './corpus.ts';
 import { shuffled } from './random.ts';
-import { type RunResult, readRun, writeRun } from './results.ts';
+import { groupKey, type RunResult, readRun, writeRun } from './results.ts';
 
 // Tests pass a fake.
 export interface Terminal {
@@ -8,7 +8,7 @@ export interface Terminal {
   print(text: string): void;
 }
 
-// Summaries are shown in random order without model names, so the rating is blind.
+// Summaries are shown in random order without candidate ids, so the rating is blind.
 export async function rateRun(
   path: string,
   corpus: CorpusItem[],
@@ -17,9 +17,7 @@ export async function rateRun(
 ): Promise<void> {
   const run = readRun(path);
   const items = new Map(corpus.map((item) => [item.id, item]));
-  const groups = Map.groupBy(run.results, (result) =>
-    [result.item, result.preset, result.outputLanguage].join(' '),
-  );
+  const groups = Map.groupBy(run.results, groupKey);
   for (const group of groups.values()) {
     const pending = group.filter(
       (result) => result.outcome.type === 'done' && result.builderRating === undefined,

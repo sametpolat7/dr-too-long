@@ -62,3 +62,8 @@ export function readRun(path: string): Run {
 export function writeRun(path: string, run: Run): void {
   writeFileSync(path, `${JSON.stringify(run, null, 2)}\n`);
 }
+
+// Every candidate's summary of one text, preset and output language shares a key.
+export function groupKey({ item, preset, outputLanguage }: RunResult): string {
+  return [item, preset, outputLanguage].join(' ');
+}
