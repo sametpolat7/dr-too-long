@@ -53,7 +53,7 @@ export function parseItem(id: string, file: string): CorpusItem {
     text,
     sentences: segmentSentences(text).map((sentence) => sentence.text),
   };
-  // Fails at load time, not mid-run, when a text exceeds the selection limits.
+  // Fails at load time, not mid-run, when a text exceeds the selection limit.
   requestFor(item, DEFAULT_PRESET, item.language);
   return item;
 }
