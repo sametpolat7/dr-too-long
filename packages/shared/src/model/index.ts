@@ -12,6 +12,7 @@ import {
   buildPrompt,
   type ErrorCode,
   type Point,
+  type PromptBuilder,
   type Summarizer,
   type SummaryEvent,
   type SummaryOutput,
@@ -24,14 +25,17 @@ import type { ModelSetup } from '../providers/index.ts';
 // Five points and the JSON around them fit well within this; the validator caps the count.
 const MAX_OUTPUT_TOKENS = 1024;
 
-export function createSummarizer({ model, providerOptions }: ModelSetup): Summarizer {
+export function createSummarizer(
+  { model, providerOptions }: ModelSetup,
+  prompt: PromptBuilder = buildPrompt,
+): Summarizer {
   return {
     async *summarize(request, { signal }) {
       const started = performance.now();
       let failure: unknown;
       const result = streamText({
         model,
-        ...buildPrompt(request),
+        ...prompt(request),
         output: Output.object({ schema: summaryOutputSchema, name: 'summary' }),
         providerOptions,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
