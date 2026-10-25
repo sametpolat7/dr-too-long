@@ -53,7 +53,7 @@ Phase 1 runs on your own OpenAI API key. Create it in a dedicated OpenAI project
 
 ## Model evals
 
-`apps/evals` runs a fixed corpus of English and Turkish texts through every candidate model with the product's own prompt, summarizer and validator, has an LLM judge score and rank every candidate's summary of a text side by side, and reports quality, rank, latency and cost per thousand summaries. Run it before changing the active model or the prompt, and put the report in the pull request.
+`apps/evals` runs a fixed corpus of English and Turkish texts through every candidate, a model with a prompt, using the product's own summarizer and validator, has an LLM judge score and rank every candidate's summary of a text side by side, and reports quality, rank, latency and cost per thousand summaries. Run it before changing the active model or the prompt, and put the report in the pull request.
 
 ```sh
 OPENAI_API_KEY=... pnpm evals run --limit 2
@@ -63,10 +63,10 @@ pnpm evals report results/<run>.json
 ```
 
 - Keys come from the shell only: `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. A candidate whose key is missing is skipped. The judge runs on `OPENAI_API_KEY`; without it, pass `--no-judge`.
-- `run` takes `--candidate <id>`, `--preset <id>`, `--language en|tr`, `--output-language <tag>`, `--limit <n>` and `--no-judge`. A full run over the seeded corpus costs well under a dollar, most of it the judge.
-- `rate` shows each text with the candidates' summaries in random order and without model names, and asks for a score from 1 to 5. Every answer is saved, so after Ctrl-C a second run continues with the summaries not yet rated.
-- Results land in `apps/evals/results/`, which Git ignores: a JSON file with every summary, verdict and rating, and a Markdown report beside it. Both name the prompt version and the judge's rubric version; scores are compared only within one of each.
-- The candidates, the judge and their list prices live in `apps/evals/src/models.ts`. The shipped model is always listed; a rival joins for its run and leaves after the decision. The texts live in `apps/evals/corpus/`, one Markdown file each with a header naming the title, language, genre, source and license. Every seeded text is openly licensed; texts from your own reading go in the same format.
+- `run` takes `--candidate <id>`, `--preset <id>`, `--language en|tr`, `--output-language <tag>`, `--limit <n>` and `--no-judge`. `--language` with `--output-language` makes a cross-language run, for example English texts summarized in Turkish. A full run over the seeded corpus costs well under a dollar, most of it the judge.
+- `rate` shows each text with the candidates' summaries in random order and without candidate ids, and asks for a score from 1 to 5. Every answer is saved, so after Ctrl-C a second run continues with the summaries not yet rated. The report then states on how many rated pairs the judge ordered the summaries the way you did; you rate the text alone, while the judge also scores the citations.
+- Results land in `apps/evals/results/`, which Git ignores: a JSON file with every summary, verdict and rating, and a Markdown report beside it. Both name the shipped prompt version and the judge's rubric version; scores are compared only within one run.
+- The models, the judge and their list prices live in `apps/evals/src/models.ts`. The shipped model is listed twice, with the shipped prompt and with the previous one (`@prompt-1`, frozen in `apps/evals/src/prompt-v1.ts`), so every run has a prompt baseline; a rival model or prompt joins for its run and leaves after the decision. The texts live in `apps/evals/corpus/`, one Markdown file each with a header naming the title, language, genre, source and license. Every seeded text is openly licensed; texts from your own reading go in the same format.
 
 ## Pull requests
 
