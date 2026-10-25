@@ -1,9 +1,9 @@
-import { PROMPT_VERSION } from '@dr-too-long/shared/contracts';
+import { PROMPT_VERSION, type PromptBuilder } from '@dr-too-long/shared/contracts';
 import { APICallError } from 'ai';
 import type { MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it } from 'vitest';
 import { RUBRIC_VERSION } from '../src/judge.ts';
-import type { EvalModel } from '../src/models.ts';
+import type { Candidate, EvalModel } from '../src/models.ts';
 import { type RunOptions, runEvals } from '../src/run.ts';
 import { corpusItem } from './fixtures.ts';
 import { failingModel, textModel } from './mock-model.ts';
@@ -55,6 +55,15 @@ function evalModel(id: string, keyVariable: string, model: MockLanguageModelV4):
   return { id, keyVariable, pricing: { input: 1, output: 2 }, setup: () => ({ model }) };
 }
 
+function candidate(
+  id: string,
+  keyVariable: string,
+  model: MockLanguageModelV4,
+  prompt?: PromptBuilder,
+): Candidate {
+  return { id, model: evalModel(id, keyVariable, model), prompt };
+}
+
 function unauthorized(): APICallError {
   return new APICallError({ message: 'failed', url: '', requestBodyValues: {}, statusCode: 401 });
 }
@@ -63,7 +72,7 @@ function options(overrides: Partial<RunOptions>): RunOptions & { lines: string[]
   const lines: string[] = [];
   return {
     corpus: [first],
-    candidates: [evalModel('a', 'A_KEY', textModel(SUMMARY))],
+    candidates: [candidate('a', 'A_KEY', textModel(SUMMARY))],
     presets: ['summary'],
     judge: evalModel('j', 'J_KEY', textModel(VERDICT)),
     env: { A_KEY: 'a', J_KEY: 'j' },
@@ -119,8 +128,8 @@ describe('runEvals', () => {
     const run = await runEvals(
       options({
         candidates: [
-          evalModel('a', 'A_KEY', textModel(SUMMARY)),
-          evalModel('b', 'B_KEY', textModel(SUMMARY)),
+          candidate('a', 'A_KEY', textModel(SUMMARY)),
+          candidate('b', 'B_KEY', textModel(SUMMARY)),
         ],
         judge: evalModel('j', 'J_KEY', textModel(TWO_VERDICTS)),
         env: { A_KEY: 'a', B_KEY: 'b', J_KEY: 'j' },
@@ -132,6 +141,13 @@ describe('runEvals', () => {
     for (const result of run.results) expect(result.verdict?.costUsd).toBeCloseTo(0.00007, 10);
   });
 
+  it("summarizes with the candidate's prompt", async () => {
+    const model = textModel(SUMMARY);
+    const custom = () => ({ system: 'Custom system.', prompt: 'Custom input.' });
+    await runEvals(options({ candidates: [candidate('a', 'A_KEY', model, custom)], judge: null }));
+    expect(JSON.stringify(model.doStreamCalls[0]?.prompt)).toContain('Custom system.');
+  });
+
   it('uses the output language given over the text language', async () => {
     const run = await runEvals(options({ outputLanguage: 'tr', judge: null }));
     expect(run.results[0]).toMatchObject({ outputLanguage: 'tr' });
@@ -141,7 +157,7 @@ describe('runEvals', () => {
 
   it('skips a candidate without a key and refuses to run with none', async () => {
     const opts = options({
-      candidates: [evalModel('a', 'MISSING', textModel(SUMMARY))],
+      candidates: [candidate('a', 'MISSING', textModel(SUMMARY))],
       judge: null,
     });
     await expect(runEvals(opts)).rejects.toThrow('No candidate has an API key');
@@ -164,7 +180,7 @@ describe('runEvals', () => {
   it('records an error without a verdict and stops the candidate after a fatal one', async () => {
     const opts = options({
       corpus: [first, second],
-      candidates: [evalModel('a', 'A_KEY', failingModel(unauthorized()))],
+      candidates: [candidate('a', 'A_KEY', failingModel(unauthorized()))],
     });
     const run = await runEvals(opts);
 
@@ -183,9 +199,9 @@ describe('runEvals', () => {
     const run = await runEvals(
       options({
         candidates: [
-          evalModel('a', 'A_KEY', textModel(SUMMARY)),
-          evalModel('b', 'B_KEY', textModel(SUMMARY)),
-          evalModel('c', 'A_KEY', textModel(SUMMARY)),
+          candidate('a', 'A_KEY', textModel(SUMMARY)),
+          candidate('b', 'B_KEY', textModel(SUMMARY)),
+          candidate('c', 'A_KEY', textModel(SUMMARY)),
         ],
         judge: null,
         env: { A_KEY: 'a', B_KEY: 'b' },

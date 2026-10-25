@@ -42,6 +42,11 @@ function failed(candidate: string, preset: RunResult['preset'], latencyMs: numbe
   };
 }
 
+function rated(candidate: string, rating: number, rank: number): RunResult {
+  const scores = { faithfulness: 4, citations: 4, coverage: 4, language: 4, form: 4 };
+  return done(candidate, 'summary', { latencyMs: 1, costUsd: 0, dropped: 0, scores, rank, rating });
+}
+
 const run = runOf(
   [
     done('a', 'summary', {
@@ -49,6 +54,7 @@ const run = runOf(
       costUsd: 0.0001,
       dropped: 1,
       scores: { faithfulness: 5, citations: 5, coverage: 4, language: 5, form: 4 },
+      rank: 2,
       rating: 4,
     }),
     done('a', 'summary', {
@@ -56,7 +62,6 @@ const run = runOf(
       costUsd: 0.0003,
       dropped: 0,
       scores: { faithfulness: 3, citations: 3, coverage: 4, language: 3, form: 4 },
-      rank: 2,
     }),
     failed('a', 'summary', 50),
     done('b', 'summary', {
@@ -68,7 +73,7 @@ const run = runOf(
     }),
     done('a', 'bulleted-list', { latencyMs: 120, costUsd: 0.0002, dropped: 0 }),
   ],
-  { id: 'j', rubricVersion: 2 },
+  { id: 'j', rubricVersion: 3 },
 );
 
 function compact(text: string): string {
@@ -80,25 +85,25 @@ describe('renderReport', () => {
 
   it('summarizes each candidate per preset, with latency over completed summaries', () => {
     expect(report).toContain('# Eval run 2026-10-25T10:00:00.000Z');
-    expect(report).toContain('Prompt version 1. Judge: j with rubric 2. 5 summaries.');
+    expect(report).toContain('Shipped prompt version 1. Judge: j with rubric 3. 5 summaries.');
     expect(report).toContain(
-      '| Candidate | Summaries | Errors | Dropped | Faithfulness | Citations | Coverage | Language | Form | Judge | Rank | Builder | Words/pt | Spliced | p50 ms | $ per 1k |',
+      '| Candidate | Summaries | Errors | Dropped | Faithfulness | Citations | Coverage | Language | Form | Judge | Rank | Builder | Words/pt | Cites/pt | Spliced | p50 ms | $ per 1k |',
     );
     expect(report).toContain(
-      '| a | 3 | 1 | 1 | 4.0 | 4.0 | 4.0 | 4.0 | 4.0 | 4.0 | 1.5 | 4.0 (1) | 1.0 | 0% | 200 | 0.20 |',
+      '| a | 3 | 1 | 1 | 4.0 | 4.0 | 4.0 | 4.0 | 4.0 | 4.0 | 1.5 | 4.0 (1) | 1.0 | 1.0 | 0% | 200 | 0.20 |',
     );
     expect(report).toContain(
-      '| b | 1 | 0 | 0 | 5.0 | 5.0 | 5.0 | 5.0 | 5.0 | 5.0 | 1.0 | 5.0 (1) | 1.0 | 0% | 200 | 0.20 |',
+      '| b | 1 | 0 | 0 | 5.0 | 5.0 | 5.0 | 5.0 | 5.0 | 5.0 | 1.0 | 5.0 (1) | 1.0 | 1.0 | 0% | 200 | 0.20 |',
     );
   });
 
   it('leaves a dash where nothing was measured', () => {
     expect(report).toContain('## bulleted-list');
     expect(report).toContain(
-      '| a | 1 | 0 | 0 | – | – | – | – | – | – | – | – | 1.0 | 0% | 120 | 0.20 |',
+      '| a | 1 | 0 | 0 | – | – | – | – | – | – | – | – | 1.0 | 1.0 | 0% | 120 | 0.20 |',
     );
     expect(compact(renderReport(runOf([failed('a', 'summary', 50)])))).toContain(
-      '| a | 1 | 1 | 0 | – | – | – | – | – | – | – | – | – | – | – | – |',
+      '| a | 1 | 1 | 0 | – | – | – | – | – | – | – | – | – | – | – | – | – |',
     );
   });
 
@@ -107,6 +112,21 @@ describe('renderReport', () => {
     expect(
       renderReport(runOf([done('a', 'summary', { latencyMs: 1, costUsd: 0, dropped: 0 })])),
     ).not.toContain('## Errors');
+  });
+
+  it('counts the rated pairs the judge ordered the way the builder did', () => {
+    expect(report).toContain('## Agreement\n\nBuilder and judge agree on 1 of 1 rated pair.\n');
+    const text = renderReport(
+      runOf([rated('a', 5, 2), rated('b', 3, 1), rated('c', 3, 3), rated('d', 2, 4)]),
+    );
+    expect(text).toContain('Builder and judge agree on 4 of 5 rated pairs.');
+  });
+
+  it('shows no agreement without a rated pair', () => {
+    const text = renderReport(
+      runOf([rated('a', 5, 1), { ...rated('b', 3, 2), builderRating: undefined }]),
+    );
+    expect(text).not.toContain('## Agreement');
   });
 
   it('totals the cost per candidate and for the judge', () => {
