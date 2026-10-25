@@ -38,6 +38,7 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 | `pnpm test` | Runs the unit tests of every package |
 | `pnpm check:manifest` | Fails if the built manifest's permissions differ from `manifest-expected.json` |
 | `pnpm check:bundle` | Fails if the built content script carries key, storage or provider code |
+| `pnpm evals` | Runs the model evals; see [Model evals](#model-evals) |
 
 Chrome never lets an extension run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer; the icon shows a `!` badge there for a moment. The extension asks for `activeTab` and `scripting` to run on the page you click it on, and for `storage` to keep your key. Apart from `api.openai.com`, which the background worker calls, it has no access to any site until you click.
 
@@ -49,6 +50,23 @@ Phase 1 runs on your own OpenAI API key. Create it in a dedicated OpenAI project
 - The key travels only to `api.openai.com`, from the background service worker. Content scripts never see it, and a lint rule keeps the on-page code from importing the key module or the model.
 - With your own key, the text you select goes to OpenAI under your account and OpenAI's terms.
 - The key only works while the OpenAI account holds credit. OpenAI reports an empty balance as a quota error, and new credit can take a few minutes to become active.
+
+## Model evals
+
+`apps/evals` runs a fixed corpus of English and Turkish texts through every candidate model with the product's own prompt, summarizer and validator, has an LLM judge score and rank every candidate's summary of a text side by side, and reports quality, rank, latency and cost per thousand summaries. Run it before changing the active model or the prompt, and put the report in the pull request.
+
+```sh
+OPENAI_API_KEY=... pnpm evals run --limit 2
+pnpm evals run
+pnpm evals rate results/<run>.json
+pnpm evals report results/<run>.json
+```
+
+- Keys come from the shell only: `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. A candidate whose key is missing is skipped. The judge runs on `OPENAI_API_KEY`; without it, pass `--no-judge`.
+- `run` takes `--candidate <id>`, `--preset <id>`, `--language en|tr`, `--output-language <tag>`, `--limit <n>` and `--no-judge`. A full run over the seeded corpus costs well under a dollar, most of it the judge.
+- `rate` shows each text with the candidates' summaries in random order and without model names, and asks for a score from 1 to 5. Every answer is saved, so after Ctrl-C a second run continues with the summaries not yet rated.
+- Results land in `apps/evals/results/`, which Git ignores: a JSON file with every summary, verdict and rating, and a Markdown report beside it. Both name the prompt version and the judge's rubric version; scores are compared only within one of each.
+- The candidates, the judge and their list prices live in `apps/evals/src/models.ts`. The shipped model is always listed; a rival joins for its run and leaves after the decision. The texts live in `apps/evals/corpus/`, one Markdown file each with a header naming the title, language, genre, source and license. Every seeded text is openly licensed; texts from your own reading go in the same format.
 
 ## Pull requests
 
