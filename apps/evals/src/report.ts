@@ -1,6 +1,6 @@
 import { PRESET_IDS } from '@dr-too-long/shared/contracts';
 import { CRITERIA } from './judge.ts';
-import type { Run, RunResult } from './results.ts';
+import { groupKey, type Run, type RunResult } from './results.ts';
 
 const NONE = '–';
 
@@ -14,6 +14,7 @@ const HEADERS = [
   'Rank',
   'Builder',
   'Words/pt',
+  'Cites/pt',
   'Spliced',
   'p50 ms',
   '$ per 1k',
@@ -24,7 +25,7 @@ export function renderReport(run: Run): string {
   const lines = [
     `# Eval run ${run.startedAt}`,
     '',
-    `Prompt version ${run.promptVersion}. Judge: ${judge}. ${run.results.length} summaries.`,
+    `Shipped prompt version ${run.promptVersion}. Judge: ${judge}. ${run.results.length} summaries.`,
   ];
   for (const preset of PRESET_IDS) {
     const results = run.results.filter((result) => result.preset === preset);
@@ -39,6 +40,8 @@ export function renderReport(run: Run): string {
   }
   const errors = errorLines(run);
   if (errors.length > 0) lines.push('', '## Errors', '', ...errors);
+  const agreement = agreementLine(run);
+  if (agreement) lines.push('', '## Agreement', '', agreement);
   lines.push('', '## Cost', '', ...costLines(run));
   return `${lines.join('\n')}\n`;
 }
@@ -62,14 +65,39 @@ function row(candidate: string, results: RunResult[]): string[] {
     fixed(mean(criteria), 1),
     fixed(mean(verdicts.map((verdict) => verdict.rank)), 1),
     ratings.length === 0 ? NONE : `${fixed(mean(ratings), 1)} (${ratings.length})`,
-    // Density the judge's form score misses: words per point and points spliced with a semicolon.
+    // Density the judge's form score misses: words and citations per point, and points
+    // spliced with a semicolon.
     fixed(mean(points.map((point) => point.text.split(/\s+/).length)), 1),
+    fixed(mean(points.map((point) => point.sentences.length)), 1),
     points.length === 0
       ? NONE
       : `${Math.round((100 * points.filter((point) => point.text.includes(';')).length) / points.length)}%`,
     fixed(median(done.map((outcome) => outcome.latencyMs)), 0),
     fixed(mean(costs(done)) * 1000, 2),
   ];
+}
+
+// Two summaries of one text that the builder rated differently are a pair; it agrees when the
+// judge ranks the one rated higher ahead of the other.
+function agreementLine(run: Run): string | null {
+  let agreed = 0;
+  let total = 0;
+  for (const group of Map.groupBy(run.results, groupKey).values()) {
+    const rated = group.flatMap((result) =>
+      result.builderRating === undefined || !result.verdict
+        ? []
+        : [{ rating: result.builderRating, rank: result.verdict.rank }],
+    );
+    for (const [index, a] of rated.entries()) {
+      for (const b of rated.slice(index + 1)) {
+        if (a.rating === b.rating) continue;
+        total += 1;
+        if (a.rating > b.rating === a.rank < b.rank) agreed += 1;
+      }
+    }
+  }
+  if (total === 0) return null;
+  return `Builder and judge agree on ${agreed} of ${count(total, 'rated pair', 'rated pairs')}.`;
 }
 
 function costLines(run: Run): string[] {

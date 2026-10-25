@@ -61,13 +61,13 @@ describe('createJudge', () => {
     expect(usage).toEqual({ inputTokens: 100, outputTokens: 20 });
   });
 
-  it('shows the judge the instructions, the numbered text and each labelled summary', async () => {
+  it('shows the judge the task, the numbered text and each labelled summary', async () => {
     const keys = [0.9, 0.1];
     const model = textModel(OUTPUT);
     await createJudge({ model }, () => keys.shift() ?? 0)(request, [weak, strong]);
     const prompt = JSON.stringify(model.doGenerateCalls[0]?.prompt);
-    expect(prompt).toContain('Number of points: 2 to 4.');
-    expect(prompt).toContain('at most 6, so a true claim may go uncited');
+    expect(prompt).toContain('Task the summaries are graded against:\\nNumber of points: 2 to 4,');
+    expect(prompt).not.toContain('You summarize text');
     expect(prompt).toContain('[2] Valleys collect towns.');
     expect(prompt).toContain(
       'A.\\n1. Rivers shape towns. (sentences 1, 2)\\n\\nB.\\n1. Rivers. (sentences 1)',

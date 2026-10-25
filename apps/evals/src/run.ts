@@ -9,12 +9,12 @@ import { createSummarizer } from '@dr-too-long/shared/model';
 import { APICallError } from 'ai';
 import { type CorpusItem, requestFor } from './corpus.ts';
 import { createJudge, type Judge, RUBRIC_VERSION } from './judge.ts';
-import { costUsd, type EvalModel } from './models.ts';
-import type { Outcome, Run, RunResult } from './results.ts';
+import { type Candidate, costUsd, type EvalModel, type Pricing } from './models.ts';
+import { groupKey, type Outcome, type Run, type RunResult } from './results.ts';
 
 export interface RunOptions {
   corpus: CorpusItem[];
-  candidates: readonly EvalModel[];
+  candidates: readonly Candidate[];
   presets: readonly PresetId[];
   outputLanguage?: string;
   judge: EvalModel | null;
@@ -23,7 +23,7 @@ export interface RunOptions {
 }
 
 interface Keyed {
-  model: EvalModel;
+  candidate: Candidate;
   apiKey: string;
 }
 
@@ -37,10 +37,10 @@ const FATAL: ReadonlySet<string> = new Set(['unauthorized', 'quota_exceeded']);
 
 export async function runEvals(options: RunOptions): Promise<Run> {
   const { env, log } = options;
-  const keyed = options.candidates.flatMap((model): Keyed[] => {
-    const apiKey = env[model.keyVariable];
-    if (apiKey) return [{ model, apiKey }];
-    log(`${model.id}: skipped, ${model.keyVariable} is not set`);
+  const keyed = options.candidates.flatMap((candidate): Keyed[] => {
+    const apiKey = env[candidate.model.keyVariable];
+    if (apiKey) return [{ candidate, apiKey }];
+    log(`${candidate.id}: skipped, ${candidate.model.keyVariable} is not set`);
     return [];
   });
   if (keyed.length === 0) throw new Error('No candidate has an API key in the environment');
@@ -51,7 +51,7 @@ export async function runEvals(options: RunOptions): Promise<Run> {
   };
   const startedAt = new Date().toISOString();
   // Candidates that share a key run one after another; keys run in parallel.
-  const groups = Map.groupBy(keyed, ({ model }) => model.keyVariable).values();
+  const groups = Map.groupBy(keyed, ({ candidate }) => candidate.model.keyVariable).values();
   const results = (await Promise.all([...groups].map((group) => runGroup(group, options)))).flat();
   if (judging) await judgeAll(results, judging, options);
   return {
@@ -70,35 +70,35 @@ function requireKey({ id, keyVariable }: EvalModel, env: RunOptions['env']): str
 
 async function runGroup(group: Keyed[], options: RunOptions): Promise<RunResult[]> {
   const results: RunResult[] = [];
-  for (const { model, apiKey } of group) {
-    results.push(...(await runCandidate(model, apiKey, options)));
+  for (const { candidate, apiKey } of group) {
+    results.push(...(await runCandidate(candidate, apiKey, options)));
   }
   return results;
 }
 
 async function runCandidate(
-  model: EvalModel,
+  { id, model, prompt }: Candidate,
   apiKey: string,
   { corpus, presets, outputLanguage, log }: RunOptions,
 ): Promise<RunResult[]> {
-  const summarizer = createSummarizer(model.setup(apiKey));
+  const summarizer = createSummarizer(model.setup(apiKey), prompt);
   const signal = new AbortController().signal;
   const results: RunResult[] = [];
   for (const item of corpus) {
     for (const preset of presets) {
       const request = requestFor(item, preset, outputLanguage ?? item.language);
-      const outcome = await summarize(summarizer, request, signal, model);
+      const outcome = await summarize(summarizer, request, signal, model.pricing);
       const result = {
         item: item.id,
         preset,
         outputLanguage: request.outputLanguage,
-        candidate: model.id,
+        candidate: id,
         outcome,
       };
       results.push(result);
       log(describe(result));
       if (outcome.type === 'error' && FATAL.has(outcome.code)) {
-        log(`${model.id}: stopped after ${outcome.code}`);
+        log(`${id}: stopped after ${outcome.code}`);
         return results;
       }
     }
@@ -110,7 +110,7 @@ async function summarize(
   summarizer: Summarizer,
   request: SummarizeRequest,
   signal: AbortSignal,
-  { pricing }: EvalModel,
+  pricing: Pricing,
 ): Promise<Outcome> {
   const started = performance.now();
   let last: SummaryEvent | undefined;
@@ -140,9 +140,7 @@ async function judgeAll(
   { model, judge }: Judging,
   { corpus, log }: RunOptions,
 ): Promise<void> {
-  const groups = Map.groupBy(results, (result) =>
-    [result.item, result.preset, result.outputLanguage].join(' '),
-  );
+  const groups = Map.groupBy(results, groupKey);
   for (const group of groups.values()) {
     const done = group.flatMap((result) =>
       result.outcome.type === 'done' ? [{ result, points: result.outcome.points }] : [],

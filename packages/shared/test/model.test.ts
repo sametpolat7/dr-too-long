@@ -83,6 +83,22 @@ describe('createSummarizer', () => {
     });
   });
 
+  it('sends the prompt the builder given returns', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: simulateReadableStream({
+          chunks: textParts(['{"points":[{"text":"Rivers.","sentences":[1]}]}']),
+        }),
+      }),
+    });
+    const custom = () => ({ system: 'Custom system.', prompt: 'Custom input.' });
+    await collect(createSummarizer({ model }, custom));
+
+    const sent = JSON.stringify(model.doStreamCalls[0]?.prompt);
+    expect(sent).toContain('Custom system.');
+    expect(sent).toContain('Custom input.');
+  });
+
   it('drops a point that cites no valid sentence and counts it', async () => {
     const events = await collect(
       streaming(

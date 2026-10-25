@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { PRESET_IDS } from '@dr-too-long/shared/contracts';
 import { LANGUAGES, loadCorpus } from './corpus.ts';
-import { CANDIDATES, type EvalModel, JUDGE } from './models.ts';
+import { CANDIDATES, type Candidate, JUDGE } from './models.ts';
 import { rateRun } from './rate.ts';
 import { renderReport } from './report.ts';
 import { readRun, writeRun } from './results.ts';
@@ -104,8 +104,8 @@ function runFile(value: string | undefined): string {
   return value;
 }
 
-function candidate(id: string): EvalModel {
-  const found = CANDIDATES.find((model) => model.id === id);
+function candidate(id: string): Candidate {
+  const found = CANDIDATES.find((entry) => entry.id === id);
   if (!found) throw new Error(`Unknown candidate: ${id}`);
   return found;
 }
