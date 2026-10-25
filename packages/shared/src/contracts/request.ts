@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isWithinSelectionLimits } from '../limits/index.ts';
+import { MAX_SELECTION_CHARS } from '../limits/index.ts';
 import { PRESET_IDS } from './presets.ts';
 
 function isLanguageTag(tag: string): boolean {
@@ -18,7 +18,7 @@ export const summarizeRequestSchema = z.strictObject({
     .array(z.string().min(1))
     .min(1)
     .refine(
-      (sentences) => isWithinSelectionLimits(sentences.join('').length, sentences.length),
+      (sentences) => sentences.join('').length <= MAX_SELECTION_CHARS,
       'Selection is too long',
     ),
 });
