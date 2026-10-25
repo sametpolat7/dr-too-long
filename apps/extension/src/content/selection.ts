@@ -1,9 +1,5 @@
 import { DEFAULT_PRESET, type SummarizeRequest } from '@dr-too-long/shared/contracts';
-import {
-  isWithinSelectionLimits,
-  MAX_SELECTION_CHARS,
-  MAX_SENTENCES,
-} from '@dr-too-long/shared/limits';
+import { MAX_SELECTION_CHARS } from '@dr-too-long/shared/limits';
 import { segmentSentences } from '@dr-too-long/shared/segmentation';
 
 export type SelectionOutcome =
@@ -45,11 +41,11 @@ function isEditable(node: Node): boolean {
 function buildRequest(text: string, outputLanguage: string): SelectionOutcome {
   const sentences = segmentSentences(text).map((sentence) => sentence.text);
   const chars = sentences.join('').length;
-  if (!isWithinSelectionLimits(chars, sentences.length)) {
+  if (chars > MAX_SELECTION_CHARS) {
     return {
       ok: false,
       code: 'too_long',
-      detail: `${sentences.length} sentences and ${chars} characters; the limit is ${MAX_SENTENCES} sentences or ${MAX_SELECTION_CHARS} characters.`,
+      detail: `${chars.toLocaleString('en')} characters; the limit is ${MAX_SELECTION_CHARS.toLocaleString('en')}.`,
     };
   }
   return { ok: true, request: { v: 1, preset: DEFAULT_PRESET, outputLanguage, sentences } };
