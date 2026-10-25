@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { summarizeRequestSchema } from '../src/contracts/index.ts';
-import { MAX_SENTENCES } from '../src/limits/index.ts';
+import { MAX_SELECTION_CHARS } from '../src/limits/index.ts';
 
 const request = {
   v: 1,
@@ -33,8 +33,8 @@ describe('summarizeRequestSchema', () => {
     expect(summarizeRequestSchema.safeParse({ ...request, sentences: [] }).success).toBe(false);
   });
 
-  it('rejects a selection above the sentence limit', () => {
-    const sentences = Array.from({ length: MAX_SENTENCES + 1 }, () => 'Short.');
+  it('rejects a selection above the character limit', () => {
+    const sentences = ['x'.repeat(MAX_SELECTION_CHARS + 1)];
     expect(summarizeRequestSchema.safeParse({ ...request, sentences }).success).toBe(false);
   });
 });

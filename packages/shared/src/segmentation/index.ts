@@ -1,5 +1,3 @@
-import { ABBREVIATIONS } from './abbreviations.ts';
-
 export interface Sentence {
   text: string;
   start: number;
@@ -11,8 +9,8 @@ interface Span {
   end: number;
 }
 
-// English and Turkish share ICU's root sentence rules; a fixed locale keeps the result
-// identical on every machine.
+// ICU's root rules split sentences in any language, and a fixed locale keeps the result identical
+// on every machine. No language's abbreviation or ordinal conventions are special-cased.
 const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
 
 const LINE_BREAK = /[\n\r\u2028\u2029]/;
@@ -32,12 +30,12 @@ export function segmentSentences(text: string): Sentence[] {
   return spans.map((span) => trim(text, span)).filter((sentence) => sentence !== null);
 }
 
-// The segmenter breaks after any abbreviation that a capitalised word or a number follows.
+// The segmenter breaks after an initial that a capitalised word follows (J. R. Smith).
 function isFalseBreak(segment: string): boolean {
   const trimmed = segment.trimEnd();
   if (LINE_BREAK.test(segment.slice(trimmed.length))) return false;
   const word = trimmed.slice(trimmed.search(/\S*$/)).replace(OPENING_PUNCTUATION, '');
-  return UPPERCASE_INITIALS.test(word) || ABBREVIATIONS.has(word.toLowerCase());
+  return UPPERCASE_INITIALS.test(word);
 }
 
 function trim(text: string, span: Span): Sentence | null {

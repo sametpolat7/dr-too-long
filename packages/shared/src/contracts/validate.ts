@@ -1,4 +1,3 @@
-import { MAX_REFS_PER_POINT } from '../limits/index.ts';
 import type { Point, SummaryOutput } from './output.ts';
 import { PRESET_RULES, type PresetId } from './presets.ts';
 
@@ -12,8 +11,7 @@ export function validatePoint(point: Point, sentenceCount: number): Point | null
   const text = point.text.trim();
   const sentences = [...new Set(point.sentences)]
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= sentenceCount)
-    .sort((a, b) => a - b)
-    .slice(0, MAX_REFS_PER_POINT);
+    .sort((a, b) => a - b);
 
   return text && sentences.length > 0 ? { text, sentences } : null;
 }

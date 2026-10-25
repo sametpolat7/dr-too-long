@@ -1,4 +1,4 @@
-import { MAX_SENTENCES } from '@dr-too-long/shared/limits';
+import { MAX_SELECTION_CHARS } from '@dr-too-long/shared/limits';
 import { describe, expect, it } from 'vitest';
 import { loadCorpus, parseItem, requestFor } from '../src/corpus.ts';
 import { corpusFile, corpusItem } from './fixtures.ts';
@@ -32,12 +32,8 @@ describe('parseItem', () => {
     expect(() => parseItem('x', corpusFile('Text.', header))).toThrow('language');
   });
 
-  it('rejects a text beyond the selection limits', () => {
-    const sentences = Array.from(
-      { length: MAX_SENTENCES + 1 },
-      (_, i) => `Sentence ${i + 1} is here.`,
-    );
-    expect(() => corpusItem('x', sentences.join(' '))).toThrow('too long');
+  it('rejects a text beyond the selection limit', () => {
+    expect(() => corpusItem('x', 'x'.repeat(MAX_SELECTION_CHARS + 1))).toThrow('too long');
   });
 });
 

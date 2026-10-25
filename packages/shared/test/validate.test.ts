@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { type Point, validateOutput, validatePoint } from '../src/contracts/index.ts';
-import { MAX_REFS_PER_POINT } from '../src/limits/index.ts';
 
 const point = (sentences: number[]): Point => ({ text: 'A point.', sentences });
 
@@ -17,10 +16,10 @@ describe('validatePoint with 10 sentences', () => {
     expect(validatePoint(point([2.5, 4]), 10)?.sentences).toEqual([4]);
   });
 
-  it(`caps references at ${MAX_REFS_PER_POINT}`, () => {
-    expect(validatePoint(point([1, 2, 3, 4, 5, 6, 7, 8]), 10)?.sentences).toHaveLength(
-      MAX_REFS_PER_POINT,
-    );
+  it('keeps all eight valid references', () => {
+    expect(validatePoint(point([1, 2, 3, 4, 5, 6, 7, 8]), 10)?.sentences).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8,
+    ]);
   });
 
   it('drops a point with blank text', () => {

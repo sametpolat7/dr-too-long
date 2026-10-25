@@ -29,9 +29,13 @@ describe('Card', () => {
   });
 
   it('shows the message and detail of an error', () => {
-    const container = show({ status: 'error', code: 'too_long', detail: '151 sentences' });
+    const container = show({
+      status: 'error',
+      code: 'too_long',
+      detail: '10,001 characters; the limit is 10,000.',
+    });
     expect(container.textContent).toContain('The selection is too long.');
-    expect(container.textContent).toContain('151 sentences');
+    expect(container.textContent).toContain('10,001 characters; the limit is 10,000.');
     expect(container.querySelector('button.options')).toBeNull();
   });
 
