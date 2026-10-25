@@ -1,4 +1,4 @@
-import { MAX_SENTENCES } from '@dr-too-long/shared/limits';
+import { MAX_SELECTION_CHARS } from '@dr-too-long/shared/limits';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { selectionRequest } from '../src/content/selection.ts';
 
@@ -72,13 +72,12 @@ describe('selectionRequest', () => {
     });
   });
 
-  it('refuses a selection above the sentence limit and names the counts', () => {
-    const count = MAX_SENTENCES + 1;
-    const text = Array.from({ length: count }, (_, i) => `Sentence ${i + 1}.`).join(' ');
+  it('refuses a selection above the character limit and names the count', () => {
+    const text = 'x'.repeat(MAX_SELECTION_CHARS + 1);
     expect(selectionRequest(select(`<p>${text}</p>`, 'p'), 'en')).toEqual({
       ok: false,
       code: 'too_long',
-      detail: expect.stringContaining(`${count} sentences`),
+      detail: '10,001 characters; the limit is 10,000.',
     });
   });
 });

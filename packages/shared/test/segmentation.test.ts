@@ -29,48 +29,31 @@ describe('segmentSentences', () => {
     expect(texts('He said "Stop." Then he left.')).toEqual(['He said "Stop."', 'Then he left.']);
   });
 
-  it.each([
-    ['Dr. Smith arrived. He left.', ['Dr. Smith arrived.', 'He left.']],
-    [
-      'Prof. Dr. Ayşe Yılmaz konuştu. Sn. Demir dinledi.',
-      ['Prof. Dr. Ayşe Yılmaz konuştu.', 'Sn. Demir dinledi.'],
-    ],
-    ['See Fig. 3 and p. 12. Then stop.', ['See Fig. 3 and p. 12.', 'Then stop.']],
-    ['Bkz. Şekil 2 ve s. 40. Sonra dur.', ['Bkz. Şekil 2 ve s. 40.', 'Sonra dur.']],
-    ['Use a linter, e.g. Biome. Done.', ['Use a linter, e.g. Biome.', 'Done.']],
-    [
-      'Atatürk Cad. No. 5 adresine gidin. Sonra dönün.',
-      ['Atatürk Cad. No. 5 adresine gidin.', 'Sonra dönün.'],
-    ],
-    [
-      'It opened on Jan. 5 last year. It closed later.',
-      ['It opened on Jan. 5 last year.', 'It closed later.'],
-    ],
-    ['Demir Ltd. Şti. büyüdü. Sonra küçüldü.', ['Demir Ltd. Şti. büyüdü.', 'Sonra küçüldü.']],
-    ['He met (Dr. Smith) today. Fine.', ['He met (Dr. Smith) today.', 'Fine.']],
-  ])('merges an abbreviation with what it introduces: %s', (input, expected) => {
-    expect(texts(input)).toEqual(expected);
-  });
-
   it('merges uppercase initials', () => {
     expect(texts('J. R. Smith spoke. T.C. Sağlık Bakanlığı açıkladı. A.B.C. Corp. grew.')).toEqual([
       'J. R. Smith spoke.',
       'T.C. Sağlık Bakanlığı açıkladı.',
       'A.B.C. Corp. grew.',
     ]);
+    expect(texts('He met (J. R. Smith) today. Fine.')).toEqual([
+      'He met (J. R. Smith) today.',
+      'Fine.',
+    ]);
   });
 
-  it('leaves phrase-closing abbreviations to the segmenter', () => {
+  it('leaves abbreviations to the segmenter, which breaks only before a capitalised word', () => {
+    expect(texts('Dr. Smith arrived. He left.')).toEqual(['Dr.', 'Smith arrived.', 'He left.']);
     expect(texts('Elma, armut vb. Hepsi taze.')).toEqual(['Elma, armut vb.', 'Hepsi taze.']);
+    expect(texts('See p. 12 and Fig. 3 here.')).toEqual(['See p. 12 and Fig. 3 here.']);
     expect(texts('Apples, pears, etc. and more.')).toEqual(['Apples, pears, etc. and more.']);
   });
 
   it('treats every line break as a boundary and never merges across one', () => {
-    expect(texts('Heading\nFirst line. Second line.\n\nDr.\nSmith')).toEqual([
+    expect(texts('Heading\nFirst line. Second line.\n\nJ.\nSmith')).toEqual([
       'Heading',
       'First line.',
       'Second line.',
-      'Dr.',
+      'J.',
       'Smith',
     ]);
   });
