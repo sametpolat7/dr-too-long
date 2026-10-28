@@ -35,6 +35,7 @@ describe('createAnchors', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('highlights the cited sentences and scrolls to the first', () => {
@@ -45,6 +46,13 @@ describe('createAnchors', () => {
     expect(scrollIntoView).toHaveBeenCalledOnce();
     expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center', behavior: 'smooth' });
     expect(scrollIntoView.mock.instances[0]).toBe(document.querySelector('p'));
+  });
+
+  it('scrolls the nearest element with a box when the passage sits in a display: contents wrapper', () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    document.body.innerHTML = '<section><div style="display: contents">One two.</div></section>';
+    expect(anchorsOver('section').activate({ text: '', sentences: [1] })).toBe(true);
+    expect(scrollIntoView.mock.instances[0]).toBe(document.querySelector('section'));
   });
 
   it('clears the selection, which would paint over the highlight', () => {
@@ -74,8 +82,34 @@ describe('createAnchors', () => {
     expect(aside.contains(range?.startContainer ?? null)).toBe(true);
   });
 
-  it('reports a passage that is gone and highlights nothing', () => {
+  it('re-finds a passage whose text changed in place', () => {
     const anchors = anchorsOver('section');
+    const first = document.querySelector('p')?.firstChild;
+    const aside = document.querySelector('aside');
+    if (!(first instanceof Text) || !aside) throw new Error('Fixture changed');
+    first.data = 'Zzz zzz. Three four.';
+    aside.innerHTML = '<p>One two.</p>';
+    expect(anchors.activate({ text: '', sentences: [1] })).toBe(true);
+    const [range] = highlights.get(HIGHLIGHT_NAME) ?? [];
+    expect(range?.toString()).toBe('One two.');
+    expect(aside.contains(range?.startContainer ?? null)).toBe(true);
+  });
+
+  it('re-finds a passage where it was before searching the whole page', () => {
+    document.body.innerHTML =
+      '<header><p>Three four.</p></header><section><p>One two. Three four.</p></section>';
+    const anchors = anchorsOver('section');
+    const section = document.querySelector('section');
+    if (!section) throw new Error('Fixture changed');
+    section.innerHTML = '<p>One two. Three four.</p>';
+    expect(anchors.activate({ text: '', sentences: [2] })).toBe(true);
+    const [range] = highlights.get(HIGHLIGHT_NAME) ?? [];
+    expect(section.contains(range?.startContainer ?? null)).toBe(true);
+  });
+
+  it('reports a passage that is gone and leaves nothing highlighted', () => {
+    const anchors = anchorsOver('section');
+    anchors.activate({ text: '', sentences: [1] });
     document.querySelectorAll('p')[1]?.remove();
     expect(anchors.activate({ text: '', sentences: [3] })).toBe(false);
     expect(highlights.size).toBe(0);

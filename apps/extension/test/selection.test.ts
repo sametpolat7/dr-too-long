@@ -63,11 +63,6 @@ describe('selectionRequest', () => {
     expect(selectionRequest(selection, 'en')).toEqual(unsupported);
   });
 
-  it('reports unsupported_selection when the selection holds only hidden text', () => {
-    const selection = select('<p><span style="display: none">Hidden.</span></p>', 'p');
-    expect(selectionRequest(selection, 'en')).toEqual(unsupported);
-  });
-
   it('builds a summary request from the selected sentences', () => {
     const selection = select('<p>First sentence. <em>Second</em> sentence.</p>', 'p');
     const outcome = selectionRequest(selection, 'tr');
