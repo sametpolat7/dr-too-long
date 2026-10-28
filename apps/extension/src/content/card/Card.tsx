@@ -1,4 +1,6 @@
 import type { ErrorCode, Point } from '@dr-too-long/shared/contracts';
+import { Fragment } from 'preact';
+import { useState } from 'preact/hooks';
 import { ERROR_MESSAGES } from '../../error-messages.ts';
 
 export type CardState =
@@ -10,9 +12,10 @@ interface CardProps {
   state: CardState;
   onClose: () => void;
   onOpenOptions: () => void;
+  onActivate: (point: Point) => boolean;
 }
 
-export function Card({ state, onClose, onOpenOptions }: CardProps) {
+export function Card({ state, onClose, onOpenOptions, onActivate }: CardProps) {
   return (
     <section class="card" aria-label="Summary">
       <header>
@@ -21,12 +24,12 @@ export function Card({ state, onClose, onOpenOptions }: CardProps) {
           ×
         </button>
       </header>
-      <Body state={state} onOpenOptions={onOpenOptions} />
+      <Body state={state} onOpenOptions={onOpenOptions} onActivate={onActivate} />
     </section>
   );
 }
 
-function Body({ state, onOpenOptions }: Omit<CardProps, 'onClose'>) {
+function Body({ state, onOpenOptions, onActivate }: Omit<CardProps, 'onClose'>) {
   if (state.status === 'error') {
     return (
       <>
@@ -40,10 +43,61 @@ function Body({ state, onOpenOptions }: Omit<CardProps, 'onClose'>) {
       </>
     );
   }
+  if (state.status === 'summarizing') {
+    return (
+      <>
+        <p>{state.points.map((point) => point.text).join(' ')}</p>
+        <p class="status">Summarizing…</p>
+      </>
+    );
+  }
+  return <Summary points={state.points} onActivate={onActivate} />;
+}
+
+interface Active {
+  index: number;
+  found: boolean;
+}
+
+interface SummaryProps {
+  points: Point[];
+  onActivate: CardProps['onActivate'];
+}
+
+function Summary({ points, onActivate }: SummaryProps) {
+  const [active, setActive] = useState<Active>();
+  const activate = (index: number, point: Point) => setActive({ index, found: onActivate(point) });
   return (
     <>
-      <p>{state.points.map((point) => point.text).join(' ')}</p>
-      {state.status === 'summarizing' && <p class="status">Summarizing…</p>}
+      <p>
+        {points.map((point, index) => (
+          <Fragment key={point.text}>
+            {index > 0 && ' '}
+            {/* biome-ignore lint/a11y/useSemanticElements: a button box cannot wrap across lines, so the points would stack. */}
+            <span
+              role="button"
+              tabIndex={0}
+              class={pointClass(active, index)}
+              aria-pressed={active?.index === index}
+              onClick={() => activate(index, point)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  activate(index, point);
+                }
+              }}
+            >
+              {point.text}
+            </span>
+          </Fragment>
+        ))}
+      </p>
+      {active && !active.found && <p class="status">The passage is no longer on the page.</p>}
     </>
   );
+}
+
+function pointClass(active: Active | undefined, index: number): string {
+  if (active?.index !== index) return 'point';
+  return active.found ? 'point active' : 'point missing';
 }

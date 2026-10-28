@@ -67,3 +67,20 @@ p {
   font: inherit;
   cursor: pointer;
 }
+
+.point {
+  cursor: pointer;
+}
+
+.point:hover,
+.point:focus-visible {
+  text-decoration: underline;
+}
+
+.point.active {
+  background: #ffe58f;
+}
+
+.point.missing {
+  color: #555;
+}

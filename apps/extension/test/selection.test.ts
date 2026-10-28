@@ -50,18 +50,28 @@ describe('selectionRequest', () => {
   });
 
   it('reports unsupported_selection when the text sits in a shadow tree', () => {
+    document.body.innerHTML = '<p>Page text.</p><x-widget></x-widget>';
+    const collapsed = document.createRange();
+    collapsed.setStart(document.body, 1);
+    collapsed.collapse(true);
     const selection = {
-      anchorNode: null,
-      focusNode: null,
+      anchorNode: document.body,
+      focusNode: document.body,
       toString: () => 'Text inside a widget.',
-      getRangeAt: () => ({ toString: () => '' }),
+      getRangeAt: () => collapsed,
     } as unknown as Selection;
     expect(selectionRequest(selection, 'en')).toEqual(unsupported);
   });
 
+  it('reports unsupported_selection when the selection holds only hidden text', () => {
+    const selection = select('<p><span style="display: none">Hidden.</span></p>', 'p');
+    expect(selectionRequest(selection, 'en')).toEqual(unsupported);
+  });
+
   it('builds a summary request from the selected sentences', () => {
-    const selection = select('<p>First sentence. Second sentence.</p>', 'p');
-    expect(selectionRequest(selection, 'tr')).toEqual({
+    const selection = select('<p>First sentence. <em>Second</em> sentence.</p>', 'p');
+    const outcome = selectionRequest(selection, 'tr');
+    expect(outcome).toMatchObject({
       ok: true,
       request: {
         v: 1,
@@ -70,6 +80,10 @@ describe('selectionRequest', () => {
         sentences: ['First sentence.', 'Second sentence.'],
       },
     });
+    if (!outcome.ok) throw new Error('Expected a request');
+    expect(
+      outcome.sentences.map(({ start, end }) => outcome.pageText.text.slice(start, end)),
+    ).toEqual(outcome.request.sentences);
   });
 
   it('refuses a selection above the character limit and names the count', () => {
