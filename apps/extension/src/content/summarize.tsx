@@ -5,6 +5,7 @@ import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { MESSAGES, sendMessage } from '../messages.ts';
 import { portSummarizer } from '../summarize-port.ts';
+import { type Anchors, createAnchors } from './anchoring/anchors.ts';
 import { Card, type CardState } from './card/Card.tsx';
 import css from './card/card.css?inline';
 import { selectionRequest } from './selection.ts';
@@ -17,6 +18,7 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   }
 
   const controller = new AbortController();
+  let anchors: Anchors | undefined;
   const ui = await createShadowRootUi(ctx, {
     name: 'dr-too-long-card',
     position: 'inline',
@@ -25,7 +27,11 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     isolateEvents: true,
     css,
     onMount: (container) => container,
-    onRemove: (container) => container && render(null, container),
+    onRemove: (container) => {
+      if (!container) return;
+      render(null, container);
+      anchors?.clear();
+    },
   });
 
   const close = () => {
@@ -38,6 +44,7 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
         state={state}
         onClose={close}
         onOpenOptions={() => sendMessage(MESSAGES.openOptions)}
+        onActivate={(point) => anchors?.activate(point) ?? false}
       />,
       ui.uiContainer,
     );
@@ -64,6 +71,7 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     signal: controller.signal,
   })) {
     if (controller.signal.aborted) return;
+    if (event.type === 'done') anchors = createAnchors(outcome.pageText, outcome.sentences);
     show(toState(event));
   }
 }
