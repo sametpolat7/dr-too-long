@@ -27,9 +27,9 @@ Everything below stays out of Phase 1. This list changes only through a pull req
 
 ## Page integration
 
-- No selections inside shadow roots, cross-origin frames, inputs, text areas or editable regions. The card says so.
+- No selections inside shadow roots, embedded frames, inputs, text areas or editable regions. The card says so.
 - No changes to the page DOM for highlights and no `<style>` element in the page.
-- No re-anchoring on page mutations. A stale anchor is re-found on click or marked "passage not found".
+- No re-anchoring on page mutations. A stale anchor is re-found on click, or the card says the passage is no longer on the page.
 - No `<all_urls>`, `http://` or `file://` access. The every-site opt-in requests `https://*/*` only.
 
 ## Platform and engineering
