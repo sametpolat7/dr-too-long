@@ -10,7 +10,8 @@ export interface Anchors {
 
 type Finder = (text: string) => Range | null;
 
-// Highlights the sentences a point cites and scrolls to the first; false when none is on the page.
+// Highlights the sentences a point cites and scrolls to the first; false, with nothing highlighted,
+// when none is on the page.
 export function createAnchors(pageText: PageText, sentences: Sentence[]): Anchors {
   return {
     activate(point) {
@@ -21,7 +22,10 @@ export function createAnchors(pageText: PageText, sentences: Sentence[]): Anchor
         return range ? [range] : [];
       });
       const first = ranges[0];
-      if (!first) return false;
+      if (!first) {
+        CSS.highlights.delete(HIGHLIGHT_NAME);
+        return false;
+      }
       CSS.highlights.set(HIGHLIGHT_NAME, new Highlight(...ranges));
       // The selection paints above every custom highlight.
       window.getSelection()?.removeAllRanges();
@@ -48,8 +52,8 @@ function createFinder(root: Node): Finder {
     for (const container of containers) {
       const fresh = walks.get(container) ?? readPageText(contentsOf(container));
       walks.set(container, fresh);
-      const span = findText(fresh, text);
-      if (span) return rangeOf(fresh, span.start, span.end);
+      const range = findText(fresh, text);
+      if (range) return range;
     }
     return null;
   };
@@ -63,5 +67,8 @@ function contentsOf(node: Node): Range {
 
 function reveal(range: Range): void {
   const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
-  range.startContainer.parentElement?.scrollIntoView({ block: 'center', behavior });
+  let target = range.startContainer.parentElement;
+  // A display: contents wrapper has no box to scroll into view.
+  while (target && getComputedStyle(target).display === 'contents') target = target.parentElement;
+  target?.scrollIntoView({ block: 'center', behavior });
 }

@@ -1,8 +1,7 @@
-export interface Chunk {
+interface Chunk {
   start: number;
   node: Text;
   offset: number;
-  length: number;
 }
 
 export interface PageText {
@@ -11,12 +10,10 @@ export interface PageText {
   root: Node;
 }
 
-export interface Span {
-  start: number;
-  end: number;
-}
-
 const BLOCK_DISPLAY = /^(block|flex|grid|table|list-item|flow-root)/;
+const ABSOLUTELY_POSITIONED = /^(absolute|fixed)$/;
+const FLOATED = /^(left|right|inline-start|inline-end)$/;
+const FLEX_OR_GRID = /(flex|grid)$/;
 const WORD = /\S+/g;
 
 // The text the reader sees inside the range, with one space per whitespace run, a line break at
@@ -33,14 +30,12 @@ export function readPageText(range: Range): PageText {
   let pendingSpace = false;
   let block: Element | null | undefined;
 
-  const breakLine = () => {
-    if (text !== '' && !text.endsWith('\n')) text += '\n';
-    pendingSpace = false;
-  };
-
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     if (!(node instanceof Text)) {
-      breakLine();
+      // A <br>, or a block standing in the line's own block rather than inside an inline box such as
+      // an icon link, ends the line. The break waits for the next word, so a range ending at a
+      // block's edge gains none.
+      if (node.nodeName === 'BR' || node.parentElement === block) block = undefined;
       continue;
     }
     const container = blockContainer(node);
@@ -50,19 +45,13 @@ export function readPageText(range: Range): PageText {
     let scanned = 0;
     for (const match of data.matchAll(WORD)) {
       if (container !== block) {
-        breakLine();
+        if (text !== '') text += '\n';
         block = container;
-      }
-      if ((pendingSpace || match.index > scanned) && text !== '' && !text.endsWith('\n')) {
+      } else if (pendingSpace || match.index > scanned) {
         text += ' ';
       }
       pendingSpace = false;
-      chunks.push({
-        start: text.length,
-        node,
-        offset: from + match.index,
-        length: match[0].length,
-      });
+      chunks.push({ start: text.length, node, offset: from + match.index });
       text += match[0];
       scanned = match.index + match[0].length;
     }
@@ -85,9 +74,9 @@ export function rangeOf({ chunks }: PageText, start: number, end: number): Range
   return range;
 }
 
-export function findText({ text }: PageText, needle: string): Span | null {
-  const start = text.indexOf(needle);
-  return start === -1 ? null : { start, end: start + needle.length };
+export function findText(pageText: PageText, needle: string): Range | null {
+  const start = pageText.text.indexOf(needle);
+  return start === -1 ? null : rangeOf(pageText, start, start + needle.length);
 }
 
 // A walker never returns its own root, so a selection inside one text node starts at the parent.
@@ -104,14 +93,26 @@ function accept(node: Node, range: Range): number {
       ? NodeFilter.FILTER_SKIP
       : NodeFilter.FILTER_REJECT;
   }
-  return node.nodeName === 'BR' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+  return node.nodeName === 'BR' || (node instanceof Element && isBlock(node))
+    ? NodeFilter.FILTER_ACCEPT
+    : NodeFilter.FILTER_SKIP;
 }
 
 function blockContainer(node: Text): Element | null {
   for (let element = node.parentElement; element; element = element.parentElement) {
-    if (BLOCK_DISPLAY.test(getComputedStyle(element).display)) return element;
+    if (isBlock(element)) return element;
   }
   return null;
+}
+
+// Floated and absolutely positioned elements compute as blocks but leave the line around them
+// unbroken, except a flex or grid item, whose float is ignored.
+function isBlock(element: Element): boolean {
+  const { display, position, cssFloat } = getComputedStyle(element);
+  if (!BLOCK_DISPLAY.test(display) || ABSOLUTELY_POSITIONED.test(position)) return false;
+  if (!FLOATED.test(cssFloat)) return true;
+  const parent = element.parentElement;
+  return parent !== null && FLEX_OR_GRID.test(getComputedStyle(parent).display);
 }
 
 function holds(node: Text, offset: number): boolean {
