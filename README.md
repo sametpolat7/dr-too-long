@@ -22,8 +22,8 @@ Load the build in Chrome:
 1. Open `chrome://extensions` and turn on **Developer mode**.
 2. Click **Load unpacked** and choose `apps/extension/.output/chrome-mv3`.
 3. After each rebuild, click the extension's **Reload** button.
-4. Open the extension's **Details** page, click **Extension options**, paste your OpenAI API key, click **Save**, then **Test key**. A three-point summary of a built-in sample streams in.
-5. Pin the extension's icon from the toolbar's puzzle menu. Open an article, select a few paragraphs and click the icon. A card appears at the top right of the page and the summary streams in. Click a point in the card: the page scrolls to the sentences it rests on and highlights them, and the selection is released, so a further click on the icon needs a new selection. Escape or the card's close button dismisses it.
+4. Open the extension's **Details** page, click **Extension options**, paste your OpenAI API key, click **Save**, then **Test key**. A summary of a built-in sample streams in.
+5. Pin the extension's icon from the toolbar's puzzle menu. Open an article, select a few paragraphs and click the icon. A card appears at the top right of the page and the summary streams in. Once it is done, click a point in the card: the page highlights the sentences the point rests on and scrolls to the first, and the selection is released, so a further click on the icon needs a new selection. If those sentences have left the page, the card says so. Escape or the card's close button dismisses the card and its highlight.
 
 For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev` instead. WXT does not launch a browser; you load the build into your own Chrome profile.
 
@@ -42,11 +42,11 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 
 Chrome never lets an extension run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer; the icon shows a `!` badge there for a moment. The extension asks for `activeTab` and `scripting` to run on the page you click it on, and for `storage` to keep your key. Apart from `api.openai.com`, which the background worker calls, it has no access to any site until you click.
 
-Highlights use the CSS Custom Highlight API: the worker inserts one stylesheet rule into the page on each click, and the content script registers the cited sentences under it. Nothing is added to the page's DOM, and the page's text is never changed.
+Highlights use the CSS Custom Highlight API: the worker inserts one stylesheet rule into the page each time you click the icon, and the content script registers the cited sentences under it when you click a point. Highlights add nothing to the page's DOM, and the page's text is never changed.
 
 ## Your API key
 
-Phase 1 runs on your own OpenAI API key. Create it in a dedicated OpenAI project with a monthly budget cap and paste it only into the Options page, never into a file, an environment variable or CI.
+Phase 1 runs on your own OpenAI API key. Create it in a dedicated OpenAI project with a monthly budget cap and paste it into the Options page, never into a file or CI.
 
 - The key is stored in the extension's local storage, which Chrome does not encrypt. Only this extension's own code can read it, and it is never synced to your Google account.
 - The key travels only to `api.openai.com`, from the background service worker. Content scripts never see it, and a lint rule keeps the on-page code from importing the key module or the model.
