@@ -14,7 +14,10 @@ export default defineConfig({
     description: 'Turns selected text into a summary in your language with one click.',
     minimum_chrome_version: String(MINIMUM_CHROME),
     action: { default_title: 'Summarize the selection' },
-    permissions: ['activeTab', 'scripting', 'storage'],
+    commands: {
+      _execute_action: { suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' } },
+    },
+    permissions: ['activeTab', 'contextMenus', 'scripting', 'storage'],
     host_permissions: [`${PROVIDERS[ACTIVE_MODEL.provider].apiHost}/*`],
   },
 });
