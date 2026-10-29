@@ -1,10 +1,11 @@
-import type { PresetId, SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { SummarizeRequest, SummaryEvent } from '@dr-too-long/shared/contracts';
 import { describe, expect, it, vi } from 'vitest';
-import type { CardState } from '../src/content/card/Card.tsx';
+import type { CardState, View } from '../src/content/card/Card.tsx';
 import { createRuns } from '../src/content/runs.ts';
-import type { PortRequest, PortSummarizer } from '../src/summarize-port.ts';
+import type { PortSummarizer } from '../src/summarize-port.ts';
 
 const point = (text: string) => ({ text, sentences: [1] });
+const summary: View = { preset: 'summary', language: 'en' };
 const doneEvent = (text: string): SummaryEvent => ({
   type: 'done',
   output: { points: [point(text)] },
@@ -13,7 +14,7 @@ const doneEvent = (text: string): SummaryEvent => ({
 });
 
 interface Call {
-  request: PortRequest;
+  request: SummarizeRequest;
   signal: AbortSignal;
   send(event: SummaryEvent): void;
 }
@@ -55,13 +56,13 @@ function fakeSummarizer() {
 
 function setup() {
   const { summarizer, calls } = fakeSummarizer();
-  const shown: Array<[PresetId, CardState]> = [];
+  const shown: Array<[View, CardState]> = [];
   const card = new AbortController();
   const runs = createRuns({
     summarizer,
     sentences: ['One.', 'Two.'],
-    initial: 'summary',
-    show: (preset, state) => shown.push([preset, state]),
+    initial: summary,
+    show: (view, state) => shown.push([view, state]),
     signal: card.signal,
   });
   const last = () => shown.at(-1);
@@ -69,21 +70,23 @@ function setup() {
 }
 
 describe('createRuns', () => {
-  it('starts with the initial preset over the sentences and shows its states', async () => {
+  it('starts with the initial view over the sentences and shows its states', async () => {
     const { calls, last } = setup();
-    expect(last()).toEqual(['summary', { status: 'summarizing', points: [] }]);
-    expect(calls[0]?.request).toEqual({ v: 1, preset: 'summary', sentences: ['One.', 'Two.'] });
+    expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
+    expect(calls[0]?.request).toEqual({
+      v: 1,
+      preset: 'summary',
+      outputLanguage: 'en',
+      sentences: ['One.', 'Two.'],
+    });
 
     calls[0]?.send({ type: 'partial', points: [point('Half')] });
     await vi.waitFor(() =>
-      expect(last()).toEqual(['summary', { status: 'summarizing', points: [point('Half')] }]),
+      expect(last()).toEqual([summary, { status: 'summarizing', points: [point('Half')] }]),
     );
     calls[0]?.send(doneEvent('Whole.'));
     await vi.waitFor(() =>
-      expect(last()).toEqual([
-        'summary',
-        { status: 'done', points: [point('Whole.')], dropped: 0 },
-      ]),
+      expect(last()).toEqual([summary, { status: 'done', points: [point('Whole.')], dropped: 0 }]),
     );
   });
 
@@ -91,14 +94,14 @@ describe('createRuns', () => {
     const { runs, calls, shown, last } = setup();
     runs.select('bulleted-list');
     expect(calls[0]?.signal.aborted).toBe(true);
-    expect(calls[1]?.request.preset).toBe('bulleted-list');
+    expect(calls[1]?.request).toMatchObject({ preset: 'bulleted-list', outputLanguage: 'en' });
 
     calls[0]?.send(doneEvent('Stale.'));
     calls[1]?.send(doneEvent('Fresh.'));
     await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
-    expect(shown.filter(([preset]) => preset === 'summary')).toHaveLength(1);
+    expect(shown.filter(([view]) => view.preset === 'summary')).toHaveLength(1);
     expect(last()).toEqual([
-      'bulleted-list',
+      { preset: 'bulleted-list', language: 'en' },
       { status: 'done', points: [point('Fresh.')], dropped: 0 },
     ]);
   });
@@ -112,24 +115,45 @@ describe('createRuns', () => {
     runs.select('summary');
     expect(calls).toHaveLength(2);
     expect(calls[1]?.signal.aborted).toBe(true);
-    expect(last()).toEqual(['summary', { status: 'done', points: [point('Kept.')], dropped: 0 }]);
+    expect(last()).toEqual([summary, { status: 'done', points: [point('Kept.')], dropped: 0 }]);
   });
 
-  it('does nothing when the shown preset is selected again', () => {
+  it('runs the shown preset in another language and keeps each language', async () => {
+    const { runs, calls, last } = setup();
+    calls[0]?.send(doneEvent('English.'));
+    await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
+
+    runs.selectLanguage('tr');
+    expect(calls[1]?.request).toMatchObject({ preset: 'summary', outputLanguage: 'tr' });
+    calls[1]?.send(doneEvent('Türkçe.'));
+    await vi.waitFor(() =>
+      expect(last()).toEqual([
+        { preset: 'summary', language: 'tr' },
+        { status: 'done', points: [point('Türkçe.')], dropped: 0 },
+      ]),
+    );
+
+    runs.selectLanguage('en');
+    expect(calls).toHaveLength(2);
+    expect(last()).toEqual([summary, { status: 'done', points: [point('English.')], dropped: 0 }]);
+  });
+
+  it('does nothing when the shown preset or language is selected again', () => {
     const { runs, calls } = setup();
     runs.select('summary');
+    runs.selectLanguage('en');
     expect(calls).toHaveLength(1);
     expect(calls[0]?.signal.aborted).toBe(false);
   });
 
-  it('regenerates the shown preset with a new request in place of its summary', async () => {
+  it('regenerates the shown view with a new request in place of its summary', async () => {
     const { runs, calls, last } = setup();
     calls[0]?.send(doneEvent('First.'));
     await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
 
     runs.regenerate();
-    expect(calls[1]?.request.preset).toBe('summary');
-    expect(last()).toEqual(['summary', { status: 'summarizing', points: [] }]);
+    expect(calls[1]?.request).toMatchObject({ preset: 'summary', outputLanguage: 'en' });
+    expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
     runs.select('single-sentence');
     runs.select('summary');
     expect(calls).toHaveLength(4);
@@ -159,11 +183,27 @@ describe('createRuns', () => {
         },
       },
       sentences: ['One.'],
-      initial: 'summary',
+      initial: summary,
       show: (_, state) => shown.push(state),
       signal: new AbortController().signal,
     });
     await vi.waitFor(() => expect(shown.at(-1)).toEqual({ status: 'error', code: 'invalidated' }));
+  });
+
+  it('starts nothing for a card that closed while it read the saved language', () => {
+    const { summarizer, calls } = fakeSummarizer();
+    const shown: CardState[] = [];
+    const card = new AbortController();
+    card.abort();
+    createRuns({
+      summarizer,
+      sentences: ['One.'],
+      initial: summary,
+      show: (_, state) => shown.push(state),
+      signal: card.signal,
+    });
+    expect(calls).toHaveLength(0);
+    expect(shown).toHaveLength(0);
   });
 
   it('aborts the run in flight when the card closes', () => {

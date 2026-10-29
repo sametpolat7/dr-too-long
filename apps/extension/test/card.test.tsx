@@ -1,7 +1,11 @@
+import type { PresetId } from '@dr-too-long/shared/contracts';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Card, type CardState } from '../src/content/card/Card.tsx';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
+import { Card, type CardState, type View } from '../src/content/card/Card.tsx';
+
+const view = (preset: PresetId, language = 'en'): View => ({ preset, language });
 
 function show(
   state: CardState,
@@ -12,8 +16,10 @@ function show(
   render(
     <Card
       state={state}
-      preset="summary"
+      view={view('summary')}
+      choice={null}
       onSelect={noop}
+      onLanguage={noop}
       onRegenerate={noop}
       onClose={noop}
       onOpenOptions={noop}
@@ -40,7 +46,14 @@ function button(container: HTMLElement, label: string): HTMLButtonElement | unde
 }
 
 describe('Card', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    fakeBrowser.reset();
+    fakeBrowser.i18n.getUILanguage = () => 'en-US';
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
 
   it('joins the points into one paragraph while summarizing', () => {
     const container = show({ status: 'summarizing', points });
@@ -64,7 +77,7 @@ describe('Card', () => {
   });
 
   it('shows a bulleted list as one list item per point', () => {
-    const container = show(done, { preset: 'bulleted-list' });
+    const container = show(done, { view: view('bulleted-list') });
     const items = [...container.querySelectorAll('li')];
     expect(items.map((item) => item.textContent)).toEqual(points.map((point) => point.text));
     expect(items[0]?.querySelector('[role="button"]')).not.toBeNull();
@@ -72,17 +85,86 @@ describe('Card', () => {
 
   it('presses the shown preset and asks for another on a click', () => {
     const onSelect = vi.fn();
-    const container = show(done, { preset: 'summary', onSelect });
+    const container = show(done, { onSelect });
     const pressed = [...container.querySelectorAll('[aria-pressed="true"]')];
     expect(pressed.map((each) => each.textContent)).toEqual(['Summary']);
     button(container, 'Bulleted list')?.click();
     expect(onSelect).toHaveBeenCalledWith('bulleted-list');
   });
 
-  it('offers no preset when the selection was refused', () => {
-    const container = show({ status: 'error', code: 'no_selection' }, { preset: undefined });
+  it('offers no preset and no language when the selection was refused', () => {
+    const container = show({ status: 'error', code: 'no_selection' }, { view: undefined });
     expect(button(container, 'Summary')).toBeUndefined();
+    expect(container.querySelector('select')).toBeNull();
     expect(container.textContent).toContain('Select some text first.');
+  });
+
+  it("writes the points in the view's language and direction, and the card in English", () => {
+    const container = show(done, { view: view('summary', 'ar') });
+    const card = container.querySelector('section');
+    expect([card?.lang, card?.dir]).toEqual(['en', 'ltr']);
+    const paragraph = container.querySelector('p');
+    expect([paragraph?.lang, paragraph?.dir]).toEqual(['ar', 'rtl']);
+    const list = show(done, { view: view('bulleted-list', 'en-US') }).querySelector('ul');
+    expect([list?.lang, list?.dir]).toEqual(['en-US', 'ltr']);
+  });
+
+  function picker(container: HTMLElement) {
+    const select = container.querySelector('select');
+    const pick = (value: string) =>
+      act(() => {
+        if (!select) return;
+        select.value = value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    return { select, pick };
+  }
+
+  it('opens the language picker on the saved choice, after Auto', () => {
+    const { select } = picker(show(done, { choice: 'tr' }));
+    expect(select?.value).toBe('tr');
+    expect(select?.options[0]?.textContent).toBe(
+      "Auto: Chrome's language (English (United States))",
+    );
+  });
+
+  it('reports only the language the reader settles on, and keeps showing it', () => {
+    vi.useFakeTimers();
+    const onLanguage = vi.fn();
+    const container = show(done, { choice: 'tr', onLanguage });
+    const { select, pick } = picker(container);
+    pick('uk');
+    pick('de');
+    act(() => {
+      vi.advanceTimersByTime(399);
+    });
+    expect(onLanguage).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(onLanguage.mock.calls).toEqual([['de']]);
+
+    act(() => {
+      show(done, { choice: 'tr', onLanguage }, container);
+    });
+    expect(select?.value).toBe('de');
+    pick('');
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    expect(onLanguage).toHaveBeenLastCalledWith(null);
+  });
+
+  it('drops a pick the reader has not settled on when the card closes', () => {
+    vi.useFakeTimers();
+    const onLanguage = vi.fn();
+    const container = show(done, { onLanguage });
+    picker(container).pick('de');
+    act(() => render(null, container));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    expect(onLanguage).not.toHaveBeenCalled();
   });
 
   it('activates a clicked point and marks it', () => {
@@ -115,13 +197,16 @@ describe('Card', () => {
     expect(container.textContent).toContain('The passage is no longer on the page.');
   });
 
-  it('shows another preset from memory with no point marked', () => {
+  it.each([
+    ['preset', view('bulleted-list')],
+    ['language', view('summary', 'tr')],
+  ])('shows another %s from memory with no point marked', (_, next) => {
     const container = show(done, { onActivate: () => false });
     act(() => pointsOf(container)[0]?.click());
     expect(container.textContent).toContain('The passage is no longer on the page.');
 
     act(() => {
-      show(done, { preset: 'bulleted-list' }, container);
+      show(done, { view: next }, container);
     });
     expect(container.querySelectorAll('[role="button"][aria-pressed="true"]')).toHaveLength(0);
     expect(container.textContent).not.toContain('The passage is no longer on the page.');
@@ -147,7 +232,7 @@ describe('Card', () => {
   it('copies the summary in its preset shape and says so', async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal('navigator', { clipboard: { writeText } });
-    const container = show(done, { preset: 'bulleted-list' });
+    const container = show(done, { view: view('bulleted-list') });
     await act(async () => button(container, 'Copy')?.click());
     expect(writeText).toHaveBeenCalledWith(
       '- The keeper logged every ship.\n- The notebooks dated the decline.',

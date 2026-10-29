@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { LANGUAGES } from '../src/options/languages.ts';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
+import { isListedLanguage, LANGUAGES, resolveLanguage, textDirection } from '../src/languages.ts';
 
 describe('LANGUAGES', () => {
   it('offers each language once, with no regional variant', () => {
@@ -17,13 +18,45 @@ describe('LANGUAGES', () => {
   });
 
   it('leaves out Catalan, and Thai and Amharic, whose prose the segmenter cannot split', () => {
-    const tags = LANGUAGES.map((language) => language.tag);
-    expect(tags).not.toContain('ca');
-    expect(tags).not.toContain('th');
-    expect(tags).not.toContain('am');
+    for (const tag of ['ca', 'th', 'am']) expect(isListedLanguage(tag)).toBe(false);
   });
 
   it('labels a language by its English name, then its own', () => {
     expect(LANGUAGES.find((language) => language.tag === 'tr')?.label).toBe('Turkish — Türkçe');
+  });
+});
+
+describe('resolveLanguage', () => {
+  beforeEach(() => {
+    fakeBrowser.reset();
+    fakeBrowser.i18n.getUILanguage = () => 'en-US';
+  });
+
+  it("writes in the chosen language, or Chrome's for Auto", () => {
+    expect(resolveLanguage('tr')).toBe('tr');
+    expect(resolveLanguage(null)).toBe('en-US');
+  });
+});
+
+describe('textDirection', () => {
+  const prototype = Intl.Locale.prototype as { getTextInfo?: unknown };
+  const getTextInfo = prototype.getTextInfo;
+  afterEach(() => {
+    prototype.getTextInfo = getTextInfo;
+  });
+
+  it.each([
+    ['ar', 'rtl'],
+    ['fa', 'rtl'],
+    ['he', 'rtl'],
+    ['en-US', 'ltr'],
+    ['zh-Hant', 'ltr'],
+  ])('lays out %s as %s', (tag, direction) => {
+    expect(textDirection(tag)).toBe(direction);
+  });
+
+  it('reads the textInfo getter of Chrome before 130', () => {
+    prototype.getTextInfo = undefined;
+    expect(textDirection('ar')).toBe('rtl');
   });
 });

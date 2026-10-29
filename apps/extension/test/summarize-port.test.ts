@@ -1,6 +1,6 @@
-import type { SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { SummarizeRequest, SummaryEvent } from '@dr-too-long/shared/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { type PortRequest, portSummarizer } from '../src/summarize-port.ts';
+import { portSummarizer } from '../src/summarize-port.ts';
 
 // Mirrors chrome.runtime.Port: disconnect() reaches the other end only and ends delivery here.
 class FakePort {
@@ -41,7 +41,12 @@ class FakePort {
 let port: FakePort;
 vi.mock('wxt/browser', () => ({ browser: { runtime: { connect: () => port } } }));
 
-const request: PortRequest = { v: 1, preset: 'summary', sentences: ['One.'] };
+const request: SummarizeRequest = {
+  v: 1,
+  preset: 'summary',
+  outputLanguage: 'en',
+  sentences: ['One.'],
+};
 const partial: SummaryEvent = { type: 'partial', points: [{ text: 'One', sentences: [1] }] };
 const done: SummaryEvent = {
   type: 'done',
