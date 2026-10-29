@@ -1,7 +1,7 @@
 // The languages of the locale list in the chrome.i18n reference, as BCP 47 tags: one entry per
-// language rather than per region, Chinese by script rather than by place, and no Catalan.
+// language rather than per region, Chinese by script rather than by place, and no Catalan. Thai and
+// Amharic are left out because the sentence segmenter cannot split much of their prose.
 const TAGS = [
-  'am',
   'ar',
   'bg',
   'bn',
@@ -44,7 +44,6 @@ const TAGS = [
   'sw',
   'ta',
   'te',
-  'th',
   'tr',
   'uk',
   'vi',
