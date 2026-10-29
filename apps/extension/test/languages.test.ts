@@ -16,6 +16,13 @@ describe('LANGUAGES', () => {
     ]);
   });
 
+  it('leaves out Catalan, and Thai and Amharic, whose prose the segmenter cannot split', () => {
+    const tags = LANGUAGES.map((language) => language.tag);
+    expect(tags).not.toContain('ca');
+    expect(tags).not.toContain('th');
+    expect(tags).not.toContain('am');
+  });
+
   it('labels a language by its English name, then its own', () => {
     expect(LANGUAGES.find((language) => language.tag === 'tr')?.label).toBe('Turkish — Türkçe');
   });
