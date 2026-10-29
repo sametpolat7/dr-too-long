@@ -15,6 +15,14 @@ h1 {
 
 form,
 .actions,
+.language {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 input {
   flex: 1 1 240px;
   padding: 6px 8px;
