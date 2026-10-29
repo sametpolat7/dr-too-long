@@ -1,0 +1,76 @@
+import type { ContentScriptContext } from 'wxt/utils/content-script-context';
+import { requestEverySiteBubble, requestSummarize } from '../messages.ts';
+import { startBubble } from './bubble/bubble.tsx';
+import { offeredRange } from './bubble/watch.ts';
+import { BUBBLE_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
+
+// Runs on every https page while the reader's every-site opt-in stands. It adds nothing to the page
+// and leaves the worker asleep until the first selection the bubble is offered for, then shows the
+// bubble if the worker allows it. A click runs the summarize script, as the icon does.
+export async function watchEverySite(ctx: ContentScriptContext): Promise<void> {
+  if (!canHostShadowRoot()) return;
+  document.addEventListener(SUMMARIZE_STARTED, () => ctx.abort(), { signal: ctx.signal });
+
+  await firstOfferedSelection(ctx.signal);
+  const moving = new AbortController();
+  const movedOn = noteMovingOn(moving.signal);
+  const shown = await requestEverySiteBubble();
+  moving.abort();
+  // A summarize script started meanwhile, or before this one, watches the page with its own bubble.
+  if (!shown || ctx.signal.aborted || document.querySelector(BUBBLE_UI)) return;
+  const bubble = await startBubble(ctx, {
+    hidden: false,
+    // A press or Escape while the worker answered means the reader has left that selection.
+    offerCurrent: !movedOn(),
+    onSummarize: () =>
+      void requestSummarize().then((started) => {
+        if (!started) ctx.abort();
+      }),
+  });
+  // A page back from the back-forward cache asks again: meanwhile the reader may have hidden the
+  // bubble on another page of the site, or withdrawn the opt-in.
+  window.addEventListener(
+    'pageshow',
+    (event) => {
+      if (event.persisted) void requestEverySiteBubble().then((next) => bubble.setHidden(!next));
+    },
+    { signal: ctx.signal },
+  );
+}
+
+// Resolves when the mouse button or a key is released on a selection the bubble is offered for.
+function firstOfferedSelection(signal: AbortSignal): Promise<void> {
+  const listening = new AbortController();
+  signal.addEventListener('abort', () => listening.abort(), { once: true });
+  return new Promise((resolve) => {
+    const check = () => {
+      if (!offeredRange(document.getSelection())) return;
+      listening.abort();
+      resolve();
+    };
+    const options = { capture: true, passive: true, signal: listening.signal };
+    document.addEventListener('mouseup', check, options);
+    document.addEventListener('keyup', check, options);
+  });
+}
+
+// Whether the reader has pressed the mouse button or Escape since, until the signal aborts.
+function noteMovingOn(signal: AbortSignal): () => boolean {
+  let movedOn = false;
+  const options = { capture: true, passive: true, signal };
+  document.addEventListener(
+    'mousedown',
+    () => {
+      movedOn = true;
+    },
+    options,
+  );
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape') movedOn = true;
+    },
+    options,
+  );
+  return () => movedOn;
+}
