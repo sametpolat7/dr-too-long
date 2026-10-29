@@ -24,6 +24,8 @@ function show(
       onClose={noop}
       onOpenOptions={noop}
       onActivate={() => true}
+      bubbleHidden={false}
+      onBubble={noop}
       {...props}
     />,
     container,
@@ -44,6 +46,9 @@ const pointsOf = (container: HTMLElement) => [
 function button(container: HTMLElement, label: string): HTMLButtonElement | undefined {
   return [...container.querySelectorAll('button')].find((each) => each.textContent === label);
 }
+
+const HIDE = 'Hide the bubble on this site until the tab closes';
+const SHOW = 'Show the bubble on this site';
 
 describe('Card', () => {
   beforeEach(() => {
@@ -92,10 +97,11 @@ describe('Card', () => {
     expect(onSelect).toHaveBeenCalledWith('bulleted-list');
   });
 
-  it('offers no preset and no language when the selection was refused', () => {
+  it('offers no preset, language or bubble switch when the selection was refused', () => {
     const container = show({ status: 'error', code: 'no_selection' }, { view: undefined });
     expect(button(container, 'Summary')).toBeUndefined();
     expect(container.querySelector('select')).toBeNull();
+    expect(container.querySelector('.bubble-switch')).toBeNull();
     expect(container.textContent).toContain('Select some text first.');
   });
 
@@ -165,6 +171,25 @@ describe('Card', () => {
       vi.advanceTimersByTime(400);
     });
     expect(onLanguage).not.toHaveBeenCalled();
+  });
+
+  it('hides the bubble on this site and shows it again, and keeps showing its own state', () => {
+    const onBubble = vi.fn();
+    const container = document.createElement('div');
+    show(done, { onBubble }, container);
+    act(() => button(container, HIDE)?.click());
+    expect(onBubble).toHaveBeenLastCalledWith(true);
+    // The card re-renders with the value it opened with while the summary streams.
+    show(done, { onBubble }, container);
+    act(() => button(container, SHOW)?.click());
+    expect(onBubble).toHaveBeenLastCalledWith(false);
+    expect(button(container, HIDE)).toBeDefined();
+  });
+
+  it('offers to show the bubble when it was hidden on this site before the card opened', () => {
+    const container = show(done, { bubbleHidden: true });
+    expect(button(container, SHOW)).toBeDefined();
+    expect(button(container, HIDE)).toBeUndefined();
   });
 
   it('activates a clicked point and marks it', () => {
