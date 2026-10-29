@@ -9,6 +9,7 @@ export type ErrorCode =
   | 'network'
   | 'aborted'
   | 'disconnected'
+  | 'invalidated'
   | 'invalid_output'
   | 'no_selection'
   | 'too_long'

@@ -1,11 +1,14 @@
-import type { Summarizer, SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { SummarizeRequest, SummaryEvent } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 
 export const SUMMARIZE_PORT = 'summarize';
 
 // Sends one request to the background and yields its events until the terminal one.
-export const portSummarizer: Summarizer = {
-  async *summarize(request, { signal }) {
+export const portSummarizer = {
+  async *summarize(
+    request: SummarizeRequest,
+    { signal }: { signal: AbortSignal },
+  ): AsyncGenerator<SummaryEvent> {
     const port = browser.runtime.connect({ name: SUMMARIZE_PORT });
     const pending: SummaryEvent[] = [];
     let closed = false;
@@ -54,3 +57,5 @@ export const portSummarizer: Summarizer = {
     }
   },
 };
+
+export type PortSummarizer = typeof portSummarizer;

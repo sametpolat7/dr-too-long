@@ -14,7 +14,8 @@ h1 {
 }
 
 form,
-.actions {
+.actions,
+.language {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -28,7 +29,8 @@ input {
   font: inherit;
 }
 
-button {
+button,
+select {
   padding: 6px 12px;
   font: inherit;
 }

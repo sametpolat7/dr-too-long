@@ -1,10 +1,11 @@
-import type { Point, SummaryEvent } from '@dr-too-long/shared/contracts';
+import { DEFAULT_PRESET, type Point, type SummaryEvent } from '@dr-too-long/shared/contracts';
 import { ACTIVE_MODEL } from '@dr-too-long/shared/providers';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { browser } from 'wxt/browser';
 import { ERROR_MESSAGES } from '../error-messages.ts';
 import { readApiKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
+import { readOutputLanguage } from '../settings/output-language.ts';
 import { portSummarizer } from '../summarize-port.ts';
+import { OutputLanguage } from './OutputLanguage.tsx';
 
 const SAMPLE = [
   'The lighthouse keeper logged every ship that passed the cape for forty years.',
@@ -45,12 +46,8 @@ export function Options() {
     const current = new AbortController();
     controller.current = current;
     setRun({ status: 'running', points: [] });
-    const request = {
-      v: 1 as const,
-      preset: 'summary' as const,
-      outputLanguage: browser.i18n.getUILanguage(),
-      sentences: SAMPLE,
-    };
+    const outputLanguage = await readOutputLanguage();
+    const request = { v: 1, preset: DEFAULT_PRESET, outputLanguage, sentences: SAMPLE } as const;
     for await (const event of portSummarizer.summarize(request, { signal: current.signal })) {
       setRun(toRun(event));
     }
@@ -82,6 +79,7 @@ export function Options() {
           </button>
         )}
       </form>
+      <OutputLanguage />
       <div class="actions">
         <button type="button" onClick={test} disabled={!hasKey || run.status === 'running'}>
           Test key

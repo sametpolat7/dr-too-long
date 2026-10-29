@@ -2,9 +2,11 @@ import { z } from 'zod';
 import { MAX_SELECTION_CHARS } from '../limits/index.ts';
 import { PRESET_IDS } from './presets.ts';
 
+// A tag the prompt can name: Intl.DisplayNames refuses extensions such as -u-ca-gregory and -x-.
 function isLanguageTag(tag: string): boolean {
   try {
-    return Intl.getCanonicalLocales(tag).length === 1;
+    new Intl.DisplayNames(['en'], { type: 'language' }).of(tag);
+    return true;
   } catch {
     return false;
   }
@@ -13,7 +15,9 @@ function isLanguageTag(tag: string): boolean {
 export const summarizeRequestSchema = z.strictObject({
   v: z.literal(1),
   preset: z.enum(PRESET_IDS),
-  outputLanguage: z.string().refine(isLanguageTag, 'Expected a BCP 47 language tag'),
+  outputLanguage: z
+    .string()
+    .refine(isLanguageTag, 'Expected a language tag without extensions, such as en or pt-BR'),
   sentences: z
     .array(z.string().min(1))
     .min(1)

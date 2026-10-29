@@ -52,7 +52,7 @@ export function createSummarizer(
         }
         const output = await result.output;
         const validated = validateOutput(request.preset, output, request.sentences.length);
-        if (validated.status === 'empty') {
+        if (validated.points.length === 0) {
           yield errorEvent('invalid_output', 'No point survived validation');
           return;
         }

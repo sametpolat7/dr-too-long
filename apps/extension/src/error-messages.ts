@@ -9,6 +9,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   network: 'The provider could not be reached.',
   aborted: 'The run was cancelled.',
   disconnected: 'The background worker stopped before the summary finished.',
+  invalidated:
+    'Dr. Too Long was updated or reloaded. Start it again from the icon, the shortcut or the menu.',
   invalid_output: 'The model returned no usable summary.',
   no_selection: 'Select some text first.',
   too_long: 'The selection is too long.',

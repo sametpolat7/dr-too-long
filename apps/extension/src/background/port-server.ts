@@ -5,9 +5,16 @@ import {
   summarizeRequestSchema,
 } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
+import { isListedLanguage } from '../languages.ts';
 import { readApiKey } from '../settings/api-key.ts';
 import { SUMMARIZE_PORT } from '../summarize-port.ts';
 import { keepAlive } from './keep-alive.ts';
+
+// The card asks for a listed language, or for Chrome's own when the reader chose Auto.
+const portRequestSchema = summarizeRequestSchema.refine(
+  ({ outputLanguage }) =>
+    isListedLanguage(outputLanguage) || outputLanguage === browser.i18n.getUILanguage(),
+);
 
 export type CreateSummarizer = (apiKey: string) => Summarizer;
 
@@ -34,7 +41,7 @@ export function handleConnect(port: SummarizePort, createSummarizer: CreateSumma
   port.onMessage.addListener((message) => {
     if (started) return;
     started = true;
-    const request = summarizeRequestSchema.safeParse(message);
+    const request = portRequestSchema.safeParse(message);
     if (request.success) {
       void run(port, request.data, createSummarizer, controller.signal);
     } else {
@@ -50,6 +57,9 @@ async function run(
   signal: AbortSignal,
 ): Promise<void> {
   const apiKey = await readApiKey();
+  // The card closes its port when the reader switches presets or languages or closes it; a closed
+  // port takes no messages.
+  if (signal.aborted) return;
   if (!apiKey) {
     port.postMessage({ type: 'error', code: 'no_key', message: 'No API key is saved' });
     port.disconnect();
@@ -58,7 +68,8 @@ async function run(
 
   const release = keepAlive();
   try {
-    for await (const event of createSummarizer(apiKey).summarize(request, { signal })) {
+    const summarizer = createSummarizer(apiKey);
+    for await (const event of summarizer.summarize(request, { signal })) {
       if (signal.aborted) return;
       port.postMessage(event);
     }

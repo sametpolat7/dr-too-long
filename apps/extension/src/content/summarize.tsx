@@ -1,19 +1,20 @@
-import type { SummaryEvent } from '@dr-too-long/shared/contracts';
+import { DEFAULT_PRESET } from '@dr-too-long/shared/contracts';
 import { render } from 'preact';
-import { browser } from 'wxt/browser';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
-import { MESSAGES, sendMessage } from '../messages.ts';
+import { resolveLanguage } from '../languages.ts';
+import { requestLanguageChoice, sendMessage } from '../messages.ts';
 import { portSummarizer } from '../summarize-port.ts';
 import { type Anchors, createAnchors } from './anchoring/anchors.ts';
-import { Card, type CardState } from './card/Card.tsx';
+import { Card, type CardState, type View } from './card/Card.tsx';
 import css from './card/card.css?inline';
-import { selectionRequest } from './selection.ts';
+import { createRuns, type Runs } from './runs.ts';
+import { readSelection } from './selection.ts';
 
 // Reads the current selection and streams its summary into a card on the page.
 export async function summarizeSelection(ctx: ContentScriptContext): Promise<void> {
   if (!canHostShadowRoot()) {
-    sendMessage(MESSAGES.unsupportedPage);
+    sendMessage({ type: 'unsupported-page' });
     return;
   }
 
@@ -34,16 +35,27 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     },
   });
 
+  let runs: Runs | undefined;
+  let choice: string | null = null;
   const close = () => {
     controller.abort();
     ui.remove();
   };
-  const show = (state: CardState) => {
+  const show = (state: CardState, view?: View) => {
     render(
       <Card
         state={state}
+        view={view}
+        choice={choice}
+        onSelect={(preset) => runs?.select(preset)}
+        // The card switches first: in a script orphaned by an extension reload the save throws.
+        onLanguage={(next) => {
+          runs?.selectLanguage(resolveLanguage(next));
+          sendMessage({ type: 'save-language', choice: next });
+        }}
+        onRegenerate={() => runs?.regenerate()}
         onClose={close}
-        onOpenOptions={() => sendMessage(MESSAGES.openOptions)}
+        onOpenOptions={() => sendMessage({ type: 'open-options' })}
         onActivate={(point) => anchors?.activate(point) ?? false}
       />,
       ui.uiContainer,
@@ -60,35 +72,29 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   );
   ui.mount();
 
-  const outcome = selectionRequest(window.getSelection(), browser.i18n.getUILanguage());
+  const outcome = readSelection(window.getSelection());
   if (!outcome.ok) {
     show({ status: 'error', code: outcome.code, detail: outcome.detail });
     return;
   }
 
-  show({ status: 'summarizing', points: [] });
-  for await (const event of portSummarizer.summarize(outcome.request, {
+  anchors = createAnchors(outcome.pageText, outcome.sentences);
+  choice = await requestLanguageChoice();
+  runs = createRuns({
+    summarizer: portSummarizer,
+    sentences: outcome.sentences.map((sentence) => sentence.text),
+    initial: { preset: DEFAULT_PRESET, language: resolveLanguage(choice) },
+    // Each new state replaces the summary whose point the page may have highlighted.
+    show: (view, state) => {
+      anchors?.clear();
+      show(state, view);
+    },
     signal: controller.signal,
-  })) {
-    if (controller.signal.aborted) return;
-    if (event.type === 'done') anchors = createAnchors(outcome.pageText, outcome.sentences);
-    show(toState(event));
-  }
+  });
 }
 
 // Only HTML and XHTML documents create elements that can host a shadow root; Chrome's XML viewer
 // and SVG documents cannot.
 function canHostShadowRoot(): boolean {
   return document instanceof HTMLDocument || document.contentType === 'application/xhtml+xml';
-}
-
-function toState(event: SummaryEvent): CardState {
-  switch (event.type) {
-    case 'partial':
-      return { status: 'summarizing', points: event.points };
-    case 'done':
-      return { status: 'done', points: event.output.points };
-    case 'error':
-      return { status: 'error', code: event.code };
-  }
 }

@@ -7,7 +7,7 @@ import { writeApiKey } from '../src/settings/api-key.ts';
 const request: SummarizeRequest = {
   v: 1,
   preset: 'summary',
-  outputLanguage: 'en',
+  outputLanguage: 'tr',
   sentences: ['One.', 'Two.'],
 };
 const partial: SummaryEvent = { type: 'partial', points: [{ text: 'One', sentences: [1] }] };
@@ -63,7 +63,10 @@ function summarizerOf(events: SummaryEvent[]): Summarizer {
 }
 
 describe('handleConnect', () => {
-  beforeEach(() => fakeBrowser.reset());
+  beforeEach(() => {
+    fakeBrowser.reset();
+    fakeBrowser.i18n.getUILanguage = () => 'en-US';
+  });
 
   it('answers no_key and closes the port when no key is saved', async () => {
     const createSummarizer = vi.fn();
@@ -84,6 +87,48 @@ describe('handleConnect', () => {
 
     await vi.waitFor(() => expect(port.disconnected).toBe(true));
     expect(port.sent).toEqual([partial, done]);
+  });
+
+  it.each([
+    ['a listed language', 'tr'],
+    ["Chrome's own language, which Auto writes in", 'en-US'],
+  ])('summarizes in %s', async (_, outputLanguage) => {
+    await writeApiKey('secret');
+    const received: SummarizeRequest[] = [];
+    const port = new FakePort();
+    handleConnect(port, () => ({
+      async *summarize(sent) {
+        received.push(sent);
+        yield done;
+      },
+    }));
+    port.receive({ ...request, outputLanguage });
+
+    await vi.waitFor(() => expect(port.disconnected).toBe(true));
+    expect(received).toEqual([{ ...request, outputLanguage }]);
+  });
+
+  it("refuses a language that is neither listed nor Chrome's own", async () => {
+    await writeApiKey('secret');
+    const createSummarizer = vi.fn();
+    const port = new FakePort();
+    handleConnect(port, createSummarizer);
+    port.receive({ ...request, outputLanguage: 'th' });
+
+    expect(port.disconnected).toBe(true);
+    expect(createSummarizer).not.toHaveBeenCalled();
+  });
+
+  it('posts nothing once the client has closed the port during the key read', async () => {
+    const postMessage = vi.fn();
+    const port = new FakePort();
+    port.postMessage = postMessage;
+    handleConnect(port, vi.fn());
+    port.receive(request);
+    port.closeFromClient();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(postMessage).not.toHaveBeenCalled();
   });
 
   it('closes the port without a reply on a malformed request', async () => {
