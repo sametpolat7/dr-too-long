@@ -61,11 +61,50 @@ p {
   color: #b00020;
 }
 
-.options {
+.presets,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presets {
+  min-inline-size: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+.actions:not(:empty) {
   margin-top: 12px;
-  padding: 6px 12px;
+}
+
+.presets button,
+.actions button {
+  padding: 4px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: #1a1a1a;
   font: inherit;
+  font-size: 13px;
   cursor: pointer;
+}
+
+.presets button:hover,
+.actions button:hover {
+  background: #f2f2f2;
+}
+
+.presets button[aria-pressed="true"] {
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+ul {
+  margin: 0;
+  padding-inline-start: 20px;
 }
 
 .point {
