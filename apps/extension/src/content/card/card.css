@@ -107,15 +107,23 @@ ul {
   padding-inline-start: 20px;
 }
 
-.language {
+footer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #eee;
   color: #555;
   font-size: 13px;
+}
+
+.language {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 4px;
 }
 
 .language select {
@@ -125,6 +133,20 @@ ul {
   background: #fff;
   color: #1a1a1a;
   font: inherit;
+}
+
+.bubble-switch {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.bubble-switch:hover {
+  color: #1a1a1a;
 }
 
 .point {
