@@ -22,8 +22,9 @@ Load the build in Chrome:
 1. Open `chrome://extensions` and turn on **Developer mode**.
 2. Click **Load unpacked** and choose `apps/extension/.output/chrome-mv3`.
 3. After each rebuild, click the extension's **Reload** button.
-4. Open the extension's **Details** page, click **Extension options**, paste your OpenAI API key, click **Save**, then **Test key**. A summary of a built-in sample streams in.
+4. Open the extension's **Details** page, click **Extension options**, paste your OpenAI API key, click **Save**, then **Test key**. A summary of a built-in sample streams in. Summaries are written in Chrome's own language until you choose another under **Summary language** on the same page.
 5. Pin the extension's icon from the toolbar's puzzle menu. Open an article, select a few paragraphs and click the icon, press Ctrl+Shift+S (Command+Shift+S on a Mac), or right-click the selection and choose **Summarize "…"**. A card appears at the top right of the page and the summary streams in. Once it is done, click a point in the card: the page highlights the sentences the point rests on and scrolls to the first, and the selection is released, so a further run needs a new selection. If those sentences have left the page, the card says so. Escape or the card's close button dismisses the card and its highlight.
+6. Every run starts with **Summary**. The card's **Single sentence** and **Bulleted list** buttons summarize the same selection in those shapes, and a shape you already saw comes back without a new request while the card is open. **Copy** puts the summary on the clipboard as one paragraph or as `- ` bullets; it needs an `https` page. **Regenerate** runs the shown shape again, and errors the provider may clear on a second run offer **Try again**.
 
 Chrome leaves the shortcut unset when another extension already holds it; set or change it at `chrome://extensions/shortcuts`. A selection inside an embedded frame gets a card saying it cannot be summarized.
 
@@ -42,7 +43,7 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 | `pnpm check:bundle` | Fails if the built content script carries key, storage or provider code |
 | `pnpm evals` | Runs the model evals; see [Model evals](#model-evals) |
 
-Chrome never lets an extension run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer; the icon shows a `!` badge there for a moment. The extension asks for `activeTab` and `scripting` to run on the page where you use the icon, shortcut or menu item, `contextMenus` for that menu item, and `storage` to keep your key. Apart from `api.openai.com`, which the background worker calls, it has no access to any site until you use one of them.
+Chrome never lets an extension run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer; the icon shows a `!` badge there for a moment. The extension asks for `activeTab` and `scripting` to run on the page where you use the icon, shortcut or menu item, `contextMenus` for that menu item, and `storage` to keep your key and summary language. Apart from `api.openai.com`, which the background worker calls, it has no access to any site until you use one of them.
 
 Highlights use the CSS Custom Highlight API: the worker inserts one stylesheet rule into the page on each run, and the content script registers the cited sentences under it when you click a point. Highlights add nothing to the page's DOM, and the page's text is never changed.
 
