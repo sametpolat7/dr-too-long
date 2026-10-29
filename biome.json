@@ -22,7 +22,7 @@
       "includes": [
         "apps/extension/src/content/**",
         "apps/extension/src/entrypoints/*.content.{ts,tsx}",
-        "apps/extension/src/*.ts"
+        "apps/extension/src/*.{ts,tsx}"
       ],
       "linter": {
         "rules": {
