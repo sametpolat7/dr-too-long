@@ -9,12 +9,12 @@ Everything below stays out of Phase 1. This list changes only through a pull req
 - No whole-page, PDF or video summaries, follow-up chat, history or per-site style memory.
 - No sidebar, popup, side panel or menu before the summary. Every gesture runs Summary directly.
 - No fourth preset, length sliders or tone options.
-- No user settings for the bubble delay, minimum length or selection cap. They are constants in `packages/shared`.
+- No user settings for the bubble delay, minimum length or selection cap. They are constants: the cap in `packages/shared`, which the Phase 2 backend also enforces, and the bubble's in the extension.
 - No language-specific sentence rules. ICU's root rules and a merge of uppercase initials set the boundaries in every language; no language's abbreviation or ordinal conventions are special-cased.
 
 ## Privacy
 
-- No storing of selected text, summaries or page addresses, and no logging of them in production builds, error messages, test fixtures or pull requests. From Phase 2 every request leaves the operational record listed in the plan's Data section; nothing else is collected.
+- No storing of selected text, summaries or page addresses, and no logging of them in production builds, error messages, test fixtures or pull requests. The one exception is the hostnames where the reader hides the bubble, which the background worker holds in session memory per tab until the tab closes and never writes to disk. From Phase 2 every request leaves the operational record listed in the plan's Data section; nothing else is collected.
 - No `storage.sync`, and no API key in files, the extension bundle or CI. Development and eval keys come from the developer's shell; scheduled evals run on the Phase 2 host.
 
 ## Model
