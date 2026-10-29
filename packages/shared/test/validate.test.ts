@@ -30,27 +30,18 @@ describe('validatePoint with 10 sentences', () => {
 describe('validateOutput with 10 sentences', () => {
   it('truncates seven list points to five and reports two dropped', () => {
     const output = { points: Array.from({ length: 7 }, (_, i) => point([i + 1])) };
-    expect(validateOutput('bulleted-list', output, 10)).toMatchObject({
-      dropped: 2,
-      status: 'ok',
-    });
-    expect(validateOutput('bulleted-list', output, 10).points).toHaveLength(5);
+    const validated = validateOutput('bulleted-list', output, 10);
+    expect(validated.points).toHaveLength(5);
+    expect(validated.dropped).toBe(2);
   });
 
-  it('flags a summary below its minimum', () => {
+  it('counts an unanchored point as dropped', () => {
     const output = { points: [point([1]), point([42])] };
-    expect(validateOutput('summary', output, 10)).toMatchObject({
-      dropped: 1,
-      status: 'below_minimum',
-    });
+    expect(validateOutput('summary', output, 10)).toEqual({ points: [point([1])], dropped: 1 });
   });
 
-  it('returns status empty when no point is anchored', () => {
+  it('keeps no point when none is anchored', () => {
     const output = { points: [point([0]), point([11])] };
-    expect(validateOutput('summary', output, 10)).toEqual({
-      points: [],
-      dropped: 2,
-      status: 'empty',
-    });
+    expect(validateOutput('summary', output, 10)).toEqual({ points: [], dropped: 2 });
   });
 });

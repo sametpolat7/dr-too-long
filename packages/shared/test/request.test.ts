@@ -23,11 +23,12 @@ describe('summarizeRequestSchema', () => {
     expect(summarizeRequestSchema.safeParse({ ...request, preset: 'essay' }).success).toBe(false);
   });
 
-  it('rejects an output language that is not a BCP 47 tag', () => {
-    expect(
-      summarizeRequestSchema.safeParse({ ...request, outputLanguage: 'not a tag' }).success,
-    ).toBe(false);
-  });
+  it.each(['not a tag', 'en-u-ca-gregory', 'en-x-foo'])(
+    'rejects %j, which the prompt cannot name as a language',
+    (outputLanguage) => {
+      expect(summarizeRequestSchema.safeParse({ ...request, outputLanguage }).success).toBe(false);
+    },
+  );
 
   it('rejects an empty selection', () => {
     expect(summarizeRequestSchema.safeParse({ ...request, sentences: [] }).success).toBe(false);

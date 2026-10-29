@@ -3,13 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { handleConnect, type SummarizePort } from '../src/background/port-server.ts';
 import { writeApiKey } from '../src/settings/api-key.ts';
+import { writeLanguageChoice } from '../src/settings/output-language.ts';
+import type { PortRequest } from '../src/summarize-port.ts';
 
-const request: SummarizeRequest = {
-  v: 1,
-  preset: 'summary',
-  outputLanguage: 'en',
-  sentences: ['One.', 'Two.'],
-};
+const request: PortRequest = { v: 1, preset: 'summary', sentences: ['One.', 'Two.'] };
 const partial: SummaryEvent = { type: 'partial', points: [{ text: 'One', sentences: [1] }] };
 const done: SummaryEvent = {
   type: 'done',
@@ -63,7 +60,10 @@ function summarizerOf(events: SummaryEvent[]): Summarizer {
 }
 
 describe('handleConnect', () => {
-  beforeEach(() => fakeBrowser.reset());
+  beforeEach(() => {
+    fakeBrowser.reset();
+    fakeBrowser.i18n.getUILanguage = () => 'en-US';
+  });
 
   it('answers no_key and closes the port when no key is saved', async () => {
     const createSummarizer = vi.fn();
@@ -84,6 +84,49 @@ describe('handleConnect', () => {
 
     await vi.waitFor(() => expect(port.disconnected).toBe(true));
     expect(port.sent).toEqual([partial, done]);
+  });
+
+  it.each([
+    ["Chrome's UI language", null, 'en-US'],
+    ['the chosen language', 'tr', 'tr'],
+  ])('summarizes in %s', async (_, choice, outputLanguage) => {
+    await writeApiKey('secret');
+    await writeLanguageChoice(choice);
+    const received: SummarizeRequest[] = [];
+    const port = new FakePort();
+    handleConnect(port, () => ({
+      async *summarize(sent) {
+        received.push(sent);
+        yield done;
+      },
+    }));
+    port.receive(request);
+
+    await vi.waitFor(() => expect(port.disconnected).toBe(true));
+    expect(received).toEqual([{ ...request, outputLanguage }]);
+  });
+
+  it('refuses a request that names its own output language', async () => {
+    await writeApiKey('secret');
+    const createSummarizer = vi.fn();
+    const port = new FakePort();
+    handleConnect(port, createSummarizer);
+    port.receive({ ...request, outputLanguage: 'tr' });
+
+    expect(port.disconnected).toBe(true);
+    expect(createSummarizer).not.toHaveBeenCalled();
+  });
+
+  it('posts nothing once the client has closed the port during the settings read', async () => {
+    const postMessage = vi.fn();
+    const port = new FakePort();
+    port.postMessage = postMessage;
+    handleConnect(port, vi.fn());
+    port.receive(request);
+    port.closeFromClient();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(postMessage).not.toHaveBeenCalled();
   });
 
   it('closes the port without a reply on a malformed request', async () => {
