@@ -14,6 +14,8 @@ interface WatchOptions {
   // Shows the bubble beside the lines, or moves it there.
   offer: (lines: Lines) => void;
   withdraw: () => void;
+  // Offers the selection already on the page, which no card has summarized.
+  offerCurrent?: boolean;
 }
 
 export interface Watcher {
@@ -23,7 +25,7 @@ export interface Watcher {
 
 // A selection outside frames and editable regions, long enough that copying a phrase never shows
 // the bubble, on a page that is not pinch-zoomed.
-function offeredRange(selection: Selection | null): Range | null {
+export function offeredRange(selection: Selection | null): Range | null {
   if (!selection || selection.rangeCount === 0 || zoomed() || inFrame() || inEditable(selection)) {
     return null;
   }
@@ -33,12 +35,18 @@ function offeredRange(selection: Selection | null): Range | null {
 }
 
 // Offers the bubble once the reader has finished selecting: a short delay after the mouse button or
-// a key is released, never during a drag. The selection on the page when watching starts, one
-// dismissed with Escape or a click on the bubble, and one scrolled BUBBLE_SCROLL_PX from where it
-// was offered are not offered again until the selection changes.
-export function watchSelections({ isValid, signal, offer, withdraw }: WatchOptions): Watcher {
+// a key is released, never during a drag. The selection on the page when watching starts (unless
+// offerCurrent), one dismissed with Escape or a click on the bubble, and one scrolled
+// BUBBLE_SCROLL_PX from where it was offered are not offered again until the selection changes.
+export function watchSelections({
+  isValid,
+  signal,
+  offer,
+  withdraw,
+  offerCurrent = false,
+}: WatchOptions): Watcher {
   let pressed = false;
-  let dismissed = true;
+  let dismissed = !offerCurrent;
   let following = false;
   let timer: number | undefined;
   let shown: Range | undefined;
@@ -140,6 +148,7 @@ export function watchSelections({ isValid, signal, offer, withdraw }: WatchOptio
     options,
   );
   signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
+  if (offerCurrent) schedule();
   return { dismiss };
 }
 
