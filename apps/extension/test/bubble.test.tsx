@@ -56,7 +56,7 @@ describe('startBubble', () => {
 
   it('shows Summarize above the selection, keeps the selection on a press and summarizes on a click', async () => {
     const onSummarize = vi.fn();
-    bubble = await startBubble(ctx, false, onSummarize);
+    bubble = await startBubble(ctx, { hidden: false, onSummarize });
     select();
     expect(button()?.textContent).toBe('Summarize');
     expect([button()?.style.left, button()?.style.top]).toEqual(['40px', '192px']);
@@ -72,7 +72,7 @@ describe('startBubble', () => {
   });
 
   it('offers nothing while hidden on the site, and again once shown', async () => {
-    bubble = await startBubble(ctx, true, vi.fn());
+    bubble = await startBubble(ctx, { hidden: true, onSummarize: vi.fn() });
     select();
     expect(button()).toBeNull();
     bubble.setHidden(false);
@@ -84,9 +84,19 @@ describe('startBubble', () => {
     expect(button()).toBeNull();
   });
 
+  it('offers the selection already on the page when asked to', async () => {
+    document.body.innerHTML = `<p>${LONG}</p>`;
+    const range = document.createRange();
+    range.selectNodeContents(document.body);
+    document.getSelection()?.addRange(range);
+    bubble = await startBubble(ctx, { hidden: false, offerCurrent: true, onSummarize: vi.fn() });
+    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    expect(button()).not.toBeNull();
+  });
+
   it('offers nothing in a script orphaned by an extension reload', async () => {
     valid = false;
-    bubble = await startBubble(ctx, false, vi.fn());
+    bubble = await startBubble(ctx, { hidden: false, onSummarize: vi.fn() });
     select();
     expect(button()).toBeNull();
   });

@@ -106,6 +106,20 @@ describe('watchSelections', () => {
     expect(offer).toHaveBeenCalledOnce();
   });
 
+  it('offers the selection on the page when watching starts, when asked to', () => {
+    select(LONG);
+    const offer = vi.fn();
+    watchSelections({
+      isValid: () => valid,
+      signal: controller.signal,
+      offer,
+      withdraw: vi.fn(),
+      offerCurrent: true,
+    });
+    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    expect(offer).toHaveBeenCalledOnce();
+  });
+
   it('cancels a pending check when a press starts', () => {
     const { offer } = watch();
     select(LONG);
