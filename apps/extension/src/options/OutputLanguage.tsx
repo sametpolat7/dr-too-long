@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'preact/hooks';
-import { browser } from 'wxt/browser';
-import { readLanguageChoice, writeLanguageChoice } from '../settings/output-language.ts';
-import { LANGUAGES, languageLabel } from './languages.ts';
-
-// The select's value for Auto, which the settings store as no choice at all.
-const AUTO = '';
+import { LanguageSelect } from '../LanguageSelect.tsx';
+import {
+  readLanguageChoice,
+  watchLanguageChoice,
+  writeLanguageChoice,
+} from '../settings/output-language.ts';
 
 export function OutputLanguage() {
   // Undefined until the saved choice has loaded, so the select never flashes Auto.
@@ -12,29 +12,15 @@ export function OutputLanguage() {
 
   useEffect(() => {
     readLanguageChoice().then(setChoice);
+    return watchLanguageChoice(setChoice);
   }, []);
 
   if (choice === undefined) return null;
 
-  async function change(value: string) {
-    const tag = value === AUTO ? null : value;
-    await writeLanguageChoice(tag);
-    setChoice(tag);
+  async function change(next: string | null) {
+    await writeLanguageChoice(next);
+    setChoice(next);
   }
 
-  return (
-    <label class="language">
-      Summary language
-      <select value={choice ?? AUTO} onChange={(event) => change(event.currentTarget.value)}>
-        <option value={AUTO}>
-          Auto: Chrome's language ({languageLabel(browser.i18n.getUILanguage())})
-        </option>
-        {LANGUAGES.map(({ tag, label }) => (
-          <option key={tag} value={tag}>
-            {label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <LanguageSelect choice={choice} onChange={change} />;
 }
