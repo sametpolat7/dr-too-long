@@ -3,6 +3,7 @@ import { ACTIVE_MODEL } from '@dr-too-long/shared/providers';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { ERROR_MESSAGES } from '../error-messages.ts';
 import { readApiKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
+import { readOutputLanguage } from '../settings/output-language.ts';
 import { portSummarizer } from '../summarize-port.ts';
 import { OutputLanguage } from './OutputLanguage.tsx';
 
@@ -45,7 +46,8 @@ export function Options() {
     const current = new AbortController();
     controller.current = current;
     setRun({ status: 'running', points: [] });
-    const request = { v: 1, preset: DEFAULT_PRESET, sentences: SAMPLE } as const;
+    const outputLanguage = await readOutputLanguage();
+    const request = { v: 1, preset: DEFAULT_PRESET, outputLanguage, sentences: SAMPLE } as const;
     for await (const event of portSummarizer.summarize(request, { signal: current.signal })) {
       setRun(toRun(event));
     }
