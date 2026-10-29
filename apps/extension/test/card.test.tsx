@@ -60,16 +60,16 @@ describe('Card', () => {
     expect(first?.className).toBe('point');
   });
 
-  it('activates a point on Enter', () => {
+  it.each(['Enter', ' '])('activates a point on %j and cancels the default action', (key) => {
     const onActivate = vi.fn(() => true);
     const container = show({ status: 'done', points }, { onActivate });
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
     act(() => {
-      pointsOf(container)[0]?.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-      );
+      pointsOf(container)[0]?.dispatchEvent(event);
     });
     expect(onActivate).toHaveBeenCalledWith(points[0]);
     expect(pointsOf(container)[0]?.className).toBe('point active');
+    expect(event.defaultPrevented).toBe(true);
   });
 
   it('says when the passage is no longer on the page', () => {

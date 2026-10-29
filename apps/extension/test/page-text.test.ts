@@ -1,5 +1,5 @@
 import { segmentSentences } from '@dr-too-long/shared/segmentation';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { findText, rangeOf, readPageText } from '../src/content/anchoring/page-text.ts';
 
 function mount(html: string): Range {
@@ -15,9 +15,23 @@ function textNode(selector: string): Text {
   return node;
 }
 
+// happy-dom neither blockifies floated, positioned or grid-placed elements nor fills cssFloat, so
+// the matching elements get the values Chrome computes for them.
+function computeAs(styles: Record<string, object>) {
+  const computed = getComputedStyle;
+  vi.stubGlobal('getComputedStyle', (element: Element) => {
+    const selector = Object.keys(styles).find((key) => element.matches(key));
+    return selector ? styles[selector] : computed(element);
+  });
+}
+
 describe('readPageText', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('collapses whitespace and joins inline elements', () => {
@@ -45,6 +59,37 @@ describe('readPageText', () => {
     expect(readPageText(range).text).toBe('Title\nSix\nseven.\nTen.\nEleven.');
   });
 
+  it('breaks the line at a block with no words', () => {
+    const range = mount('<div>Chapter One<hr>It was a dark night.</div>');
+    expect(readPageText(range).text).toBe('Chapter One\nIt was a dark night.');
+  });
+
+  it('keeps a block inside an inline box, such as an icon in a link, in its line', () => {
+    const range = mount(
+      '<p>See the <a style="display: inline-flex">docs<svg style="display: block"></svg></a> for more.</p>',
+    );
+    expect(readPageText(range).text).toBe('See the docs for more.');
+  });
+
+  it('keeps floated and absolutely positioned elements in their line', () => {
+    const range = mount(
+      '<p>Read the <a>guide<span class="hidden-label"> (opens in new tab)</span></a> first. <span class="drop-cap">T</span>hen start.</p>',
+    );
+    computeAs({
+      '.hidden-label': { display: 'block', position: 'absolute' },
+      '.drop-cap': { display: 'block', cssFloat: 'left' },
+    });
+    expect(readPageText(range).text).toBe('Read the guide (opens in new tab) first. Then start.');
+  });
+
+  it('breaks lines around floated grid items, whose float has no effect', () => {
+    const range = mount(
+      '<div class="grid"><div class="cell">Name</div><div class="cell">Value</div></div>',
+    );
+    computeAs({ '.grid': { display: 'grid' }, '.cell': { display: 'block', cssFloat: 'left' } });
+    expect(readPageText(range).text).toBe('Name\nValue');
+  });
+
   it('clips at range ends inside one text node', () => {
     mount('<p>One two three.</p>');
     const range = document.createRange();
@@ -52,7 +97,8 @@ describe('readPageText', () => {
     range.setEnd(textNode('p'), 7);
     const page = readPageText(range);
     expect(page.text).toBe('two');
-    expect(readPageText(rangeOf(page, 0, 3) ?? range).text).toBe('two');
+    const back = rangeOf(page, 0, 3);
+    expect(back && readPageText(back).text).toBe('two');
   });
 
   it('reads a selection made over an element', () => {
@@ -112,7 +158,9 @@ describe('rangeOf', () => {
 describe('findText', () => {
   it('finds a sentence by its text', () => {
     const page = readPageText(mount('<p>One two.</p><p>Three four.</p>'));
-    expect(findText(page, 'Three four.')).toEqual({ start: 9, end: 20 });
+    const range = findText(page, 'Three four.');
+    expect(range?.toString()).toBe('Three four.');
+    expect(range?.startContainer).toBe(textNode('p:last-child'));
     expect(findText(page, 'Five.')).toBeNull();
   });
 });
