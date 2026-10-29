@@ -5,6 +5,7 @@ import { ERROR_MESSAGES } from '../error-messages.ts';
 import { readApiKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
 import { readOutputLanguage } from '../settings/output-language.ts';
 import { portSummarizer } from '../summarize-port.ts';
+import { EverySite } from './EverySite.tsx';
 import { OutputLanguage } from './OutputLanguage.tsx';
 
 const SAMPLE = [
@@ -80,6 +81,7 @@ export function Options() {
         )}
       </form>
       <OutputLanguage />
+      <EverySite />
       <div class="actions">
         <button type="button" onClick={test} disabled={!hasKey || run.status === 'running'}>
           Test key
