@@ -1,5 +1,6 @@
 import { ACTIVE_MODEL, PROVIDERS } from '@dr-too-long/shared/providers';
 import { defineConfig } from 'wxt';
+import { EVERY_SITE } from './src/every-site.ts';
 
 const MINIMUM_CHROME = 110;
 
@@ -19,5 +20,6 @@ export default defineConfig({
     },
     permissions: ['activeTab', 'contextMenus', 'scripting', 'storage'],
     host_permissions: [`${PROVIDERS[ACTIVE_MODEL.provider].apiHost}/*`],
+    optional_host_permissions: EVERY_SITE.origins,
   },
 });
