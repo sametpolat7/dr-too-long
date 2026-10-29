@@ -1,21 +1,16 @@
-// The locales the Chrome Web Store supports for localizing extensions, from the chrome.i18n
-// reference, as BCP 47 tags.
-const LOCALES = [
+// The languages of the locale list in the chrome.i18n reference, as BCP 47 tags: one entry per
+// language rather than per region, Chinese by script rather than by place, and no Catalan.
+const TAGS = [
   'am',
   'ar',
   'bg',
   'bn',
-  'ca',
   'cs',
   'da',
   'de',
   'el',
   'en',
-  'en-AU',
-  'en-GB',
-  'en-US',
   'es',
-  'es-419',
   'et',
   'fa',
   'fi',
@@ -39,8 +34,7 @@ const LOCALES = [
   'nl',
   'no',
   'pl',
-  'pt-BR',
-  'pt-PT',
+  'pt',
   'ro',
   'ru',
   'sk',
@@ -54,12 +48,13 @@ const LOCALES = [
   'tr',
   'uk',
   'vi',
-  'zh-CN',
-  'zh-TW',
+  'zh-Hans',
+  'zh-Hant',
 ];
 
 // English name first, for an English page, then the language's own name where it differs. Standard
-// names put a region after its language, so Portuguese (Brazil) sorts beside Portuguese.
+// names put a qualifier after the language, so Chinese (Simplified) sorts beside Chinese
+// (Traditional).
 export function languageLabel(tag: string): string {
   const options = { type: 'language', languageDisplay: 'standard' } as const;
   const english = new Intl.DisplayNames(['en'], options).of(tag) ?? tag;
@@ -67,6 +62,6 @@ export function languageLabel(tag: string): string {
   return own === english ? english : `${english} — ${own}`;
 }
 
-export const LANGUAGES = LOCALES.map((tag) => ({ tag, label: languageLabel(tag) })).sort((a, b) =>
+export const LANGUAGES = TAGS.map((tag) => ({ tag, label: languageLabel(tag) })).sort((a, b) =>
   a.label.localeCompare(b.label, 'en'),
 );
