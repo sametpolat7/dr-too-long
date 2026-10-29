@@ -29,6 +29,26 @@ input {
   font: inherit;
 }
 
+.every-site {
+  margin-bottom: 12px;
+}
+
+.every-site label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.every-site input {
+  flex: none;
+  margin: 0;
+}
+
+.every-site p {
+  margin: 4px 0 0;
+  color: #555;
+}
+
 button,
 select {
   padding: 6px 12px;

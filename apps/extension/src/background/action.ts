@@ -2,17 +2,17 @@ import { browser } from 'wxt/browser';
 import { HIGHLIGHT_CSS } from '../highlight.ts';
 
 // WXT emits the runtime-registered content script under this path.
-const CONTENT_SCRIPT = '/content-scripts/summarize.js';
+const SUMMARIZE_SCRIPT = '/content-scripts/summarize.js';
 const BADGE_MS = 3000;
 
-// Runs the content script in the tab's top frame, with the highlight rule in place before it.
+// Runs the summarize script in the tab's top frame, with the highlight rule in place before it.
 export async function summarizeTab(tabId: number): Promise<void> {
   const style = { target: { tabId }, css: HIGHLIGHT_CSS };
   try {
     // Chrome inserts a copy per call and removes the last match; this keeps one copy per tab.
     await browser.scripting.removeCSS(style);
     await browser.scripting.insertCSS(style);
-    await browser.scripting.executeScript({ target: { tabId }, files: [CONTENT_SCRIPT] });
+    await browser.scripting.executeScript({ target: { tabId }, files: [SUMMARIZE_SCRIPT] });
   } catch {
     await flashBadge(tabId);
   }

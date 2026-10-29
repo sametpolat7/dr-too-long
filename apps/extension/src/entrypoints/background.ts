@@ -3,6 +3,7 @@ import { activeModel } from '@dr-too-long/shared/providers';
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { summarizeTab } from '../background/action.ts';
+import { syncEverySite } from '../background/every-site.ts';
 import { forgetTab } from '../background/hidden-bubble.ts';
 import { addMenuItem } from '../background/menu.ts';
 import { handleMessage } from '../background/message-handler.ts';
@@ -12,6 +13,7 @@ export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(({ reason }) => {
     console.info(`Dr. Too Long service worker ready (${reason})`);
     void addMenuItem();
+    void syncEverySite();
   });
   // The keyboard shortcut is bound to _execute_action, so it arrives here as a click on the icon.
   browser.action.onClicked.addListener((tab) => {
@@ -24,5 +26,7 @@ export default defineBackground(() => {
   });
   browser.runtime.onMessage.addListener(handleMessage);
   browser.tabs.onRemoved.addListener((tabId) => void forgetTab(tabId));
+  browser.permissions.onAdded.addListener(() => void syncEverySite());
+  browser.permissions.onRemoved.addListener(() => void syncEverySite());
   startPortServer((apiKey) => createSummarizer(activeModel(apiKey)));
 });

@@ -12,11 +12,17 @@ export interface Bubble {
   setHidden(hidden: boolean): void;
 }
 
+interface BubbleOptions {
+  hidden: boolean;
+  // Offers the selection already on the page, which no card has summarized.
+  offerCurrent?: boolean;
+  onSummarize: () => void;
+}
+
 // Mounts the bubble's host, which stays empty until a selection is offered.
 export async function startBubble(
   ctx: ContentScriptContext,
-  hidden: boolean,
-  onSummarize: () => void,
+  { hidden, offerCurrent = false, onSummarize }: BubbleOptions,
 ): Promise<Bubble> {
   const ui = await createShadowRootUi(ctx, {
     name: BUBBLE_UI,
@@ -48,24 +54,26 @@ export async function startBubble(
       />,
       ui.uiContainer,
     );
+  const watch = (current: boolean) => {
+    watching = new AbortController();
+    watcher = watchSelections({
+      isValid: () => ctx.isValid,
+      signal: watching.signal,
+      offer,
+      withdraw,
+      offerCurrent: current,
+    });
+  };
   ctx.onInvalidated(() => watching?.abort());
 
-  const bubble: Bubble = {
+  if (!hidden) watch(offerCurrent);
+  return {
     setHidden(next) {
       watching?.abort();
       withdraw();
-      if (next) return;
-      watching = new AbortController();
-      watcher = watchSelections({
-        isValid: () => ctx.isValid,
-        signal: watching.signal,
-        offer,
-        withdraw,
-      });
+      if (!next) watch(false);
     },
   };
-  bubble.setHidden(hidden);
-  return bubble;
 }
 
 interface BubbleButtonProps {

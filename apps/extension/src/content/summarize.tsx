@@ -14,7 +14,7 @@ import { Card, type CardProps, type CardState, type View } from './card/Card.tsx
 import css from './card/card.css?inline';
 import { createRuns, type Runs } from './runs.ts';
 import { readSelection } from './selection.ts';
-import { CARD_UI } from './ui.ts';
+import { CARD_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
 
 type CardUi = ShadowRootContentScriptUi<HTMLElement>;
 type BubbleProps = Pick<CardProps, 'bubbleHidden' | 'onBubble'>;
@@ -26,6 +26,7 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     sendMessage({ type: 'unsupported-page' });
     return;
   }
+  document.dispatchEvent(new Event(SUMMARIZE_STARTED));
 
   let hidden = await requestBubbleHidden();
   // One host serves every card, mounted after the bubble's so that a card is drawn over it.
@@ -49,8 +50,11 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   };
   // An extension reload orphans this script, and the check removes its card and bubble instead of
   // opening a card that cannot run.
-  const bubble = await startBubble(ctx, hidden, () => {
-    if (ctx.isValid) summarize();
+  const bubble = await startBubble(ctx, {
+    hidden,
+    onSummarize: () => {
+      if (ctx.isValid) summarize();
+    },
   });
   const onBubble = (next: boolean) => {
     hidden = next;
@@ -127,10 +131,4 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleProps: BubbleProp
     });
   });
   return close;
-}
-
-// Only HTML and XHTML documents create elements that can host a shadow root; Chrome's XML viewer
-// and SVG documents cannot.
-function canHostShadowRoot(): boolean {
-  return document instanceof HTMLDocument || document.contentType === 'application/xhtml+xml';
 }

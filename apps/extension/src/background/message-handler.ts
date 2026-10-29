@@ -3,6 +3,7 @@ import { isListedLanguage } from '../languages.ts';
 import type { Message } from '../messages.ts';
 import { readLanguageChoice, writeLanguageChoice } from '../settings/output-language.ts';
 import { flashBadge } from './action.ts';
+import { everySiteBubbleShown, summarizeFromBubble } from './every-site.ts';
 import { isBubbleHidden, type Sender, setBubbleHidden } from './hidden-bubble.ts';
 
 // Returns true while an answer is still to come, which keeps Chrome's message channel open.
@@ -33,5 +34,11 @@ export function handleMessage(
     case 'save-bubble-hidden':
       void setBubbleHidden(sender, message.hidden);
       return;
+    case 'read-every-site':
+      void everySiteBubbleShown(sender).then(sendResponse);
+      return true;
+    case 'summarize':
+      void summarizeFromBubble(sender).then(sendResponse);
+      return true;
   }
 }
