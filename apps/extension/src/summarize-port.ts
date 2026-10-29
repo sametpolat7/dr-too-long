@@ -1,11 +1,17 @@
-import type { Summarizer, SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { SummarizeRequest, SummaryEvent } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 
 export const SUMMARIZE_PORT = 'summarize';
 
+// The background adds the reader's output language; the content script cannot read the settings.
+export type PortRequest = Omit<SummarizeRequest, 'outputLanguage'>;
+
 // Sends one request to the background and yields its events until the terminal one.
-export const portSummarizer: Summarizer = {
-  async *summarize(request, { signal }) {
+export const portSummarizer = {
+  async *summarize(
+    request: PortRequest,
+    { signal }: { signal: AbortSignal },
+  ): AsyncGenerator<SummaryEvent> {
     const port = browser.runtime.connect({ name: SUMMARIZE_PORT });
     const pending: SummaryEvent[] = [];
     let closed = false;
@@ -54,3 +60,5 @@ export const portSummarizer: Summarizer = {
     }
   },
 };
+
+export type PortSummarizer = typeof portSummarizer;

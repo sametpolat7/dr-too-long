@@ -1,13 +1,15 @@
 import {
-  type SummarizeRequest,
   type Summarizer,
   type SummaryEvent,
   summarizeRequestSchema,
 } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 import { readApiKey } from '../settings/api-key.ts';
-import { SUMMARIZE_PORT } from '../summarize-port.ts';
+import { readOutputLanguage } from '../settings/output-language.ts';
+import { type PortRequest, SUMMARIZE_PORT } from '../summarize-port.ts';
 import { keepAlive } from './keep-alive.ts';
+
+const portRequestSchema = summarizeRequestSchema.omit({ outputLanguage: true });
 
 export type CreateSummarizer = (apiKey: string) => Summarizer;
 
@@ -34,7 +36,7 @@ export function handleConnect(port: SummarizePort, createSummarizer: CreateSumma
   port.onMessage.addListener((message) => {
     if (started) return;
     started = true;
-    const request = summarizeRequestSchema.safeParse(message);
+    const request = portRequestSchema.safeParse(message);
     if (request.success) {
       void run(port, request.data, createSummarizer, controller.signal);
     } else {
@@ -45,11 +47,14 @@ export function handleConnect(port: SummarizePort, createSummarizer: CreateSumma
 
 async function run(
   port: SummarizePort,
-  request: SummarizeRequest,
+  request: PortRequest,
   createSummarizer: CreateSummarizer,
   signal: AbortSignal,
 ): Promise<void> {
-  const apiKey = await readApiKey();
+  const [apiKey, outputLanguage] = await Promise.all([readApiKey(), readOutputLanguage()]);
+  // The card closes its port when the reader switches presets or closes it; a closed port takes
+  // no messages.
+  if (signal.aborted) return;
   if (!apiKey) {
     port.postMessage({ type: 'error', code: 'no_key', message: 'No API key is saved' });
     port.disconnect();
@@ -58,7 +63,8 @@ async function run(
 
   const release = keepAlive();
   try {
-    for await (const event of createSummarizer(apiKey).summarize(request, { signal })) {
+    const summarizer = createSummarizer(apiKey);
+    for await (const event of summarizer.summarize({ ...request, outputLanguage }, { signal })) {
       if (signal.aborted) return;
       port.postMessage(event);
     }
