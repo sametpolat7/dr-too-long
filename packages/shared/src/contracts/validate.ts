@@ -4,7 +4,6 @@ import { PRESET_RULES, type PresetId } from './presets.ts';
 export interface ValidatedOutput {
   points: Point[];
   dropped: number;
-  status: 'ok' | 'below_minimum' | 'empty';
 }
 
 export function validatePoint(point: Point, sentenceCount: number): Point | null {
@@ -21,12 +20,10 @@ export function validateOutput(
   output: SummaryOutput,
   sentenceCount: number,
 ): ValidatedOutput {
-  const { min, max } = PRESET_RULES[preset];
   const points = output.points
     .map((point) => validatePoint(point, sentenceCount))
     .filter((point) => point !== null)
-    .slice(0, max);
+    .slice(0, PRESET_RULES[preset].max);
 
-  const status = points.length === 0 ? 'empty' : points.length < min ? 'below_minimum' : 'ok';
-  return { points, dropped: output.points.length - points.length, status };
+  return { points, dropped: output.points.length - points.length };
 }
