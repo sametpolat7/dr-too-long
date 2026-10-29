@@ -45,7 +45,7 @@ const KEY_ERRORS = new Set<ErrorCode>(['no_key', 'unauthorized']);
 const COPIED_MS = 2000;
 const SETTLE_MS = 400;
 
-interface CardProps {
+export interface CardProps {
   state: CardState;
   // Absent when the selection was refused: nothing can run, and only the error shows.
   view?: View;
@@ -53,6 +53,9 @@ interface CardProps {
   choice: string | null;
   onSelect: (preset: PresetId) => void;
   onLanguage: (choice: string | null) => void;
+  // Whether the bubble was hidden on this site in this tab when the card opened.
+  bubbleHidden: boolean;
+  onBubble: (hidden: boolean) => void;
   onRegenerate: () => void;
   onClose: () => void;
   onOpenOptions: () => void;
@@ -60,7 +63,17 @@ interface CardProps {
 }
 
 // The card's own text is English and left to right, whatever the page's language and direction.
-export function Card({ state, view, choice, onSelect, onLanguage, onClose, ...body }: CardProps) {
+export function Card({
+  state,
+  view,
+  choice,
+  onSelect,
+  onLanguage,
+  bubbleHidden,
+  onBubble,
+  onClose,
+  ...body
+}: CardProps) {
   return (
     <section class="card" lang="en" dir="ltr" aria-label="Summary">
       <header>
@@ -73,7 +86,10 @@ export function Card({ state, view, choice, onSelect, onLanguage, onClose, ...bo
         <>
           <Presets selected={view.preset} onSelect={onSelect} />
           <Body state={state} view={view} {...body} />
-          <Language choice={choice} onLanguage={onLanguage} />
+          <footer>
+            <Language choice={choice} onLanguage={onLanguage} />
+            <BubbleSwitch hidden={bubbleHidden} onBubble={onBubble} />
+          </footer>
         </>
       ) : (
         state.status === 'error' && <Failure state={state} {...body} />
@@ -267,6 +283,27 @@ function Language({ choice: saved, onLanguage }: LanguageProps) {
     timer.current = setTimeout(() => onLanguage(next), SETTLE_MS);
   };
   return <LanguageSelect choice={choice} onChange={change} />;
+}
+
+interface BubbleSwitchProps {
+  hidden: boolean;
+  onBubble: CardProps['onBubble'];
+}
+
+// Keeps its own state for the same reason as the language picker.
+function BubbleSwitch({ hidden: initial, onBubble }: BubbleSwitchProps) {
+  const [hidden, setHidden] = useState(initial);
+  const toggle = () => {
+    setHidden(!hidden);
+    onBubble(!hidden);
+  };
+  return (
+    <button type="button" class="bubble-switch" onClick={toggle}>
+      {hidden
+        ? 'Show the bubble on this site'
+        : 'Hide the bubble on this site until the tab closes'}
+    </button>
+  );
 }
 
 function CopyButton({ text }: { text: string }) {

@@ -10,16 +10,18 @@ const EDITABLE = 'input, textarea, [contenteditable]:not([contenteditable="false
 const FRAME = 'iframe, frame, object, embed';
 
 export function readSelection(selection: Selection | null): SelectionOutcome {
-  // The script runs in the top frame; a selection inside a child frame lives in a document it
-  // cannot see, and the frame element holds the focus meanwhile.
-  if (document.activeElement?.matches(FRAME)) return { ok: false, code: 'unsupported_selection' };
+  if (inFrame()) return { ok: false, code: 'unsupported_selection' };
   if (!selection || selection.toString().trim() === '') return { ok: false, code: 'no_selection' };
   if (inEditable(selection)) return { ok: false, code: 'unsupported_selection' };
   return checkSentences(readPageText(selection.getRangeAt(0)));
 }
 
+// The script runs in the top frame; a selection inside a child frame lives in a document it cannot
+// see, and the frame element holds the focus meanwhile.
+export const inFrame = (): boolean => document.activeElement?.matches(FRAME) === true;
+
 // A text control keeps the focus while its text is selected.
-function inEditable(selection: Selection): boolean {
+export function inEditable(selection: Selection): boolean {
   const nodes = [document.activeElement, selection.anchorNode, selection.focusNode];
   return nodes.some((node) => node !== null && isEditable(node));
 }

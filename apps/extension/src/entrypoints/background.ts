@@ -3,6 +3,7 @@ import { activeModel } from '@dr-too-long/shared/providers';
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { summarizeTab } from '../background/action.ts';
+import { forgetTab } from '../background/hidden-bubble.ts';
 import { addMenuItem } from '../background/menu.ts';
 import { handleMessage } from '../background/message-handler.ts';
 import { startPortServer } from '../background/port-server.ts';
@@ -22,5 +23,6 @@ export default defineBackground(() => {
     if (tab?.id !== undefined) void summarizeTab(tab.id);
   });
   browser.runtime.onMessage.addListener(handleMessage);
+  browser.tabs.onRemoved.addListener((tabId) => void forgetTab(tabId));
   startPortServer((apiKey) => createSummarizer(activeModel(apiKey)));
 });
