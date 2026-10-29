@@ -1,6 +1,5 @@
-import type { SummaryEvent } from '@dr-too-long/shared/contracts';
+import { DEFAULT_PRESET, type PresetId } from '@dr-too-long/shared/contracts';
 import { render } from 'preact';
-import { browser } from 'wxt/browser';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { MESSAGES, sendMessage } from '../messages.ts';
@@ -8,7 +7,8 @@ import { portSummarizer } from '../summarize-port.ts';
 import { type Anchors, createAnchors } from './anchoring/anchors.ts';
 import { Card, type CardState } from './card/Card.tsx';
 import css from './card/card.css?inline';
-import { selectionRequest } from './selection.ts';
+import { createRuns, type Runs } from './runs.ts';
+import { readSelection } from './selection.ts';
 
 // Reads the current selection and streams its summary into a card on the page.
 export async function summarizeSelection(ctx: ContentScriptContext): Promise<void> {
@@ -34,14 +34,18 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     },
   });
 
+  let runs: Runs | undefined;
   const close = () => {
     controller.abort();
     ui.remove();
   };
-  const show = (state: CardState) => {
+  const show = (state: CardState, preset?: PresetId) => {
     render(
       <Card
         state={state}
+        preset={preset}
+        onSelect={(next) => runs?.select(next)}
+        onRegenerate={() => runs?.regenerate()}
         onClose={close}
         onOpenOptions={() => sendMessage(MESSAGES.openOptions)}
         onActivate={(point) => anchors?.activate(point) ?? false}
@@ -60,35 +64,28 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   );
   ui.mount();
 
-  const outcome = selectionRequest(window.getSelection(), browser.i18n.getUILanguage());
+  const outcome = readSelection(window.getSelection());
   if (!outcome.ok) {
     show({ status: 'error', code: outcome.code, detail: outcome.detail });
     return;
   }
 
-  show({ status: 'summarizing', points: [] });
-  for await (const event of portSummarizer.summarize(outcome.request, {
+  anchors = createAnchors(outcome.pageText, outcome.sentences);
+  runs = createRuns({
+    summarizer: portSummarizer,
+    sentences: outcome.sentences.map((sentence) => sentence.text),
+    initial: DEFAULT_PRESET,
+    // Each new state replaces the summary whose point the page may have highlighted.
+    show: (preset, state) => {
+      anchors?.clear();
+      show(state, preset);
+    },
     signal: controller.signal,
-  })) {
-    if (controller.signal.aborted) return;
-    if (event.type === 'done') anchors = createAnchors(outcome.pageText, outcome.sentences);
-    show(toState(event));
-  }
+  });
 }
 
 // Only HTML and XHTML documents create elements that can host a shadow root; Chrome's XML viewer
 // and SVG documents cannot.
 function canHostShadowRoot(): boolean {
   return document instanceof HTMLDocument || document.contentType === 'application/xhtml+xml';
-}
-
-function toState(event: SummaryEvent): CardState {
-  switch (event.type) {
-    case 'partial':
-      return { status: 'summarizing', points: event.points };
-    case 'done':
-      return { status: 'done', points: event.output.points };
-    case 'error':
-      return { status: 'error', code: event.code };
-  }
 }
