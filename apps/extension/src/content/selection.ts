@@ -1,25 +1,21 @@
-import { DEFAULT_PRESET, type SummarizeRequest } from '@dr-too-long/shared/contracts';
 import { MAX_SELECTION_CHARS } from '@dr-too-long/shared/limits';
 import { type Sentence, segmentSentences } from '@dr-too-long/shared/segmentation';
 import { type PageText, readPageText } from './anchoring/page-text.ts';
 
 export type SelectionOutcome =
-  | { ok: true; request: SummarizeRequest; sentences: Sentence[]; pageText: PageText }
+  | { ok: true; sentences: Sentence[]; pageText: PageText }
   | { ok: false; code: 'no_selection' | 'unsupported_selection' | 'too_long'; detail?: string };
 
 const EDITABLE = 'input, textarea, [contenteditable]:not([contenteditable="false"])';
 const FRAME = 'iframe, frame, object, embed';
 
-export function selectionRequest(
-  selection: Selection | null,
-  outputLanguage: string,
-): SelectionOutcome {
+export function readSelection(selection: Selection | null): SelectionOutcome {
   // The script runs in the top frame; a selection inside a child frame lives in a document it
   // cannot see, and the frame element holds the focus meanwhile.
   if (document.activeElement?.matches(FRAME)) return { ok: false, code: 'unsupported_selection' };
   if (!selection || selection.toString().trim() === '') return { ok: false, code: 'no_selection' };
   if (inEditable(selection)) return { ok: false, code: 'unsupported_selection' };
-  return buildRequest(readPageText(selection.getRangeAt(0)), outputLanguage);
+  return checkSentences(readPageText(selection.getRangeAt(0)));
 }
 
 // A text control keeps the focus while its text is selected.
@@ -34,13 +30,12 @@ function isEditable(node: Node): boolean {
 }
 
 // The same measures the port server checks, so a request that passes here is never refused there.
-function buildRequest(pageText: PageText, outputLanguage: string): SelectionOutcome {
+function checkSentences(pageText: PageText): SelectionOutcome {
   const sentences = segmentSentences(pageText.text);
   // Chrome moves both ends of a selection inside a shadow tree to the host's position in the
   // page, so that range holds no text of its own.
   if (sentences.length === 0) return { ok: false, code: 'unsupported_selection' };
-  const texts = sentences.map((sentence) => sentence.text);
-  const chars = texts.join('').length;
+  const chars = sentences.map((sentence) => sentence.text).join('').length;
   if (chars > MAX_SELECTION_CHARS) {
     return {
       ok: false,
@@ -48,10 +43,5 @@ function buildRequest(pageText: PageText, outputLanguage: string): SelectionOutc
       detail: `${chars.toLocaleString('en')} characters; the limit is ${MAX_SELECTION_CHARS.toLocaleString('en')}.`,
     };
   }
-  return {
-    ok: true,
-    request: { v: 1, preset: DEFAULT_PRESET, outputLanguage, sentences: texts },
-    sentences,
-    pageText,
-  };
+  return { ok: true, sentences, pageText };
 }
