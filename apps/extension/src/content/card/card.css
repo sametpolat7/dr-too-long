@@ -107,6 +107,26 @@ ul {
   padding-inline-start: 20px;
 }
 
+.language {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  color: #555;
+  font-size: 13px;
+}
+
+.language select {
+  padding: 3px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: #1a1a1a;
+  font: inherit;
+}
+
 .point {
   cursor: pointer;
 }
