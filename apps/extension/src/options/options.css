@@ -14,21 +14,15 @@ h1 {
 }
 
 form,
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
+.actions,
 input {
   flex: 1 1 240px;
   padding: 6px 8px;
   font: inherit;
 }
 
-button {
+button,
+select {
   padding: 6px 12px;
   font: inherit;
 }
