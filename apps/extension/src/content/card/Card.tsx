@@ -53,7 +53,7 @@ export interface CardProps {
   choice: string | null;
   onSelect: (preset: PresetId) => void;
   onLanguage: (choice: string | null) => void;
-  // Whether the bubble was hidden on this site in this tab when the card opened.
+  // Whether the bubble is hidden on this site in this tab.
   bubbleHidden: boolean;
   onBubble: (hidden: boolean) => void;
   onRegenerate: () => void;
@@ -290,15 +290,9 @@ interface BubbleSwitchProps {
   onBubble: CardProps['onBubble'];
 }
 
-// Keeps its own state for the same reason as the language picker.
-function BubbleSwitch({ hidden: initial, onBubble }: BubbleSwitchProps) {
-  const [hidden, setHidden] = useState(initial);
-  const toggle = () => {
-    setHidden(!hidden);
-    onBubble(!hidden);
-  };
+function BubbleSwitch({ hidden, onBubble }: BubbleSwitchProps) {
   return (
-    <button type="button" class="bubble-switch" onClick={toggle}>
+    <button type="button" class="bubble-switch" onClick={() => onBubble(!hidden)}>
       {hidden
         ? 'Show the bubble on this site'
         : 'Hide the bubble on this site until the tab closes'}
