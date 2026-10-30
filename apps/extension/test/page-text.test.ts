@@ -1,6 +1,7 @@
 import { segmentSentences } from '@dr-too-long/shared/segmentation';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { findText, rangeOf, readPageText } from '../src/content/anchoring/page-text.ts';
+import { layOutText } from './layout.ts';
 
 function mount(html: string): Range {
   document.body.innerHTML = html;
@@ -25,6 +26,14 @@ function computeAs(styles: Record<string, object>) {
   });
 }
 
+beforeEach(() => {
+  layOutText();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('readPageText', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -44,6 +53,20 @@ describe('readPageText', () => {
       '<p>A.</p><div style="display: none"><p>Hidden.</p></div><script>var x;</script><p>B.</p>',
     );
     expect(readPageText(range).text).toBe('A.\nB.');
+  });
+
+  it("leaves out text Chrome never lays out, such as a video's fallback or a text area's value", () => {
+    const range = mount(
+      '<p>Before.</p><video>Your browser cannot play this video.</video><textarea>Draft.</textarea><p>After.</p>',
+    );
+    layOutText('video, textarea');
+    expect(readPageText(range).text).toBe('Before.\nAfter.');
+  });
+
+  it('keeps the space between words without measuring it', () => {
+    const range = mount('<p><span>One</span><span class="gap"> </span><span>two.</span></p>');
+    layOutText('.gap');
+    expect(readPageText(range).text).toBe('One two.');
   });
 
   it('keeps text in a display: contents wrapper', () => {

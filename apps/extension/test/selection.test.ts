@@ -1,6 +1,7 @@
 import { MAX_SELECTION_CHARS } from '@dr-too-long/shared/limits';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readSelection } from '../src/content/selection.ts';
+import { layOutText } from './layout.ts';
 
 function select(html: string, selector: string): Selection {
   document.body.innerHTML = html;
@@ -16,6 +17,11 @@ const unsupported = { ok: false, code: 'unsupported_selection' };
 describe('readSelection', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+    layOutText();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('reports no_selection without a selection or with a collapsed one', () => {

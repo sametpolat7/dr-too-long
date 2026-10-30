@@ -173,23 +173,19 @@ describe('Card', () => {
     expect(onLanguage).not.toHaveBeenCalled();
   });
 
-  it('hides the bubble on this site and shows it again, and keeps showing its own state', () => {
+  it('offers to hide the bubble on this site or show it again, as the card is told', () => {
     const onBubble = vi.fn();
-    const container = document.createElement('div');
-    show(done, { onBubble }, container);
+    const container = show(done, { onBubble, bubbleHidden: true });
+    expect(button(container, HIDE)).toBeUndefined();
+    show(done, { onBubble, bubbleHidden: false }, container);
+    expect(button(container, SHOW)).toBeUndefined();
     act(() => button(container, HIDE)?.click());
     expect(onBubble).toHaveBeenLastCalledWith(true);
-    // The card re-renders with the value it opened with while the summary streams.
-    show(done, { onBubble }, container);
+    // The switch changes once the card is told the bubble is hidden.
+    expect(button(container, HIDE)).toBeDefined();
+    show(done, { onBubble, bubbleHidden: true }, container);
     act(() => button(container, SHOW)?.click());
     expect(onBubble).toHaveBeenLastCalledWith(false);
-    expect(button(container, HIDE)).toBeDefined();
-  });
-
-  it('offers to show the bubble when it was hidden on this site before the card opened', () => {
-    const container = show(done, { bubbleHidden: true });
-    expect(button(container, SHOW)).toBeDefined();
-    expect(button(container, HIDE)).toBeUndefined();
   });
 
   it('activates a clicked point and marks it', () => {

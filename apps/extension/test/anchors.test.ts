@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAnchors } from '../src/content/anchoring/anchors.ts';
 import { readPageText } from '../src/content/anchoring/page-text.ts';
 import { HIGHLIGHT_NAME } from '../src/highlight.ts';
+import { layOutText } from './layout.ts';
 
 class FakeHighlight extends Set<Range> {
   constructor(...ranges: Range[]) {
@@ -29,6 +30,7 @@ describe('createAnchors', () => {
     highlights = new Map();
     vi.stubGlobal('CSS', { highlights });
     vi.stubGlobal('Highlight', FakeHighlight);
+    layOutText();
     document.body.innerHTML =
       '<section><p>One two. Three four.</p><p>Five six.</p></section><aside></aside>';
   });
