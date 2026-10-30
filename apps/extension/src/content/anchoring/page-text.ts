@@ -15,15 +15,17 @@ const ABSOLUTELY_POSITIONED = /^(absolute|fixed)$/;
 const FLOATED = /^(left|right|inline-start|inline-end)$/;
 const FLEX_OR_GRID = /(flex|grid)$/;
 const WORD = /\S+/g;
+const HAS_WORD = /\S/;
 
 // The text the reader sees inside the range, with one space per whitespace run, a line break at
 // every block edge and each word's place in the DOM, so a sentence's offsets lead back to its nodes.
 export function readPageText(range: Range): PageText {
   const root = walkRoot(range);
+  const probe = document.createRange();
   const walker = document.createTreeWalker(
     root,
     NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-    (node) => accept(node, range),
+    (node) => accept(node, range, probe),
   );
   const chunks: Chunk[] = [];
   let text = '';
@@ -84,9 +86,11 @@ function walkRoot({ commonAncestorContainer: node }: Range): Node {
   return node instanceof Text ? (node.parentNode ?? node) : node;
 }
 
-function accept(node: Node, range: Range): number {
+function accept(node: Node, range: Range, probe: Range): number {
   if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT;
-  if (node instanceof Text) return NodeFilter.FILTER_ACCEPT;
+  if (node instanceof Text) {
+    return laidOut(node, probe) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+  }
   if (node instanceof Element && !node.checkVisibility()) {
     // A display: contents element has no box of its own while its children render.
     return getComputedStyle(node).display === 'contents'
@@ -96,6 +100,16 @@ function accept(node: Node, range: Range): number {
   return node.nodeName === 'BR' || (node instanceof Element && isBlock(node))
     ? NodeFilter.FILTER_ACCEPT
     : NodeFilter.FILTER_SKIP;
+}
+
+// Media, canvas, iframe, progress and meter elements, an object that loaded and a text area keep a
+// box but lay out none of the fallback text or default value inside them, so a range over that text
+// has no rects. Only text with words is measured, which keeps the spacing as it was and skips the
+// whitespace between blocks.
+function laidOut(text: Text, probe: Range): boolean {
+  if (!HAS_WORD.test(text.data)) return true;
+  probe.selectNodeContents(text);
+  return probe.getClientRects().length > 0;
 }
 
 function blockContainer(node: Text): Element | null {
