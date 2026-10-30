@@ -12,9 +12,16 @@
 
 1.
 
+## Security review
+
+<!-- What this changes in permissions, in data sent or kept, in model calls, in dependencies, in CI (token, triggers, actions) and in secrets, and what the Web Store listing must now say. -->
+
+-
+
 ## Checklist
 
 - [ ] Title follows Conventional Commits, e.g. `feat(extension): add result card`
+- [ ] One type label (`feature`, `improvement`, `fix` or `maintenance`), any concern labels, and the phase's milestone
 - [ ] CI passes
 - [ ] The extension loads unpacked in Chrome
 - [ ] Nothing stores or logs selected text, summary text or a page URL

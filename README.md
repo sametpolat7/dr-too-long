@@ -78,7 +78,8 @@ pnpm evals report results/<run>.json
 ## Pull requests
 
 - One branch and one pull request per change, with a [Conventional Commits](https://www.conventionalcommits.org) title.
-- Merge with **Create a merge commit** once CI is green.
+- One type label (`feature`, `improvement`, `fix` or `maintenance`), any concern labels that apply (`accessibility`, `browser-compat`, `performance`, `ui/ux` or `privacy`), and the phase's milestone. The type labels group the release notes.
+- Merge once CI is green. The repository allows only merge commits, so a pull request's commits reach `main` unchanged.
 - No direct pushes to `main`. The first commit was the only exception, because GitHub cannot open a pull request into an empty repository.
 
 Git hooks enforce this locally. Run `pnpm exec lefthook install` once after cloning. The hooks check formatting, block API keys in commits, check commit titles and refuse pushes to `main`. They are local only and `--no-verify` skips them, so they support the convention rather than enforce it.
