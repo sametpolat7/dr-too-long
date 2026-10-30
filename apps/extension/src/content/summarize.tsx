@@ -10,14 +10,26 @@ import { requestBubbleHidden, requestLanguageChoice, sendMessage } from '../mess
 import { portSummarizer } from '../summarize-port.ts';
 import { type Anchors, createAnchors } from './anchoring/anchors.ts';
 import { startBubble } from './bubble/bubble.tsx';
-import { Card, type CardProps, type CardState, type View } from './card/Card.tsx';
+import { Card, type CardState, type View } from './card/Card.tsx';
 import css from './card/card.css?inline';
 import { createRuns, type Runs } from './runs.ts';
 import { readSelection } from './selection.ts';
 import { CARD_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
 
 type CardUi = ShadowRootContentScriptUi<HTMLElement>;
-type BubbleProps = Pick<CardProps, 'bubbleHidden' | 'onBubble'>;
+
+// Whether the bubble is hidden on this page's site in this tab, which the card's switch shows and
+// changes.
+interface BubbleState {
+  isHidden(): boolean;
+  setHidden(hidden: boolean): void;
+}
+
+interface OpenCard {
+  close(): void;
+  // Draws the card again, so its switch shows whether the bubble is hidden now.
+  redraw(): void;
+}
 
 // Summarizes the current selection into a card on the page, then offers the bubble for the
 // selections that follow until the page navigates or a new gesture replaces this script.
@@ -43,10 +55,10 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     },
   });
 
-  let closeCard: (() => void) | undefined;
+  let card: OpenCard | undefined;
   const summarize = () => {
-    closeCard?.();
-    closeCard = openCard(ctx, ui, { bubbleHidden: hidden, onBubble });
+    card?.close();
+    card = openCard(ctx, ui, bubbleState);
   };
   // An extension reload orphans this script, and the check removes its card and bubble instead of
   // opening a card that cannot run.
@@ -56,21 +68,46 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
       if (ctx.isValid) summarize();
     },
   });
-  const onBubble = (next: boolean) => {
+  const apply = (next: boolean) => {
     hidden = next;
     bubble.setHidden(next);
-    sendMessage({ type: 'save-bubble-hidden', hidden: next });
+    card?.redraw();
   };
+  let switches = 0;
+  const bubbleState: BubbleState = {
+    isHidden: () => hidden,
+    // The card switches first: in a script orphaned by an extension reload the save throws.
+    setHidden: (next) => {
+      switches += 1;
+      apply(next);
+      sendMessage({ type: 'save-bubble-hidden', hidden: next });
+    },
+  };
+  // A page back from the back-forward cache asks again: meanwhile the reader may have hidden the
+  // bubble on another page of the site, or shown it again. The worker answers from before any click
+  // on the card's switch made while it answers, so such a click wins.
+  window.addEventListener(
+    'pageshow',
+    (event) => {
+      if (!event.persisted || !ctx.isValid) return;
+      const asked = switches;
+      void requestBubbleHidden().then((next) => {
+        if (switches === asked && ctx.isValid && next !== hidden) apply(next);
+      });
+    },
+    { signal: ctx.signal },
+  );
   summarize();
 }
 
-// Opens the card for the current selection and starts its summary. Returns the function that closes
-// the card and lets go of everything it held.
-function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleProps: BubbleProps): () => void {
+// Opens the card for the current selection and starts its summary.
+function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleState): OpenCard {
   const controller = new AbortController();
   let anchors: Anchors | undefined;
   let runs: Runs | undefined;
   let choice: string | null = null;
+  let redraw: () => void = () => undefined;
+  // Lets go of everything the card held.
   const close = () => {
     controller.abort();
     anchors?.clear();
@@ -78,7 +115,14 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleProps: BubbleProp
     stopOnInvalidated();
   };
   const stopOnInvalidated = ctx.onInvalidated(close);
+  const card: OpenCard = {
+    close,
+    redraw: () => {
+      if (!controller.signal.aborted) redraw();
+    },
+  };
   const show = (state: CardState, view?: View) => {
+    redraw = () => show(state, view);
     render(
       <Card
         state={state}
@@ -94,7 +138,8 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleProps: BubbleProp
         onClose={close}
         onOpenOptions={() => sendMessage({ type: 'open-options' })}
         onActivate={(point) => anchors?.activate(point) ?? false}
-        {...bubbleProps}
+        bubbleHidden={bubbleState.isHidden()}
+        onBubble={bubbleState.setHidden}
       />,
       ui.uiContainer,
     );
@@ -112,7 +157,7 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleProps: BubbleProp
   const outcome = readSelection(window.getSelection());
   if (!outcome.ok) {
     show({ status: 'error', code: outcome.code, detail: outcome.detail });
-    return close;
+    return card;
   }
 
   anchors = createAnchors(outcome.pageText, outcome.sentences);
@@ -130,5 +175,5 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleProps: BubbleProp
       signal: controller.signal,
     });
   });
-  return close;
+  return card;
 }
