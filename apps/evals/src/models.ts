@@ -6,7 +6,7 @@ import {
   type ModelSetup,
   PROVIDERS,
 } from '@dr-too-long/shared/providers';
-import { buildPromptV1 } from './prompt-v1.ts';
+import { buildPromptV2 } from './prompt-v2.ts';
 
 // USD per million tokens.
 export interface Pricing {
@@ -66,7 +66,7 @@ const SONNET: EvalModel = {
 // run of 2026-10-25 retired gpt-5.6-luna, gpt-5.4-mini and gpt-6-luna at reasoning low.
 export const CANDIDATES: readonly Candidate[] = [
   { id: SHIPPED.id, model: SHIPPED },
-  { id: `${SHIPPED.id}@prompt-1`, model: SHIPPED, prompt: buildPromptV1 },
+  { id: `${SHIPPED.id}@prompt-2`, model: SHIPPED, prompt: buildPromptV2 },
   { id: HAIKU.id, model: HAIKU },
   { id: SONNET.id, model: SONNET },
 ];
