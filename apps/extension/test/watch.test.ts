@@ -46,7 +46,6 @@ const scroll = () => {
   vi.advanceTimersByTime(FRAME_MS);
 };
 
-// A selection released with the mouse, once the delay has passed.
 function release() {
   fire('mouseup');
   vi.advanceTimersByTime(BUBBLE_DELAY_MS);

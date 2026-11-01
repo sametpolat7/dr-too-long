@@ -64,7 +64,6 @@ function pageshow(persisted: boolean): Event {
   return Object.defineProperty(new Event('pageshow'), 'persisted', { value: persisted });
 }
 
-// The worker's answer, held until the test lets it through.
 function holdAnswer() {
   let answer: (hidden: boolean) => void = () => undefined;
   requestBubbleHidden.mockReturnValueOnce(
