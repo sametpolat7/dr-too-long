@@ -4,17 +4,19 @@ import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { summarizeSelection } from '../src/content/summarize.tsx';
 import { layOutText } from './layout.ts';
 
-const { container, setHidden, startBubble, requestBubbleHidden, sendMessage } = vi.hoisted(() => {
-  const setHidden = vi.fn();
-  return {
-    // The card's closed shadow root, replaced by a container the test can reach.
-    container: document.createElement('div'),
-    setHidden,
-    startBubble: vi.fn(async () => ({ setHidden })),
-    requestBubbleHidden: vi.fn(),
-    sendMessage: vi.fn(),
-  };
-});
+const { container, setHidden, startBubble, requestBubbleHidden, requestPreset, sendMessage } =
+  vi.hoisted(() => {
+    const setHidden = vi.fn();
+    return {
+      // The card's closed shadow root, replaced by a container the test can reach.
+      container: document.createElement('div'),
+      setHidden,
+      startBubble: vi.fn(async () => ({ setHidden })),
+      requestBubbleHidden: vi.fn(),
+      requestPreset: vi.fn(),
+      sendMessage: vi.fn(),
+    };
+  });
 vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
   createShadowRootUi: async (
     _ctx: unknown,
@@ -29,6 +31,7 @@ vi.mock('../src/content/bubble/bubble.tsx', () => ({ startBubble }));
 vi.mock('../src/messages.ts', () => ({
   requestBubbleHidden,
   requestLanguageChoice: async () => null,
+  requestPreset,
   sendMessage,
 }));
 // A summary that never arrives keeps the card on its first view.
@@ -81,6 +84,8 @@ const button = (label: string) =>
 const HIDE = 'Hide the bubble on this site until the tab closes';
 const SHOW = 'Show the bubble on this site';
 
+const pressed = () => container.querySelector('[aria-pressed="true"]')?.textContent;
+
 describe('summarizeSelection', () => {
   beforeEach(() => {
     controller = new AbortController();
@@ -91,12 +96,48 @@ describe('summarizeSelection', () => {
     select();
     vi.clearAllMocks();
     requestBubbleHidden.mockResolvedValue(false);
+    requestPreset.mockResolvedValue('summary');
   });
 
   afterEach(() => {
     controller.abort();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('paints the card before the worker answers whether the bubble is hidden', async () => {
+    const answer = holdAnswer();
+    await summarizeSelection(context());
+    await settle();
+    expect(container.querySelector('section')).not.toBeNull();
+    expect(button(HIDE)).toBeDefined();
+    expect(startBubble).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ hidden: true }),
+    );
+    expect(setHidden).not.toHaveBeenCalled();
+    answer(true);
+    await settle();
+    expect(setHidden).toHaveBeenCalledWith(true);
+    expect(button(SHOW)).toBeDefined();
+    expect(sendMessage).not.toHaveBeenCalledWith({ type: 'save-bubble-hidden', hidden: true });
+  });
+
+  it('starts the bubble once the worker answers that it is not hidden', async () => {
+    await summarizeSelection(context());
+    await settle();
+    expect(setHidden).toHaveBeenCalledExactlyOnceWith(false);
+    expect(button(HIDE)).toBeDefined();
+  });
+
+  it('opens on the saved shape and saves the shape the reader picks', async () => {
+    requestPreset.mockResolvedValue('key-points');
+    await summarizeSelection(context());
+    await settle();
+    expect(pressed()).toBe('Key points');
+    button('Summary')?.click();
+    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-preset', preset: 'summary' });
+    expect(pressed()).toBe('Summary');
   });
 
   it('hides the bubble from the card, saves it and shows the switch the other way', async () => {
@@ -125,7 +166,7 @@ describe('summarizeSelection', () => {
     window.dispatchEvent(pageshow(true));
     await settle();
     expect(requestBubbleHidden).toHaveBeenCalledTimes(2);
-    expect(setHidden).not.toHaveBeenCalled();
+    expect(setHidden).toHaveBeenCalledExactlyOnceWith(false);
     requestBubbleHidden.mockResolvedValue(true);
     window.dispatchEvent(pageshow(false));
     await settle();
@@ -178,6 +219,6 @@ describe('summarizeSelection', () => {
     valid = false;
     answer(true);
     await settle();
-    expect(setHidden).not.toHaveBeenCalled();
+    expect(setHidden).not.toHaveBeenCalledWith(true);
   });
 });

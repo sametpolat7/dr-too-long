@@ -37,7 +37,7 @@ const points = [
   { text: 'The keeper logged every ship.', sentences: [1] },
   { text: 'The notebooks dated the decline.', sentences: [2] },
 ];
-const done: CardState = { status: 'done', points, dropped: 0 };
+const done: CardState = { status: 'done', points };
 
 const pointsOf = (container: HTMLElement) => [
   ...container.querySelectorAll<HTMLElement>('[role="button"]'),
@@ -231,16 +231,6 @@ describe('Card', () => {
     });
     expect(container.querySelectorAll('[role="button"][aria-pressed="true"]')).toHaveLength(0);
     expect(container.textContent).not.toContain('The passage is no longer on the page.');
-  });
-
-  it('says how many points the validator left out', () => {
-    expect(show({ ...done, dropped: 1 }).textContent).toContain(
-      '1 point from the model was left out.',
-    );
-    expect(show({ ...done, dropped: 2 }).textContent).toContain(
-      '2 points from the model were left out.',
-    );
-    expect(show(done).textContent).not.toContain('left out');
   });
 
   it('regenerates from its Regenerate button', () => {

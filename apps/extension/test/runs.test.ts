@@ -6,12 +6,14 @@ import type { PortSummarizer } from '../src/summarize-port.ts';
 
 const point = (text: string) => ({ text, sentences: [1] });
 const summary: View = { preset: 'summary', language: 'en' };
+const keyPoints: View = { preset: 'key-points', language: 'en' };
 const doneEvent = (text: string): SummaryEvent => ({
   type: 'done',
   output: { points: [point(text)] },
   dropped: 0,
   latencyMs: 5,
 });
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 interface Call {
   request: SummarizeRequest;
@@ -85,36 +87,33 @@ describe('createRuns', () => {
     );
     calls[0]?.send(doneEvent('Whole.'));
     await vi.waitFor(() =>
-      expect(last()).toEqual([summary, { status: 'done', points: [point('Whole.')], dropped: 0 }]),
+      expect(last()).toEqual([summary, { status: 'done', points: [point('Whole.')] }]),
     );
   });
 
-  it('aborts the run in flight on a switch and never shows its later events', async () => {
+  it('keeps a run going on a switch and shows the view where it got to when it comes back', async () => {
     const { runs, calls, shown, last } = setup();
     runs.select('key-points');
-    expect(calls[0]?.signal.aborted).toBe(true);
+    expect(calls[0]?.signal.aborted).toBe(false);
     expect(calls[1]?.request).toMatchObject({ preset: 'key-points', outputLanguage: 'en' });
+    expect(last()).toEqual([keyPoints, { status: 'summarizing', points: [] }]);
 
-    calls[0]?.send(doneEvent('Stale.'));
-    calls[1]?.send(doneEvent('Fresh.'));
-    await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
+    calls[0]?.send({ type: 'partial', points: [point('Half')] });
+    await settle();
     expect(shown.filter(([view]) => view.preset === 'summary')).toHaveLength(1);
-    expect(last()).toEqual([
-      { preset: 'key-points', language: 'en' },
-      { status: 'done', points: [point('Fresh.')], dropped: 0 },
-    ]);
-  });
-
-  it('shows a done preset again from memory without a new request', async () => {
-    const { runs, calls, last } = setup();
-    calls[0]?.send(doneEvent('Kept.'));
-    await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
-
-    runs.select('key-points');
     runs.select('summary');
+    expect(last()).toEqual([summary, { status: 'summarizing', points: [point('Half')] }]);
+    calls[0]?.send(doneEvent('Whole.'));
+    await vi.waitFor(() =>
+      expect(last()).toEqual([summary, { status: 'done', points: [point('Whole.')] }]),
+    );
+
+    calls[1]?.send(doneEvent('Kept.'));
+    await settle();
+    expect(last()?.[0]).toEqual(summary);
+    runs.select('key-points');
     expect(calls).toHaveLength(2);
-    expect(calls[1]?.signal.aborted).toBe(true);
-    expect(last()).toEqual([summary, { status: 'done', points: [point('Kept.')], dropped: 0 }]);
+    expect(last()).toEqual([keyPoints, { status: 'done', points: [point('Kept.')] }]);
   });
 
   it('runs the shown preset in another language and keeps each language', async () => {
@@ -128,13 +127,13 @@ describe('createRuns', () => {
     await vi.waitFor(() =>
       expect(last()).toEqual([
         { preset: 'summary', language: 'tr' },
-        { status: 'done', points: [point('Türkçe.')], dropped: 0 },
+        { status: 'done', points: [point('Türkçe.')] },
       ]),
     );
 
     runs.selectLanguage('en');
     expect(calls).toHaveLength(2);
-    expect(last()).toEqual([summary, { status: 'done', points: [point('English.')], dropped: 0 }]);
+    expect(last()).toEqual([summary, { status: 'done', points: [point('English.')] }]);
   });
 
   it('does nothing when the shown preset or language is selected again', () => {
@@ -145,17 +144,23 @@ describe('createRuns', () => {
     expect(calls[0]?.signal.aborted).toBe(false);
   });
 
-  it('regenerates the shown view with a new request in place of its summary', async () => {
-    const { runs, calls, last } = setup();
-    calls[0]?.send(doneEvent('First.'));
-    await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
-
-    runs.regenerate();
-    expect(calls[1]?.request).toMatchObject({ preset: 'summary', outputLanguage: 'en' });
-    expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
+  it('regenerates the shown view in place of its run and leaves another run going', async () => {
+    const { runs, calls, shown, last } = setup();
     runs.select('key-points');
     runs.select('summary');
-    expect(calls).toHaveLength(4);
+    runs.regenerate();
+    expect(calls[0]?.signal.aborted).toBe(true);
+    expect(calls[1]?.signal.aborted).toBe(false);
+    expect(calls[2]?.request).toMatchObject({ preset: 'summary', outputLanguage: 'en' });
+    expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
+
+    calls[0]?.send(doneEvent('Stale.'));
+    calls[2]?.send(doneEvent('Fresh.'));
+    await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
+    expect(
+      shown.some(([, state]) => state.status === 'done' && state.points[0]?.text === 'Stale.'),
+    ).toBe(false);
+    expect(last()).toEqual([summary, { status: 'done', points: [point('Fresh.')] }]);
   });
 
   it('runs an errored preset again when it is selected again', async () => {
@@ -185,7 +190,7 @@ describe('createRuns', () => {
     await vi.waitFor(() => expect(shown.at(-1)).toEqual({ status: 'error', code: 'invalidated' }));
   });
 
-  it('starts nothing for a card that closed while it read the saved language', () => {
+  it('starts nothing for a card that closed while it read the saved view', () => {
     const { summarizer, calls } = fakeSummarizer();
     const shown: CardState[] = [];
     const card = new AbortController();
@@ -201,9 +206,10 @@ describe('createRuns', () => {
     expect(shown).toHaveLength(0);
   });
 
-  it('aborts the run in flight when the card closes', () => {
-    const { calls, card } = setup();
+  it('aborts every run in flight when the card closes', () => {
+    const { runs, calls, card } = setup();
+    runs.select('key-points');
     card.abort();
-    expect(calls[0]?.signal.aborted).toBe(true);
+    expect(calls.map((call) => call.signal.aborted)).toEqual([true, true]);
   });
 });
