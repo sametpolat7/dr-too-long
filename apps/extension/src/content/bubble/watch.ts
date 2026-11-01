@@ -1,10 +1,12 @@
+import { segmentSentences } from '@dr-too-long/shared/segmentation';
 import { inEditable, inFrame } from '../selection.ts';
 import { isOwnUi } from '../ui.ts';
 import { inView, type Lines, selectedLines } from './position.ts';
 
 export const BUBBLE_DELAY_MS = 300;
-export const BUBBLE_MIN_CHARS = 150;
 export const BUBBLE_SCROLL_PX = 80;
+
+const SENTENCE_END = /\p{Sentence_Terminal}[\p{Pe}\p{Pf}"']*$/u;
 
 interface WatchOptions {
   // False once an extension reload has orphaned the script. Reading the context's isValid also
@@ -22,14 +24,21 @@ export interface Watcher {
   dismiss(): void;
 }
 
-// A selection long enough that copying a phrase never shows the bubble.
+// A selection that holds a complete sentence, so that copying a word, a name, a number or a link
+// never shows the bubble.
 export function offeredRange(selection: Selection | null): Range | null {
   if (!selection || selection.rangeCount === 0 || zoomed() || inFrame() || inEditable(selection)) {
     return null;
   }
   // Chrome moves both ends of a selection in a shadow tree to its host, so that range holds no text.
   const range = selection.getRangeAt(0);
-  return range.toString().trim().length >= BUBBLE_MIN_CHARS ? range : null;
+  return holdsSentence(range.toString()) ? range : null;
+}
+
+// Two sentences, or one that ends with a sentence mark, with closing quotes or brackets after it.
+function holdsSentence(text: string): boolean {
+  const trimmed = text.trim();
+  return SENTENCE_END.test(trimmed) || segmentSentences(trimmed).length > 1;
 }
 
 // Offers the bubble once the reader has finished selecting: a short delay after the mouse button or
