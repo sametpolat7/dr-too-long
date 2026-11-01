@@ -6,7 +6,6 @@ const KEEP_ALIVE_MS = 20_000;
 let runs = 0;
 let timer: ReturnType<typeof setInterval> | undefined;
 
-// Keeps the worker alive until the returned release function is called.
 export function keepAlive(): () => void {
   runs += 1;
   timer ??= setInterval(() => browser.runtime.getPlatformInfo(), KEEP_ALIVE_MS);

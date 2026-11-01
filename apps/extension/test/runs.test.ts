@@ -19,7 +19,6 @@ interface Call {
   send(event: SummaryEvent): void;
 }
 
-// Each call streams what the test sends it, and ends after a terminal event or an abort.
 function fakeSummarizer() {
   const calls: Call[] = [];
   const summarizer: PortSummarizer = {

@@ -62,7 +62,7 @@ export function readPageText(range: Range): PageText {
   return { text, chunks, root };
 }
 
-// A live range over the sentence at these offsets, or null once a node left the page or shrank.
+// Null once a node left the page or shrank.
 export function rangeOf({ chunks }: PageText, start: number, end: number): Range | null {
   const first = chunks.findLast((chunk) => chunk.start <= start);
   const last = chunks.findLast((chunk) => chunk.start < end);

@@ -18,8 +18,7 @@ import { CARD_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
 
 type CardUi = ShadowRootContentScriptUi<HTMLElement>;
 
-// Whether the bubble is hidden on this page's site in this tab, which the card's switch shows and
-// changes.
+// Whether the bubble is hidden on this page's site in this tab.
 interface BubbleState {
   isHidden(): boolean;
   setHidden(hidden: boolean): void;
@@ -27,12 +26,10 @@ interface BubbleState {
 
 interface OpenCard {
   close(): void;
-  // Draws the card again, so its switch shows whether the bubble is hidden now.
+  // So the card's switch shows whether the bubble is hidden now.
   redraw(): void;
 }
 
-// Summarizes the current selection into a card on the page, then offers the bubble for the
-// selections that follow until the page navigates or a new gesture replaces this script.
 export async function summarizeSelection(ctx: ContentScriptContext): Promise<void> {
   if (!canHostShadowRoot()) {
     sendMessage({ type: 'unsupported-page' });
@@ -41,7 +38,7 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   document.dispatchEvent(new Event(SUMMARIZE_STARTED));
 
   let hidden = await requestBubbleHidden();
-  // One host serves every card, mounted after the bubble's so that a card is drawn over it.
+  // The card's host mounts after the bubble's, so that a card is drawn over it.
   const ui = await createShadowRootUi(ctx, {
     name: CARD_UI,
     position: 'inline',
@@ -100,14 +97,12 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   summarize();
 }
 
-// Opens the card for the current selection and starts its summary.
 function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleState): OpenCard {
   const controller = new AbortController();
   let anchors: Anchors | undefined;
   let runs: Runs | undefined;
   let choice: string | null = null;
   let redraw: () => void = () => undefined;
-  // Lets go of everything the card held.
   const close = () => {
     controller.abort();
     anchors?.clear();

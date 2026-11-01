@@ -3,7 +3,6 @@ import { browser } from 'wxt/browser';
 
 export const SUMMARIZE_PORT = 'summarize';
 
-// Sends one request to the background and yields its events until the terminal one.
 export const portSummarizer = {
   async *summarize(
     request: SummarizeRequest,

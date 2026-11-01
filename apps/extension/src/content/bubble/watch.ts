@@ -14,17 +14,15 @@ interface WatchOptions {
   // Shows the bubble beside the lines, or moves it there.
   offer: (lines: Lines) => void;
   withdraw: () => void;
-  // Offers the selection already on the page, which no card has summarized.
   offerCurrent?: boolean;
 }
 
 export interface Watcher {
-  // Withdraws the bubble and offers none for the same selection again.
+  // Offers no bubble for the same selection again.
   dismiss(): void;
 }
 
-// A selection outside frames and editable regions, long enough that copying a phrase never shows
-// the bubble, on a page that is not pinch-zoomed.
+// A selection long enough that copying a phrase never shows the bubble.
 export function offeredRange(selection: Selection | null): Range | null {
   if (!selection || selection.rangeCount === 0 || zoomed() || inFrame() || inEditable(selection)) {
     return null;
@@ -35,9 +33,7 @@ export function offeredRange(selection: Selection | null): Range | null {
 }
 
 // Offers the bubble once the reader has finished selecting: a short delay after the mouse button or
-// a key is released, never during a drag. The selection on the page when watching starts (unless
-// offerCurrent), one dismissed with Escape or a click on the bubble, and one scrolled
-// BUBBLE_SCROLL_PX from where it was offered are not offered again until the selection changes.
+// a key is released, never during a drag.
 export function watchSelections({
   isValid,
   signal,

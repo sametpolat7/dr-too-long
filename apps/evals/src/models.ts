@@ -21,7 +21,7 @@ export interface EvalModel {
   setup(apiKey: string): ModelSetup;
 }
 
-// A model with a prompt; without one, the shipped prompt.
+// Without a prompt, the shipped prompt.
 export interface Candidate {
   id: string;
   model: EvalModel;

@@ -1,7 +1,6 @@
 import { vi } from 'vitest';
 
-// happy-dom lays nothing out, so a range over its text has no rects. Here each range gets one, as
-// text Chrome lays out does, except a range starting inside an element that matches `unlaid`.
+// happy-dom lays nothing out, so a range over its text has no rects.
 export function layOutText(unlaid?: string): void {
   vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(function (this: Range) {
     const element = this.startContainer.parentElement;

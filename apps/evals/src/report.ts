@@ -65,8 +65,7 @@ function row(candidate: string, results: RunResult[]): string[] {
     fixed(mean(criteria), 1),
     fixed(mean(verdicts.map((verdict) => verdict.rank)), 1),
     ratings.length === 0 ? NONE : `${fixed(mean(ratings), 1)} (${ratings.length})`,
-    // Density the judge's form score misses: words and citations per point, and points
-    // spliced with a semicolon.
+    // Density the judge's form score misses.
     fixed(mean(points.map((point) => point.text.split(/\s+/).length)), 1),
     fixed(mean(points.map((point) => point.sentences.length)), 1),
     points.length === 0

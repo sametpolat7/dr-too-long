@@ -11,8 +11,7 @@ interface Size {
   height: number;
 }
 
-// The selection's first and last line boxes in viewport coordinates, skipping the empty boxes
-// Chrome adds at line ends.
+// Line boxes in viewport coordinates, skipping the empty ones Chrome adds at line ends.
 export function selectedLines(range: Range): Lines | undefined {
   const boxes = [...range.getClientRects()].filter((box) => box.width > 0 && box.height > 0);
   const first = boxes[0];
@@ -28,8 +27,6 @@ export const viewportSize = (): Size =>
 export const inView = ({ first, last }: Lines): boolean =>
   last.bottom > 0 && first.top < viewportSize().height;
 
-// Above the first line, or below the last when the first is too near the top, and inside the
-// viewport either way.
 export function placeBubble(
   { first, last }: Lines,
   bubble: Size,

@@ -11,7 +11,6 @@ const usage = {
 };
 const finishReason = { unified: 'stop', raw: 'stop' } as const;
 
-// Answers every call, generated or streamed, with the same text.
 export function textModel(text: string): MockLanguageModelV4 {
   const generated: GenerateResult = {
     content: [{ type: 'text', text }],

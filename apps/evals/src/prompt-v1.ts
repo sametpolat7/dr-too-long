@@ -5,8 +5,8 @@ import {
   type SummarizeRequest,
 } from '@dr-too-long/shared/contracts';
 
-// Prompt version 1 as shipped until PR 8, frozen with its own helpers so that every run measures
-// the shipped prompt against the previous one. The next version takes its place.
+// Prompt version 1 as shipped, frozen with its own helpers so that every run measures the shipped
+// prompt against the previous one. The next version takes its place.
 const MAX_REFS_PER_POINT = 6;
 
 const PRESET_STYLE: Record<PresetId, string> = {

@@ -8,7 +8,6 @@ import { type Lines, placeBubble, viewportSize } from './position.ts';
 import { type Watcher, watchSelections } from './watch.ts';
 
 export interface Bubble {
-  // Stops or resumes offering the bubble as the reader hides it on this site or shows it again.
   setHidden(hidden: boolean): void;
 }
 
@@ -19,7 +18,6 @@ interface BubbleOptions {
   onSummarize: () => void;
 }
 
-// Mounts the bubble's host, which stays empty until a selection is offered.
 export async function startBubble(
   ctx: ContentScriptContext,
   { hidden, offerCurrent = false, onSummarize }: BubbleOptions,
