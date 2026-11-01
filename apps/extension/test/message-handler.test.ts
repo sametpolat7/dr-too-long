@@ -1,8 +1,10 @@
+import type { PresetId } from '@dr-too-long/shared/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { handleMessage } from '../src/background/message-handler.ts';
 import type { Message } from '../src/messages.ts';
 import { readLanguageChoice, writeLanguageChoice } from '../src/settings/output-language.ts';
+import { readPreset } from '../src/settings/preset.ts';
 
 describe('handleMessage', () => {
   beforeEach(() => {
@@ -30,6 +32,20 @@ describe('handleMessage', () => {
     handleMessage({ type: 'save-language', choice: 'th' }, {}, vi.fn());
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(await readLanguageChoice()).toBe('tr');
+  });
+
+  it('answers the saved shape, Summary until one is saved', async () => {
+    const sendResponse = vi.fn();
+    expect(handleMessage({ type: 'read-preset' }, {}, sendResponse)).toBe(true);
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith('summary'));
+  });
+
+  it('saves a shape, and none that the presets leave out', async () => {
+    handleMessage({ type: 'save-preset', preset: 'key-points' }, {}, vi.fn());
+    await vi.waitFor(async () => expect(await readPreset()).toBe('key-points'));
+    handleMessage({ type: 'save-preset', preset: 'essay' as PresetId }, {}, vi.fn());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(await readPreset()).toBe('key-points');
   });
 
   describe('for the every-site script', () => {

@@ -1,5 +1,4 @@
 import { DEFAULT_PRESET, type Point, type SummaryEvent } from '@dr-too-long/shared/contracts';
-import { ACTIVE_MODEL } from '@dr-too-long/shared/providers';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { ERROR_MESSAGES } from '../error-messages.ts';
 import { readApiKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
@@ -17,7 +16,7 @@ const SAMPLE = [
 type Run =
   | { status: 'idle' }
   | { status: 'running'; points: Point[] }
-  | { status: 'done'; points: Point[]; detail: string }
+  | { status: 'done'; points: Point[] }
   | { status: 'error'; message: string };
 
 export function Options() {
@@ -111,7 +110,7 @@ function Result({ run }: { run: Run }) {
               <li key={point.text}>{point.text}</li>
             ))}
           </ol>
-          <p class="status">{run.status === 'done' ? run.detail : 'Summarizing…'}</p>
+          <p class="status">{run.status === 'done' ? 'The key works.' : 'Summarizing…'}</p>
         </>
       );
   }
@@ -122,13 +121,8 @@ function toRun(event: SummaryEvent): Run {
     case 'partial':
       return { status: 'running', points: event.points };
     case 'done':
-      return { status: 'done', points: event.output.points, detail: describe(event) };
+      return { status: 'done', points: event.output.points };
     case 'error':
       return { status: 'error', message: ERROR_MESSAGES[event.code] };
   }
-}
-
-function describe({ usage, latencyMs, dropped }: Extract<SummaryEvent, { type: 'done' }>): string {
-  const tokens = usage ? `${usage.inputTokens} in, ${usage.outputTokens} out` : 'no token count';
-  return `${ACTIVE_MODEL.modelId} · ${tokens} · ${latencyMs} ms · ${dropped} dropped`;
 }

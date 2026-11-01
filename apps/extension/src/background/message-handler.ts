@@ -1,7 +1,9 @@
+import { isPresetId } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 import { isListedLanguage } from '../languages.ts';
 import type { Message } from '../messages.ts';
 import { readLanguageChoice, writeLanguageChoice } from '../settings/output-language.ts';
+import { readPreset, writePreset } from '../settings/preset.ts';
 import { flashBadge } from './action.ts';
 import { everySiteBubbleShown, summarizeFromBubble } from './every-site.ts';
 import { isBubbleHidden, type Sender, setBubbleHidden } from './hidden-bubble.ts';
@@ -27,6 +29,12 @@ export function handleMessage(
       if (message.choice === null || isListedLanguage(message.choice)) {
         void writeLanguageChoice(message.choice);
       }
+      return;
+    case 'read-preset':
+      void readPreset().then(sendResponse);
+      return true;
+    case 'save-preset':
+      if (isPresetId(message.preset)) void writePreset(message.preset);
       return;
     case 'read-bubble-hidden':
       void isBubbleHidden(sender).then(sendResponse);

@@ -1,12 +1,15 @@
+import type { PresetId } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 
-// Content scripts cannot reach storage, so the background reads and saves the summary language for
-// them and keeps the sites where the reader hid the bubble.
+// Content scripts cannot reach storage, so the background reads and saves the summary language and
+// shape for them and keeps the sites where the reader hid the bubble.
 export type Message =
   | { type: 'open-options' }
   | { type: 'unsupported-page' }
   | { type: 'read-language' }
   | { type: 'save-language'; choice: string | null }
+  | { type: 'read-preset' }
+  | { type: 'save-preset'; preset: PresetId }
   | { type: 'read-bubble-hidden' }
   | { type: 'save-bubble-hidden'; hidden: boolean }
   | { type: 'read-every-site' }
@@ -19,6 +22,12 @@ export function sendMessage(message: Message): void {
 // Null is Auto.
 export function requestLanguageChoice(): Promise<string | null> {
   const message: Message = { type: 'read-language' };
+  return browser.runtime.sendMessage(message);
+}
+
+// The shape the reader used last.
+export function requestPreset(): Promise<PresetId> {
+  const message: Message = { type: 'read-preset' };
   return browser.runtime.sendMessage(message);
 }
 
