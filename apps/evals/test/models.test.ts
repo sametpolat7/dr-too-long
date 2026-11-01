@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANDIDATES, costUsd, JUDGE } from '../src/models.ts';
-import { buildPromptV1 } from '../src/prompt-v1.ts';
+import { buildPromptV2 } from '../src/prompt-v2.ts';
 
 describe('models', () => {
   it('carry a price and the name of their key', () => {
@@ -15,8 +15,8 @@ describe('models', () => {
   it('list the shipped model with the shipped prompt and with the previous one', () => {
     const [shipped, previous] = CANDIDATES;
     expect(shipped?.prompt).toBeUndefined();
-    expect(previous).toMatchObject({ id: `${shipped?.id}@prompt-1`, model: shipped?.model });
-    expect(previous?.prompt).toBe(buildPromptV1);
+    expect(previous).toMatchObject({ id: `${shipped?.id}@prompt-2`, model: shipped?.model });
+    expect(previous?.prompt).toBe(buildPromptV2);
   });
 });
 

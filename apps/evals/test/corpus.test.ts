@@ -40,9 +40,9 @@ describe('parseItem', () => {
 describe('requestFor', () => {
   it('builds a request for a preset and an output language', () => {
     const item = corpusItem('x', 'One. Two.');
-    expect(requestFor(item, 'bulleted-list', 'tr')).toEqual({
-      v: 1,
-      preset: 'bulleted-list',
+    expect(requestFor(item, 'key-points', 'tr')).toEqual({
+      v: 2,
+      preset: 'key-points',
       outputLanguage: 'tr',
       sentences: item.sentences,
     });

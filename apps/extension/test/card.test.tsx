@@ -81,8 +81,8 @@ describe('Card', () => {
     );
   });
 
-  it('shows a bulleted list as one list item per point', () => {
-    const container = show(done, { view: view('bulleted-list') });
+  it('shows key points as one list item per point', () => {
+    const container = show(done, { view: view('key-points') });
     const items = [...container.querySelectorAll('li')];
     expect(items.map((item) => item.textContent)).toEqual(points.map((point) => point.text));
     expect(items[0]?.querySelector('[role="button"]')).not.toBeNull();
@@ -93,8 +93,8 @@ describe('Card', () => {
     const container = show(done, { onSelect });
     const pressed = [...container.querySelectorAll('[aria-pressed="true"]')];
     expect(pressed.map((each) => each.textContent)).toEqual(['Summary']);
-    button(container, 'Bulleted list')?.click();
-    expect(onSelect).toHaveBeenCalledWith('bulleted-list');
+    button(container, 'Key points')?.click();
+    expect(onSelect).toHaveBeenCalledWith('key-points');
   });
 
   it('offers no preset, language or bubble switch when the selection was refused', () => {
@@ -111,7 +111,7 @@ describe('Card', () => {
     expect([card?.lang, card?.dir]).toEqual(['en', 'ltr']);
     const paragraph = container.querySelector('p');
     expect([paragraph?.lang, paragraph?.dir]).toEqual(['ar', 'rtl']);
-    const list = show(done, { view: view('bulleted-list', 'en-US') }).querySelector('ul');
+    const list = show(done, { view: view('key-points', 'en-US') }).querySelector('ul');
     expect([list?.lang, list?.dir]).toEqual(['en-US', 'ltr']);
   });
 
@@ -219,7 +219,7 @@ describe('Card', () => {
   });
 
   it.each([
-    ['preset', view('bulleted-list')],
+    ['preset', view('key-points')],
     ['language', view('summary', 'tr')],
   ])('shows another %s from memory with no point marked', (_, next) => {
     const container = show(done, { onActivate: () => false });
@@ -253,7 +253,7 @@ describe('Card', () => {
   it('copies the summary in its preset shape and says so', async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal('navigator', { clipboard: { writeText } });
-    const container = show(done, { view: view('bulleted-list') });
+    const container = show(done, { view: view('key-points') });
     await act(async () => button(container, 'Copy')?.click());
     expect(writeText).toHaveBeenCalledWith(
       '- The keeper logged every ship.\n- The notebooks dated the decline.',

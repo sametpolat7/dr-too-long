@@ -7,8 +7,8 @@ const points = [
 ];
 
 describe('copyText', () => {
-  it('copies a bulleted list as one "- " line per point', () => {
-    expect(copyText('bulleted-list', points)).toBe(
+  it('copies key points as one "- " line per point', () => {
+    expect(copyText('key-points', points)).toBe(
       '- The keeper logged every ship.\n- The notebooks dated the decline.',
     );
   });
@@ -17,9 +17,5 @@ describe('copyText', () => {
     expect(copyText('summary', points)).toBe(
       'The keeper logged every ship. The notebooks dated the decline.',
     );
-  });
-
-  it('copies a single sentence as one line', () => {
-    expect(copyText('single-sentence', points.slice(0, 1))).toBe('The keeper logged every ship.');
   });
 });

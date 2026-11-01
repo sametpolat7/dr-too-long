@@ -4,7 +4,7 @@ import { createJudge } from '../src/judge.ts';
 import { textModel } from './mock-model.ts';
 
 const request: SummarizeRequest = {
-  v: 1,
+  v: 2,
   preset: 'summary',
   outputLanguage: 'en',
   sentences: ['Rivers carve valleys.', 'Valleys collect towns.'],
@@ -66,7 +66,7 @@ describe('createJudge', () => {
     const model = textModel(OUTPUT);
     await createJudge({ model }, () => keys.shift() ?? 0)(request, [weak, strong]);
     const prompt = JSON.stringify(model.doGenerateCalls[0]?.prompt);
-    expect(prompt).toContain('Task the summaries are graded against:\\nNumber of points: 2 to 4,');
+    expect(prompt).toContain('Task the summaries are graded against:\\nSize: a short passage');
     expect(prompt).not.toContain('You summarize text');
     expect(prompt).toContain('[2] Valleys collect towns.');
     expect(prompt).toContain(

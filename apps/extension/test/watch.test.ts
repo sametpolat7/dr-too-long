@@ -1,10 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  BUBBLE_DELAY_MS,
-  BUBBLE_MIN_CHARS,
-  BUBBLE_SCROLL_PX,
-  watchSelections,
-} from '../src/content/bubble/watch.ts';
+import { BUBBLE_DELAY_MS, BUBBLE_SCROLL_PX, watchSelections } from '../src/content/bubble/watch.ts';
 import { BUBBLE_UI, CARD_UI } from '../src/content/ui.ts';
 
 const LONG = 'The keeper logged every ship that passed the cape for forty years. '.repeat(3);
@@ -131,14 +126,24 @@ describe('watchSelections', () => {
     expect(offer).toHaveBeenCalledOnce();
   });
 
-  it(`offers nothing for fewer than ${BUBBLE_MIN_CHARS} characters`, () => {
+  it('offers nothing for a phrase, a number or a link, and the bubble for a sentence', () => {
     const { offer } = watch();
-    select('x'.repeat(BUBBLE_MIN_CHARS - 1));
-    release();
+    for (const text of [
+      'the keeper',
+      '3.5',
+      'https://example.org/path',
+      'A sentence cut off before',
+    ]) {
+      select(text);
+      release();
+    }
     expect(offer).not.toHaveBeenCalled();
-    select('x'.repeat(BUBBLE_MIN_CHARS));
+    select('He said "go."');
     release();
     expect(offer).toHaveBeenCalledOnce();
+    select('One sentence. And the start of another');
+    release();
+    expect(offer).toHaveBeenCalledTimes(2);
   });
 
   it('offers nothing for text in an editable region', () => {
@@ -208,13 +213,13 @@ describe('watchSelections', () => {
     expect(withdraw).toHaveBeenCalledTimes(2);
   });
 
-  it('withdraws the bubble when the selection shrinks below the minimum', () => {
+  it('withdraws the bubble when the selection shrinks to part of a sentence', () => {
     const { offer, withdraw } = watch();
     select(LONG);
     release();
     const text = document.querySelector('p')?.firstChild;
     const range = document.getSelection()?.getRangeAt(0);
-    if (text && range) range.setEnd(text, BUBBLE_MIN_CHARS - 1);
+    if (text && range) range.setEnd(text, 10);
     key('keyup', 'ArrowLeft');
     vi.advanceTimersByTime(BUBBLE_DELAY_MS);
     expect(offer).toHaveBeenCalledOnce();

@@ -42,7 +42,7 @@ let port: FakePort;
 vi.mock('wxt/browser', () => ({ browser: { runtime: { connect: () => port } } }));
 
 const request: SummarizeRequest = {
-  v: 1,
+  v: 2,
   preset: 'summary',
   outputLanguage: 'en',
   sentences: ['One.'],

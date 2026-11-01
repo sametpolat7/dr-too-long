@@ -5,7 +5,7 @@ import { handleConnect, type SummarizePort } from '../src/background/port-server
 import { writeApiKey } from '../src/settings/api-key.ts';
 
 const request: SummarizeRequest = {
-  v: 1,
+  v: 2,
   preset: 'summary',
   outputLanguage: 'tr',
   sentences: ['One.', 'Two.'],

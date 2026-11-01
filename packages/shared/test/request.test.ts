@@ -3,7 +3,7 @@ import { summarizeRequestSchema } from '../src/contracts/index.ts';
 import { MAX_SELECTION_CHARS } from '../src/limits/index.ts';
 
 const request = {
-  v: 1,
+  v: 2,
   preset: 'summary',
   outputLanguage: 'tr',
   sentences: ['First sentence.', 'Second sentence.'],

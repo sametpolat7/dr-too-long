@@ -71,7 +71,7 @@ const run = runOf(
       scores: { faithfulness: 5, citations: 5, coverage: 5, language: 5, form: 5 },
       rating: 5,
     }),
-    done('a', 'bulleted-list', { latencyMs: 120, costUsd: 0.0002, dropped: 0 }),
+    done('a', 'key-points', { latencyMs: 120, costUsd: 0.0002, dropped: 0 }),
   ],
   { id: 'j', rubricVersion: 3 },
 );
@@ -98,7 +98,7 @@ describe('renderReport', () => {
   });
 
   it('leaves a dash where nothing was measured', () => {
-    expect(report).toContain('## bulleted-list');
+    expect(report).toContain('## key-points');
     expect(report).toContain(
       '| a | 1 | 0 | 0 | – | – | – | – | – | – | – | – | 1.0 | 1.0 | 0% | 120 | 0.20 |',
     );

@@ -73,7 +73,7 @@ describe('createRuns', () => {
     const { calls, last } = setup();
     expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
     expect(calls[0]?.request).toEqual({
-      v: 1,
+      v: 2,
       preset: 'summary',
       outputLanguage: 'en',
       sentences: ['One.', 'Two.'],
@@ -91,16 +91,16 @@ describe('createRuns', () => {
 
   it('aborts the run in flight on a switch and never shows its later events', async () => {
     const { runs, calls, shown, last } = setup();
-    runs.select('bulleted-list');
+    runs.select('key-points');
     expect(calls[0]?.signal.aborted).toBe(true);
-    expect(calls[1]?.request).toMatchObject({ preset: 'bulleted-list', outputLanguage: 'en' });
+    expect(calls[1]?.request).toMatchObject({ preset: 'key-points', outputLanguage: 'en' });
 
     calls[0]?.send(doneEvent('Stale.'));
     calls[1]?.send(doneEvent('Fresh.'));
     await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
     expect(shown.filter(([view]) => view.preset === 'summary')).toHaveLength(1);
     expect(last()).toEqual([
-      { preset: 'bulleted-list', language: 'en' },
+      { preset: 'key-points', language: 'en' },
       { status: 'done', points: [point('Fresh.')], dropped: 0 },
     ]);
   });
@@ -110,7 +110,7 @@ describe('createRuns', () => {
     calls[0]?.send(doneEvent('Kept.'));
     await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
 
-    runs.select('single-sentence');
+    runs.select('key-points');
     runs.select('summary');
     expect(calls).toHaveLength(2);
     expect(calls[1]?.signal.aborted).toBe(true);
@@ -153,7 +153,7 @@ describe('createRuns', () => {
     runs.regenerate();
     expect(calls[1]?.request).toMatchObject({ preset: 'summary', outputLanguage: 'en' });
     expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
-    runs.select('single-sentence');
+    runs.select('key-points');
     runs.select('summary');
     expect(calls).toHaveLength(4);
   });
@@ -163,13 +163,9 @@ describe('createRuns', () => {
     calls[0]?.send({ type: 'error', code: 'network', message: 'HTTP 0' });
     await vi.waitFor(() => expect(last()?.[1]).toEqual({ status: 'error', code: 'network' }));
 
-    runs.select('single-sentence');
+    runs.select('key-points');
     runs.select('summary');
-    expect(calls.map((call) => call.request.preset)).toEqual([
-      'summary',
-      'single-sentence',
-      'summary',
-    ]);
+    expect(calls.map((call) => call.request.preset)).toEqual(['summary', 'key-points', 'summary']);
   });
 
   it('shows invalidated when the extension was reloaded under the card', async () => {
