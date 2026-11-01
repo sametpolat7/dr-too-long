@@ -12,6 +12,7 @@ interface Span {
 // ICU's root rules split sentences in any language, and a fixed locale keeps the result identical
 // on every machine. No language's abbreviation or ordinal conventions are special-cased.
 const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
+const words = new Intl.Segmenter('en', { granularity: 'word' });
 
 const LINE_BREAK = /[\n\r\u2028\u2029]/;
 const OPENING_PUNCTUATION = /^[\p{Ps}\p{Pi}"']+/u;
@@ -43,4 +44,11 @@ function trim(text: string, span: Span): Sentence | null {
   const start = span.start + raw.length - raw.trimStart().length;
   const end = span.end - raw.length + raw.trimEnd().length;
   return start < end ? { text: text.slice(start, end), start, end } : null;
+}
+
+// Word-like segments by the same root rules, which also split scripts written without spaces.
+export function countWords(text: string): number {
+  let count = 0;
+  for (const { isWordLike } of words.segment(text)) if (isWordLike) count += 1;
+  return count;
 }

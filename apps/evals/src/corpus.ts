@@ -63,7 +63,7 @@ export function requestFor(
   preset: PresetId,
   outputLanguage: string,
 ): SummarizeRequest {
-  const fields = { v: 1, preset, outputLanguage, sentences: item.sentences };
+  const fields = { v: 2, preset, outputLanguage, sentences: item.sentences };
   return parse(item.id, summarizeRequestSchema, fields);
 }
 

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
-import { BUBBLE_MIN_CHARS } from '../src/content/bubble/watch.ts';
 import { watchEverySite } from '../src/content/every-site.ts';
 import { BUBBLE_UI, SUMMARIZE_STARTED } from '../src/content/ui.ts';
 
@@ -23,8 +22,11 @@ const context = () =>
     abort: () => controller.abort(),
   }) as unknown as ContentScriptContext;
 
-function select(length: number) {
-  document.body.innerHTML = `<p>${'x'.repeat(length)}</p>`;
+const PHRASE = 'the keeper';
+const SENTENCE = 'The keeper logged every ship.';
+
+function select(text: string) {
+  document.body.innerHTML = `<p>${text}</p>`;
   const range = document.createRange();
   range.selectNodeContents(document.body);
   document.getSelection()?.removeAllRanges();
@@ -70,11 +72,11 @@ describe('watchEverySite', () => {
 
   it('leaves the worker and the page alone until a long selection is released', async () => {
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS - 1);
+    select(PHRASE);
     release();
     await settle();
     expect(requestEverySiteBubble).not.toHaveBeenCalled();
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     expect(requestEverySiteBubble).toHaveBeenCalledOnce();
@@ -83,7 +85,7 @@ describe('watchEverySite', () => {
 
   it('starts on a long selection made with the keyboard', async () => {
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     key('keyup', 'ArrowDown');
     await settle();
     expect(startBubble).toHaveBeenCalledOnce();
@@ -91,7 +93,7 @@ describe('watchEverySite', () => {
 
   it('offers that selection, and a click asks the worker to summarize', async () => {
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     expect(options()).toMatchObject({ hidden: false, offerCurrent: true });
@@ -104,7 +106,7 @@ describe('watchEverySite', () => {
   it('stops once the worker refuses a click, after the opt-in was withdrawn', async () => {
     requestSummarize.mockResolvedValue(false);
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     options().onSummarize();
@@ -120,7 +122,7 @@ describe('watchEverySite', () => {
     async (_, act) => {
       const answer = holdAnswer();
       void watchEverySite(context());
-      select(BUBBLE_MIN_CHARS);
+      select(SENTENCE);
       release();
       await settle();
       act();
@@ -132,7 +134,7 @@ describe('watchEverySite', () => {
 
   it('asks the worker once, and stops reading selections, however many follow', async () => {
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     release();
     await settle();
@@ -146,7 +148,7 @@ describe('watchEverySite', () => {
   it('shows nothing when the worker says no: the opt-in withdrawn, or the bubble hidden here', async () => {
     requestEverySiteBubble.mockResolvedValue(false);
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     expect(startBubble).not.toHaveBeenCalled();
@@ -154,7 +156,7 @@ describe('watchEverySite', () => {
 
   it('asks again when the page comes back from the back-forward cache', async () => {
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     requestEverySiteBubble.mockResolvedValue(false);
@@ -169,7 +171,7 @@ describe('watchEverySite', () => {
   it('stops when a summarize script starts before the selection', async () => {
     void watchEverySite(context());
     document.dispatchEvent(new Event(SUMMARIZE_STARTED));
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     expect(requestEverySiteBubble).not.toHaveBeenCalled();
@@ -178,7 +180,7 @@ describe('watchEverySite', () => {
   it('stops when a summarize script starts while the worker answers', async () => {
     const answer = holdAnswer();
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     expect(requestEverySiteBubble).toHaveBeenCalledOnce();
@@ -191,7 +193,7 @@ describe('watchEverySite', () => {
   it('leaves the page to a summarize script that started first, with its own bubble', async () => {
     document.documentElement.append(document.createElement(BUBBLE_UI));
     void watchEverySite(context());
-    select(BUBBLE_MIN_CHARS);
+    select(SENTENCE);
     release();
     await settle();
     expect(startBubble).not.toHaveBeenCalled();

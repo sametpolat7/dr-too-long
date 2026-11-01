@@ -13,7 +13,7 @@ function isLanguageTag(tag: string): boolean {
 }
 
 export const summarizeRequestSchema = z.strictObject({
-  v: z.literal(1),
+  v: z.literal(2),
   preset: z.enum(PRESET_IDS),
   outputLanguage: z
     .string()

@@ -46,7 +46,7 @@ export interface Judgement {
 export type Judge = (request: SummarizeRequest, summaries: Point[][]) => Promise<Judgement>;
 
 // Bumped with every change to the rubric below; scores from different versions are not comparable.
-export const RUBRIC_VERSION = 3;
+export const RUBRIC_VERSION = 4;
 
 const SYSTEM = [
   'You grade summaries of text that a reader selected on a web page.',
@@ -58,7 +58,7 @@ const SYSTEM = [
   'citations: the cited sentences are the ones that state the point; a missing or a surplus citation both count against it.',
   'coverage: the points carry the main ideas a reader needs to decide whether the whole text is worth reading; a figure or detail left out is no flaw when the idea is kept.',
   'language: natural, correct writing in the language the task asks for, as an editor would publish it unchanged; dock invented words, agreement errors, calques and tangled clauses, and quote the worst phrase in the reason.',
-  'form: the summary follows the task on the number of points and the style; a point with two main clauses, a semicolon or two sentences is not one sentence, and a short bullet that stands on its own beats a longer one that packs more facts.',
+  'form: the summary follows the task on its size and shape; a point with two main clauses or two sentences is not one point, and a short point that stands on its own beats a longer one that packs more facts.',
   'A 5 means a careful editor would change nothing; a 3 means a reader would notice a flaw; a 1 means the summary fails the criterion.',
   'Write a one-sentence reason per summary in English, then rank the labels from best to worst without ties, following the score totals and breaking ties on faithfulness, then coverage.',
 ].join('\n');

@@ -32,7 +32,7 @@ export function createRuns({ summarizer, sentences, initial, show, signal }: Run
     show(view, { status: 'summarizing', points: [] });
     try {
       const events = summarizer.summarize(
-        { v: 1, preset: view.preset, outputLanguage: view.language, sentences },
+        { v: 2, preset: view.preset, outputLanguage: view.language, sentences },
         { signal: run.signal },
       );
       for await (const event of events) {

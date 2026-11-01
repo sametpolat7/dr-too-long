@@ -1,5 +1,4 @@
 import type { Point, SummaryOutput } from './output.ts';
-import { PRESET_RULES, type PresetId } from './presets.ts';
 
 export interface ValidatedOutput {
   points: Point[];
@@ -15,15 +14,10 @@ export function validatePoint(point: Point, sentenceCount: number): Point | null
   return text && sentences.length > 0 ? { text, sentences } : null;
 }
 
-export function validateOutput(
-  preset: PresetId,
-  output: SummaryOutput,
-  sentenceCount: number,
-): ValidatedOutput {
+export function validateOutput(output: SummaryOutput, sentenceCount: number): ValidatedOutput {
   const points = output.points
     .map((point) => validatePoint(point, sentenceCount))
-    .filter((point) => point !== null)
-    .slice(0, PRESET_RULES[preset].max);
+    .filter((point) => point !== null);
 
   return { points, dropped: output.points.length - points.length };
 }

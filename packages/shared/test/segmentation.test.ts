@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { segmentSentences } from '../src/segmentation/index.ts';
+import { countWords, segmentSentences } from '../src/segmentation/index.ts';
 
 const texts = (text: string) => segmentSentences(text).map((sentence) => sentence.text);
 
@@ -77,5 +77,17 @@ describe('segmentSentences', () => {
   it('returns nothing for empty or blank input', () => {
     expect(segmentSentences('')).toEqual([]);
     expect(segmentSentences(' \n ')).toEqual([]);
+  });
+});
+
+describe('countWords', () => {
+  it('counts words and ignores punctuation', () => {
+    expect(countWords('Two words.')).toBe(2);
+    expect(countWords('İstanbul 1453 yılında fethedildi.')).toBe(4);
+    expect(countWords('... !')).toBe(0);
+  });
+
+  it('splits a Japanese sentence written without spaces', () => {
+    expect(countWords('東京都は火曜日に新しい地下鉄路線の建設計画を発表した。')).toBeGreaterThan(5);
   });
 });

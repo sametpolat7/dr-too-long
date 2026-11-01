@@ -22,7 +22,7 @@ import {
 } from '../contracts/index.ts';
 import type { ModelSetup } from '../providers/index.ts';
 
-// Five points and the JSON around them fit well within this; the validator caps the count.
+// A handful of points and the JSON around them fit well within this.
 const MAX_OUTPUT_TOKENS = 1024;
 
 export function createSummarizer(
@@ -51,7 +51,7 @@ export function createSummarizer(
           yield { type: 'partial', points: partialPoints(partial) };
         }
         const output = await result.output;
-        const validated = validateOutput(request.preset, output, request.sentences.length);
+        const validated = validateOutput(output, request.sentences.length);
         if (validated.points.length === 0) {
           yield errorEvent('invalid_output', 'No point survived validation');
           return;

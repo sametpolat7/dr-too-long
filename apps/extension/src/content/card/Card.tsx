@@ -26,9 +26,8 @@ export interface View {
 export const viewKey = ({ preset, language }: View): string => `${preset} ${language}`;
 
 const PRESET_LABELS: Record<PresetId, string> = {
-  'single-sentence': 'Single sentence',
   summary: 'Summary',
-  'bulleted-list': 'Bulleted list',
+  'key-points': 'Key points',
 };
 
 // Errors that running the same request again can clear, and errors only the options page can.
@@ -180,7 +179,7 @@ interface PointsProps {
 // The language's own direction, even when a point starts with a name in another script.
 function Points({ view: { preset, language }, points, children }: PointsProps) {
   const text = { lang: language, dir: textDirection(language) };
-  if (preset === 'bulleted-list') {
+  if (preset === 'key-points') {
     return (
       <ul {...text}>
         {points.map((point, index) => (

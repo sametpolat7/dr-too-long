@@ -8,7 +8,7 @@ type StreamResult = Awaited<ReturnType<MockLanguageModelV4['doStream']>>;
 type StreamPart = StreamResult['stream'] extends ReadableStream<infer Part> ? Part : never;
 
 const request: SummarizeRequest = {
-  v: 1,
+  v: 2,
   preset: 'summary',
   outputLanguage: 'en',
   sentences: ['Rivers carve valleys.', 'Valleys collect towns.', 'Towns grow into cities.'],

@@ -84,7 +84,7 @@ function options(overrides: Partial<RunOptions>): RunOptions & { lines: string[]
 
 describe('runEvals', () => {
   it('summarizes every item and preset, judges done outcomes and prices both', async () => {
-    const run = await runEvals(options({ presets: ['summary', 'single-sentence'] }));
+    const run = await runEvals(options({ presets: ['summary', 'key-points'] }));
 
     expect(run).toMatchObject({
       promptVersion: PROMPT_VERSION,
@@ -112,7 +112,7 @@ describe('runEvals', () => {
         costUsd: 0.00014,
       },
     });
-    expect(run.results[1]).toMatchObject({ preset: 'single-sentence', verdict: { rank: 1 } });
+    expect(run.results[1]).toMatchObject({ preset: 'key-points', verdict: { rank: 1 } });
   });
 
   it('logs one line per summary and one per judged text', async () => {
