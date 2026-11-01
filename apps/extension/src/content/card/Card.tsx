@@ -15,7 +15,7 @@ type ErrorState = { status: 'error'; code: ErrorCode; detail?: string };
 
 export type CardState =
   | { status: 'summarizing'; points: Point[] }
-  | { status: 'done'; points: Point[]; dropped: number }
+  | { status: 'done'; points: Point[] }
   | ErrorState;
 
 export interface View {
@@ -137,7 +137,6 @@ function Body({ state, view, onRegenerate, onOpenOptions, onActivate }: BodyProp
           key={viewKey(view)}
           view={view}
           points={state.points}
-          dropped={state.dropped}
           onActivate={onActivate}
           onRegenerate={onRegenerate}
         />
@@ -208,12 +207,11 @@ interface Active {
 interface SummaryProps {
   view: View;
   points: Point[];
-  dropped: number;
   onActivate: CardProps['onActivate'];
   onRegenerate: CardProps['onRegenerate'];
 }
 
-function Summary({ view, points, dropped, onActivate, onRegenerate }: SummaryProps) {
+function Summary({ view, points, onActivate, onRegenerate }: SummaryProps) {
   const [active, setActive] = useState<Active>();
   const activate = (index: number, point: Point) => setActive({ index, found: onActivate(point) });
   return (
@@ -239,7 +237,6 @@ function Summary({ view, points, dropped, onActivate, onRegenerate }: SummaryPro
         )}
       </Points>
       {active && !active.found && <p class="status">The passage is no longer on the page.</p>}
-      {dropped > 0 && <p class="status">{droppedNote(dropped)}</p>}
       <div class="actions">
         <CopyButton text={copyText(view.preset, points)} />
         <button type="button" onClick={onRegenerate}>
@@ -253,12 +250,6 @@ function Summary({ view, points, dropped, onActivate, onRegenerate }: SummaryPro
 function pointClass(active: Active | undefined, index: number): string {
   if (active?.index !== index) return 'point';
   return active.found ? 'point active' : 'point missing';
-}
-
-function droppedNote(dropped: number): string {
-  return dropped === 1
-    ? '1 point from the model was left out.'
-    : `${dropped} points from the model were left out.`;
 }
 
 interface LanguageProps {
