@@ -50,7 +50,6 @@ export async function runEvals(options: RunOptions): Promise<Run> {
     judge: createJudge(options.judge.setup(requireKey(options.judge, env))),
   };
   const startedAt = new Date().toISOString();
-  // Candidates that share a key run one after another; keys run in parallel.
   const groups = Map.groupBy(keyed, ({ candidate }) => candidate.model.keyVariable).values();
   const results = (await Promise.all([...groups].map((group) => runGroup(group, options)))).flat();
   if (judging) await judgeAll(results, judging, options);
@@ -133,8 +132,7 @@ async function summarize(
   throw new Error('The summarizer ended without a final event');
 }
 
-// One call per text and preset with every candidate's summary side by side. A judge
-// failure costs those verdicts, never the run.
+// A judge failure costs that call's verdicts, never the run.
 async function judgeAll(
   results: RunResult[],
   { model, judge }: Judging,
