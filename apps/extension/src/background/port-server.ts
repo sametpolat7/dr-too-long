@@ -57,8 +57,8 @@ async function run(
   signal: AbortSignal,
 ): Promise<void> {
   const apiKey = await readApiKey();
-  // The card closes its port when the reader switches presets or languages or closes it; a closed
-  // port takes no messages.
+  // The card closes its port when the reader closes it or regenerates; a closed port takes no
+  // messages.
   if (signal.aborted) return;
   if (!apiKey) {
     port.postMessage({ type: 'error', code: 'no_key', message: 'No API key is saved' });
