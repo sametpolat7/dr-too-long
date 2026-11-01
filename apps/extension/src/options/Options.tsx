@@ -48,7 +48,7 @@ export function Options() {
     controller.current = current;
     setRun({ status: 'running', points: [] });
     const outputLanguage = await readOutputLanguage();
-    const request = { v: 1, preset: DEFAULT_PRESET, outputLanguage, sentences: SAMPLE } as const;
+    const request = { v: 2, preset: DEFAULT_PRESET, outputLanguage, sentences: SAMPLE } as const;
     for await (const event of portSummarizer.summarize(request, { signal: current.signal })) {
       setRun(toRun(event));
     }
