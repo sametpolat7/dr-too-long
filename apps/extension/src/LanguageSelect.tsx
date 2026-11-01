@@ -9,7 +9,6 @@ interface LanguageSelectProps {
   onChange: (choice: string | null) => void;
 }
 
-// The summary language control of the options page and the card.
 export function LanguageSelect({ choice, onChange }: LanguageSelectProps) {
   return (
     <label class="language">

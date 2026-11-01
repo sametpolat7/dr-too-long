@@ -10,8 +10,6 @@ export interface Anchors {
 
 type Finder = (text: string) => Range | null;
 
-// Highlights the sentences a point cites and scrolls to the first; false, with nothing highlighted,
-// when none is on the page.
 export function createAnchors(pageText: PageText, sentences: Sentence[]): Anchors {
   return {
     activate(point) {
@@ -38,13 +36,11 @@ export function createAnchors(pageText: PageText, sentences: Sentence[]): Anchor
   };
 }
 
-// The sentence's own range while the page still reads the same there, otherwise a fresh search.
 function locate(pageText: PageText, sentence: Sentence, find: Finder): Range | null {
   const range = rangeOf(pageText, sentence.start, sentence.end);
   return range && readPageText(range).text === sentence.text ? range : find(sentence.text);
 }
 
-// Looks for a re-rendered passage first where it was, then anywhere on the page, walking each once.
 function createFinder(root: Node): Finder {
   const containers = [...new Set([root, document.body])].filter((node) => node.isConnected);
   const walks = new Map<Node, PageText>();

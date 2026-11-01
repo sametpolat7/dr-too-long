@@ -3,27 +3,20 @@ import type { PortSummarizer } from '../summarize-port.ts';
 import { type CardState, type View, viewKey } from './card/Card.tsx';
 
 export interface Runs {
-  // Shows the preset's summary in the shown language, from memory once it is done.
   select(preset: PresetId): void;
-  // Shows the shown preset's summary in the language, from memory once it is done.
   selectLanguage(language: string): void;
-  // Runs the shown view again in place of its summary or error.
   regenerate(): void;
 }
 
 interface RunsOptions {
   summarizer: PortSummarizer;
   sentences: string[];
-  // The view the card opens with, which starts at once.
   initial: View;
   show: (view: View, state: CardState) => void;
-  // The card's own signal: aborting it ends the run in flight.
   signal: AbortSignal;
 }
 
-// One run at a time: a new run or a switch to a done view aborts the one in flight, whose closed
-// port cancels the model call. Done summaries are kept per preset and language while the card is
-// open.
+// Aborting a run closes its port, which cancels the model call.
 export function createRuns({ summarizer, sentences, initial, show, signal }: RunsOptions): Runs {
   const done = new Map<string, CardState>();
   let shown = initial;

@@ -1,8 +1,7 @@
 import { browser } from 'wxt/browser';
 
-// Requests from the content scripts that only the background can carry out. They cannot reach
-// storage, so the background reads and saves the summary language for them and keeps the sites
-// where the reader hid the bubble.
+// Content scripts cannot reach storage, so the background reads and saves the summary language for
+// them and keeps the sites where the reader hid the bubble.
 export type Message =
   | { type: 'open-options' }
   | { type: 'unsupported-page' }
@@ -17,7 +16,7 @@ export function sendMessage(message: Message): void {
   void browser.runtime.sendMessage(message);
 }
 
-// The saved language choice; null is Auto.
+// Null is Auto.
 export function requestLanguageChoice(): Promise<string | null> {
   const message: Message = { type: 'read-language' };
   return browser.runtime.sendMessage(message);
@@ -35,7 +34,7 @@ export function requestEverySiteBubble(): Promise<boolean> {
   return browser.runtime.sendMessage(message);
 }
 
-// Asks the worker to run the summarize script in this tab; false once the opt-in is withdrawn.
+// False once the opt-in is withdrawn.
 export function requestSummarize(): Promise<boolean> {
   const message: Message = { type: 'summarize' };
   return browser.runtime.sendMessage(message);

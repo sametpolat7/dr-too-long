@@ -5,7 +5,6 @@ import { HIGHLIGHT_CSS } from '../highlight.ts';
 const SUMMARIZE_SCRIPT = '/content-scripts/summarize.js';
 const BADGE_MS = 3000;
 
-// Runs the summarize script in the tab's top frame, with the highlight rule in place before it.
 export async function summarizeTab(tabId: number): Promise<void> {
   const style = { target: { tabId }, css: HIGHLIGHT_CSS };
   try {

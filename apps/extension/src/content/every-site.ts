@@ -4,9 +4,8 @@ import { startBubble } from './bubble/bubble.tsx';
 import { offeredRange } from './bubble/watch.ts';
 import { BUBBLE_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
 
-// Runs on every https page while the reader's every-site opt-in stands. It adds nothing to the page
-// and leaves the worker asleep until the first selection the bubble is offered for, then shows the
-// bubble if the worker allows it. A click runs the summarize script, as the icon does.
+// The script adds nothing to the page and leaves the worker asleep until the first selection the
+// bubble is offered for.
 export async function watchEverySite(ctx: ContentScriptContext): Promise<void> {
   if (!canHostShadowRoot()) return;
   document.addEventListener(SUMMARIZE_STARTED, () => ctx.abort(), { signal: ctx.signal });
@@ -38,7 +37,6 @@ export async function watchEverySite(ctx: ContentScriptContext): Promise<void> {
   );
 }
 
-// Resolves when the mouse button or a key is released on a selection the bubble is offered for.
 function firstOfferedSelection(signal: AbortSignal): Promise<void> {
   const listening = new AbortController();
   signal.addEventListener('abort', () => listening.abort(), { once: true });
@@ -54,7 +52,6 @@ function firstOfferedSelection(signal: AbortSignal): Promise<void> {
   });
 }
 
-// Whether the reader has pressed the mouse button or Escape since, until the signal aborts.
 function noteMovingOn(signal: AbortSignal): () => boolean {
   let movedOn = false;
   const options = { capture: true, passive: true, signal };

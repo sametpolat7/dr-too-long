@@ -53,9 +53,8 @@ const TAGS = [
   'zh-Hant',
 ];
 
-// English name first, for an English page, then the language's own name where it differs. Standard
-// names put a qualifier after the language, so Chinese (Simplified) sorts beside Chinese
-// (Traditional).
+// English name first, for an English page. Standard names put a qualifier after the language, so
+// Chinese (Simplified) sorts beside Chinese (Traditional).
 function languageLabel(tag: string): string {
   const options = { type: 'language', languageDisplay: 'standard' } as const;
   const english = new Intl.DisplayNames(['en'], options).of(tag) ?? tag;
@@ -71,7 +70,6 @@ export const LANGUAGES = TAGS.map((tag) => ({ tag, label: languageLabel(tag) }))
 
 export const isListedLanguage = (tag: string): boolean => TAGS.includes(tag);
 
-// The language a summary is written in: the reader's choice, or Chrome's UI language for Auto.
 export function resolveLanguage(choice: string | null): string {
   return choice ?? browser.i18n.getUILanguage();
 }

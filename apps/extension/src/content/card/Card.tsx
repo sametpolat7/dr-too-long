@@ -18,7 +18,6 @@ export type CardState =
   | { status: 'done'; points: Point[]; dropped: number }
   | ErrorState;
 
-// A preset, and the language its summary is written in.
 export interface View {
   preset: PresetId;
   language: string;
@@ -49,7 +48,7 @@ export interface CardProps {
   state: CardState;
   // Absent when the selection was refused: nothing can run, and only the error shows.
   view?: View;
-  // The saved language choice the picker opens with; null is Auto.
+  // Null is Auto.
   choice: string | null;
   onSelect: (preset: PresetId) => void;
   onLanguage: (choice: string | null) => void;
@@ -178,8 +177,7 @@ interface PointsProps {
   children: (point: Point, index: number) => ComponentChild;
 }
 
-// Bullets for the list, one paragraph otherwise, in the language's own direction even when a point
-// starts with a name in another script.
+// The language's own direction, even when a point starts with a name in another script.
 function Points({ view: { preset, language }, points, children }: PointsProps) {
   const text = { lang: language, dir: textDirection(language) };
   if (preset === 'bulleted-list') {
