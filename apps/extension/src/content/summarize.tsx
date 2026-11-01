@@ -1,4 +1,3 @@
-import { DEFAULT_PRESET } from '@dr-too-long/shared/contracts';
 import { render } from 'preact';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
@@ -6,7 +5,12 @@ import {
   type ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
 import { resolveLanguage } from '../languages.ts';
-import { requestBubbleHidden, requestLanguageChoice, sendMessage } from '../messages.ts';
+import {
+  requestBubbleHidden,
+  requestLanguageChoice,
+  requestPreset,
+  sendMessage,
+} from '../messages.ts';
 import { portSummarizer } from '../summarize-port.ts';
 import { type Anchors, createAnchors } from './anchoring/anchors.ts';
 import { startBubble } from './bubble/bubble.tsx';
@@ -37,8 +41,17 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   }
   document.dispatchEvent(new Event(SUMMARIZE_STARTED));
 
-  let hidden = await requestBubbleHidden();
-  // The card's host mounts after the bubble's, so that a card is drawn over it.
+  let card: OpenCard | undefined;
+  // Hidden until the worker answers. Its host mounts before the card's, so that the card is drawn
+  // over it.
+  const bubble = await startBubble(ctx, {
+    hidden: true,
+    // An extension reload orphans this script, and the check removes its card and bubble instead
+    // of opening a card that cannot run.
+    onSummarize: () => {
+      if (ctx.isValid) summarize();
+    },
+  });
   const ui = await createShadowRootUi(ctx, {
     name: CARD_UI,
     position: 'inline',
@@ -52,27 +65,16 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     },
   });
 
-  let card: OpenCard | undefined;
-  const summarize = () => {
-    card?.close();
-    card = openCard(ctx, ui, bubbleState);
-  };
-  // An extension reload orphans this script, and the check removes its card and bubble instead of
-  // opening a card that cannot run.
-  const bubble = await startBubble(ctx, {
-    hidden,
-    onSummarize: () => {
-      if (ctx.isValid) summarize();
-    },
-  });
+  // Undefined until the worker answers, which the card's switch reads as shown.
+  let hidden: boolean | undefined;
+  let switches = 0;
   const apply = (next: boolean) => {
     hidden = next;
     bubble.setHidden(next);
     card?.redraw();
   };
-  let switches = 0;
   const bubbleState: BubbleState = {
-    isHidden: () => hidden,
+    isHidden: () => hidden === true,
     // The card switches first: in a script orphaned by an extension reload the save throws.
     setHidden: (next) => {
       switches += 1;
@@ -80,21 +82,29 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
       sendMessage({ type: 'save-bubble-hidden', hidden: next });
     },
   };
+  const summarize = () => {
+    card?.close();
+    card = openCard(ctx, ui, bubbleState);
+  };
+  // The worker answers from before any click on the card's switch made while it answers, so such
+  // a click wins.
+  const ask = () => {
+    const asked = switches;
+    void requestBubbleHidden().then((next) => {
+      if (switches === asked && ctx.isValid && next !== hidden) apply(next);
+    });
+  };
   // A page back from the back-forward cache asks again: meanwhile the reader may have hidden the
-  // bubble on another page of the site, or shown it again. The worker answers from before any click
-  // on the card's switch made while it answers, so such a click wins.
+  // bubble on another page of the site, or shown it again.
   window.addEventListener(
     'pageshow',
     (event) => {
-      if (!event.persisted || !ctx.isValid) return;
-      const asked = switches;
-      void requestBubbleHidden().then((next) => {
-        if (switches === asked && ctx.isValid && next !== hidden) apply(next);
-      });
+      if (event.persisted && ctx.isValid) ask();
     },
     { signal: ctx.signal },
   );
   summarize();
+  ask();
 }
 
 function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleState): OpenCard {
@@ -123,8 +133,11 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
         state={state}
         view={view}
         choice={choice}
-        onSelect={(preset) => runs?.select(preset)}
-        // The card switches first: in a script orphaned by an extension reload the save throws.
+        // The card switches first: in a script orphaned by an extension reload the saves throw.
+        onSelect={(preset) => {
+          runs?.select(preset);
+          sendMessage({ type: 'save-preset', preset });
+        }}
         onLanguage={(next) => {
           runs?.selectLanguage(resolveLanguage(next));
           sendMessage({ type: 'save-language', choice: next });
@@ -156,12 +169,12 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
   }
 
   anchors = createAnchors(outcome.pageText, outcome.sentences);
-  void requestLanguageChoice().then((saved) => {
+  void Promise.all([requestLanguageChoice(), requestPreset()]).then(([saved, preset]) => {
     choice = saved;
     runs = createRuns({
       summarizer: portSummarizer,
       sentences: outcome.sentences.map((sentence) => sentence.text),
-      initial: { preset: DEFAULT_PRESET, language: resolveLanguage(saved) },
+      initial: { preset, language: resolveLanguage(saved) },
       // Each new state replaces the summary whose point the page may have highlighted.
       show: (view, state) => {
         anchors?.clear();
