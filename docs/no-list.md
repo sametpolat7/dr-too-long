@@ -8,8 +8,8 @@ Everything below stays out of Phase 1. This list changes only through a pull req
 - No backend, accounts, sign-in, quota, billing, privacy policy page or store submission. These are Phase 2.
 - No whole-page, PDF or video summaries, follow-up chat, history or per-site style memory.
 - No sidebar, popup, side panel or menu before the summary. Every gesture runs Summary directly.
-- No fourth preset, length sliders or tone options.
-- No user settings for the bubble delay, minimum length or selection cap. They are constants: the cap in `packages/shared`, which the Phase 2 backend also enforces, and the bubble's in the extension.
+- No third preset, length settings or tone options. The summary's size follows the text.
+- No user settings for the bubble delay or the selection cap. They are constants: the cap in `packages/shared`, which the Phase 2 backend also enforces, and the delay in the extension.
 - No language-specific sentence rules. ICU's root rules and a merge of uppercase initials set the boundaries in every language; no language's abbreviation or ordinal conventions are special-cased.
 
 ## Privacy
