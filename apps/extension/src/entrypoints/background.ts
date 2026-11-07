@@ -1,5 +1,4 @@
-import { createSummarizer } from '@dr-too-long/shared/model';
-import { activeModel } from '@dr-too-long/shared/providers';
+import { createSummarizer, providerModel } from '@dr-too-long/shared/model';
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { summarizeTab } from '../background/action.ts';
@@ -28,5 +27,5 @@ export default defineBackground(() => {
   browser.tabs.onRemoved.addListener((tabId) => void forgetTab(tabId));
   browser.permissions.onAdded.addListener(() => void syncEverySite());
   browser.permissions.onRemoved.addListener(() => void syncEverySite());
-  startPortServer((apiKey) => createSummarizer(activeModel(apiKey)));
+  startPortServer(({ provider, key }) => createSummarizer(providerModel(provider, key)));
 });
