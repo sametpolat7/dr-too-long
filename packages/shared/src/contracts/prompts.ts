@@ -2,8 +2,6 @@ import { countWords } from '../segmentation/index.ts';
 import type { PresetId } from './presets.ts';
 import type { SummarizeRequest } from './request.ts';
 
-export const PROMPT_VERSION = 3;
-
 // A paragraph or less reads as a short passage.
 const SHORT_TEXT_WORDS = 120;
 
@@ -20,15 +18,12 @@ const SHAPE_GUIDANCE: Record<PresetId, string> = {
     'Shape: a list of key points, each one thing a reader would keep, with names, figures and units as the text gives them. Most valuable first, each standing on its own.',
 };
 
-export interface Prompt {
+interface Prompt {
   system: string;
   prompt: string;
 }
 
-export type PromptBuilder = (request: SummarizeRequest) => Prompt;
-
-// The task in the summarizer's words, which the eval judge grades against as well.
-export function describeTask({ preset, outputLanguage, sentences }: SummarizeRequest): string {
+function describeTask({ preset, outputLanguage, sentences }: SummarizeRequest): string {
   const size = countWords(sentences.join(' ')) > SHORT_TEXT_WORDS ? 'long' : 'short';
   return [
     SIZE_GUIDANCE[size],

@@ -16,14 +16,9 @@ export type ErrorCode =
   | 'unsupported_selection'
   | 'provider';
 
-export interface TokenUsage {
-  inputTokens: number;
-  outputTokens: number;
-}
-
 export type SummaryEvent =
   | { type: 'partial'; points: Point[] }
-  | { type: 'done'; output: SummaryOutput; dropped: number; usage?: TokenUsage; latencyMs: number }
+  | { type: 'done'; output: SummaryOutput }
   | { type: 'error'; code: ErrorCode; message: string };
 
 export interface Summarizer {
