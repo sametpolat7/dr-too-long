@@ -51,8 +51,6 @@ const partial: SummaryEvent = { type: 'partial', points: [{ text: 'One', sentenc
 const done: SummaryEvent = {
   type: 'done',
   output: { points: [{ text: 'One.', sentences: [1] }] },
-  dropped: 0,
-  latencyMs: 5,
 };
 
 function start(signal = new AbortController().signal) {

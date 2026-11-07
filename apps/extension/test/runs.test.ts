@@ -10,8 +10,6 @@ const keyPoints: View = { preset: 'key-points', language: 'en' };
 const doneEvent = (text: string): SummaryEvent => ({
   type: 'done',
   output: { points: [point(text)] },
-  dropped: 0,
-  latencyMs: 5,
 });
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
