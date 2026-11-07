@@ -2,7 +2,7 @@
   "name": "@dr-too-long/extension",
   "version": "0.1.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "24.19.2",
+    "fake-indexeddb": "6.2.7",
     "happy-dom": "21.0.4",
     "typescript": "catalog:",
     "vitest": "catalog:",

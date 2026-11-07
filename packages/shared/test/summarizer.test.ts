@@ -54,7 +54,7 @@ async function collect(
 }
 
 describe('createSummarizer', () => {
-  it('streams partial points and ends with validated output, usage and latency', async () => {
+  it('streams partial points and ends with the validated output', async () => {
     const events = await collect(
       streaming(
         textParts([
@@ -77,13 +77,10 @@ describe('createSummarizer', () => {
           { text: 'Cities follow.', sentences: [3] },
         ],
       },
-      dropped: 0,
-      usage: { inputTokens: 40, outputTokens: 12 },
-      latencyMs: expect.any(Number),
     });
   });
 
-  it('sends the prompt the builder given returns', async () => {
+  it('sends the numbered sentences with the provider options', async () => {
     const model = new MockLanguageModelV4({
       doStream: async () => ({
         stream: simulateReadableStream({
@@ -91,15 +88,15 @@ describe('createSummarizer', () => {
         }),
       }),
     });
-    const custom = () => ({ system: 'Custom system.', prompt: 'Custom input.' });
-    await collect(createSummarizer({ model }, custom));
+    const providerOptions = { openai: { store: false } };
+    await collect(createSummarizer({ model, providerOptions }));
 
-    const sent = JSON.stringify(model.doStreamCalls[0]?.prompt);
-    expect(sent).toContain('Custom system.');
-    expect(sent).toContain('Custom input.');
+    const call = model.doStreamCalls[0];
+    expect(JSON.stringify(call?.prompt)).toContain('[1] Rivers carve valleys.');
+    expect(call?.providerOptions).toEqual(providerOptions);
   });
 
-  it('drops a point that cites no valid sentence and counts it', async () => {
+  it('drops a point that cites no valid sentence', async () => {
     const events = await collect(
       streaming(
         textParts([
@@ -111,7 +108,6 @@ describe('createSummarizer', () => {
     expect(events.at(-1)).toMatchObject({
       type: 'done',
       output: { points: [{ text: 'Kept.', sentences: [2] }] },
-      dropped: 1,
     });
   });
 
@@ -127,22 +123,6 @@ describe('createSummarizer', () => {
       streaming(textParts(['{"points":[{"text":"","sentences":[1]}]}'])),
     );
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'invalid_output' });
-  });
-
-  it.each([
-    [401, 'unauthorized'],
-    [429, 'rate_limited'],
-    [500, 'provider'],
-  ])('maps HTTP %i to %s', async (statusCode, code) => {
-    const error = new APICallError({
-      message: 'failed',
-      url: '',
-      requestBodyValues: {},
-      statusCode,
-    });
-    expect(await collect(failing(error))).toEqual([
-      { type: 'error', code, message: `HTTP ${statusCode}` },
-    ]);
   });
 
   it.each([

@@ -38,8 +38,8 @@ export function EverySite() {
       <p>
         Chrome asks for access to every https site. The bubble then appears on the pages you open or
         reload, with no click on the icon first. It sends nothing until you click it; a click sends
-        the selection to OpenAI with your key, as the icon does. Unticking takes effect on the pages
-        you open or reload.
+        the selection to your provider with your key, as the icon does. Unticking takes effect on
+        the pages you open or reload.
       </p>
     </div>
   );

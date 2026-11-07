@@ -46,7 +46,7 @@ function trim(text: string, span: Span): Sentence | null {
   return start < end ? { text: text.slice(start, end), start, end } : null;
 }
 
-// Word-like segments by the same root rules, which also split scripts written without spaces.
+// The same root rules also split scripts written without spaces.
 export function countWords(text: string): number {
   let count = 0;
   for (const { isWordLike } of words.segment(text)) if (isWordLike) count += 1;

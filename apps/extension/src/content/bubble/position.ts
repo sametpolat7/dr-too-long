@@ -1,4 +1,3 @@
-// Space between the text and the bubble, and between the bubble and the viewport's edge.
 const GAP = 8;
 
 export interface Lines {

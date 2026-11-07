@@ -2,7 +2,7 @@ import type { SummarizeRequest, Summarizer, SummaryEvent } from '@dr-too-long/sh
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { handleConnect, type SummarizePort } from '../src/background/port-server.ts';
-import { writeApiKey } from '../src/settings/api-key.ts';
+import { type ApiKey, writeApiKey } from '../src/settings/api-key.ts';
 
 const request: SummarizeRequest = {
   v: 2,
@@ -10,12 +10,11 @@ const request: SummarizeRequest = {
   outputLanguage: 'tr',
   sentences: ['One.', 'Two.'],
 };
+const apiKey: ApiKey = { provider: 'anthropic', key: 'test-claude-key' };
 const partial: SummaryEvent = { type: 'partial', points: [{ text: 'One', sentences: [1] }] };
 const done: SummaryEvent = {
   type: 'done',
   output: { points: [{ text: 'One and two.', sentences: [1, 2] }] },
-  dropped: 0,
-  latencyMs: 5,
 };
 
 class FakePort implements SummarizePort {
@@ -79,8 +78,19 @@ describe('handleConnect', () => {
     expect(createSummarizer).not.toHaveBeenCalled();
   });
 
+  it('creates the summarizer with the saved key and its provider', async () => {
+    await writeApiKey(apiKey);
+    const createSummarizer = vi.fn(() => summarizerOf([done]));
+    const port = new FakePort();
+    handleConnect(port, createSummarizer);
+    port.receive(request);
+
+    await vi.waitFor(() => expect(port.disconnected).toBe(true));
+    expect(createSummarizer).toHaveBeenCalledWith(apiKey);
+  });
+
   it('forwards every event in order and closes the port after the last one', async () => {
-    await writeApiKey('secret');
+    await writeApiKey(apiKey);
     const port = new FakePort();
     handleConnect(port, () => summarizerOf([partial, done]));
     port.receive(request);
@@ -93,7 +103,7 @@ describe('handleConnect', () => {
     ['a listed language', 'tr'],
     ["Chrome's own language, which Auto writes in", 'en-US'],
   ])('summarizes in %s', async (_, outputLanguage) => {
-    await writeApiKey('secret');
+    await writeApiKey(apiKey);
     const received: SummarizeRequest[] = [];
     const port = new FakePort();
     handleConnect(port, () => ({
@@ -109,7 +119,7 @@ describe('handleConnect', () => {
   });
 
   it("refuses a language that is neither listed nor Chrome's own", async () => {
-    await writeApiKey('secret');
+    await writeApiKey(apiKey);
     const createSummarizer = vi.fn();
     const port = new FakePort();
     handleConnect(port, createSummarizer);
@@ -132,7 +142,7 @@ describe('handleConnect', () => {
   });
 
   it('closes the port without a reply on a malformed request', async () => {
-    await writeApiKey('secret');
+    await writeApiKey(apiKey);
     const createSummarizer = vi.fn();
     const port = new FakePort();
     handleConnect(port, createSummarizer);
@@ -144,7 +154,7 @@ describe('handleConnect', () => {
   });
 
   it('runs only the first message on a port', async () => {
-    await writeApiKey('secret');
+    await writeApiKey(apiKey);
     const createSummarizer = vi.fn(() => summarizerOf([done]));
     const port = new FakePort();
     handleConnect(port, createSummarizer);
@@ -156,7 +166,7 @@ describe('handleConnect', () => {
   });
 
   it('aborts the run when the client disconnects mid-stream', async () => {
-    await writeApiKey('secret');
+    await writeApiKey(apiKey);
     let signal: AbortSignal | undefined;
     const summarizer: Summarizer = {
       async *summarize(_request, options) {

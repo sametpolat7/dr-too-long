@@ -45,7 +45,7 @@ const SETTLE_MS = 400;
 
 export interface CardProps {
   state: CardState;
-  // Absent when the selection was refused: nothing can run, and only the error shows.
+  // Absent when the selection was refused.
   view?: View;
   // Null is Auto.
   choice: string | null;

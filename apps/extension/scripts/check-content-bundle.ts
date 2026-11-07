@@ -1,8 +1,14 @@
-// The content scripts run inside web pages. The key, the storage API and the provider host belong
-// to the background worker and must not reach their bundles.
+// The content scripts run inside web pages. The key, the storage APIs and the provider hosts belong
+// to the background worker and the options page and must not reach their bundles.
 import { readFileSync } from 'node:fs';
+import { PROVIDERS } from '@dr-too-long/shared/providers';
 
-const FORBIDDEN = ['storage', 'apiKey', 'api.openai.com'] as const;
+const FORBIDDEN = [
+  'storage',
+  'apiKey',
+  'indexedDB',
+  ...Object.values(PROVIDERS).map(({ apiHost }) => new URL(apiHost).host),
+];
 const BUNDLES = ['summarize.js', 'every-site.js'] as const;
 
 const problems = BUNDLES.flatMap((name) => {
@@ -19,4 +25,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.info('The content script bundles carry no key, storage or provider code.');
+console.info('The content script bundles carry no key, storage or provider host.');

@@ -6,7 +6,7 @@ import {
 } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 import { isListedLanguage } from '../languages.ts';
-import { readApiKey } from '../settings/api-key.ts';
+import { type ApiKey, readApiKey } from '../settings/api-key.ts';
 import { SUMMARIZE_PORT } from '../summarize-port.ts';
 import { keepAlive } from './keep-alive.ts';
 
@@ -16,7 +16,7 @@ const portRequestSchema = summarizeRequestSchema.refine(
     isListedLanguage(outputLanguage) || outputLanguage === browser.i18n.getUILanguage(),
 );
 
-export type CreateSummarizer = (apiKey: string) => Summarizer;
+type CreateSummarizer = (apiKey: ApiKey) => Summarizer;
 
 // The slice of chrome.runtime.Port the server uses; tests pass a fake.
 export interface SummarizePort {
@@ -32,7 +32,7 @@ export function startPortServer(createSummarizer: CreateSummarizer): void {
   });
 }
 
-// One request per connection. A malformed request closes the port without a reply.
+// A malformed request closes the port without a reply.
 export function handleConnect(port: SummarizePort, createSummarizer: CreateSummarizer): void {
   const controller = new AbortController();
   let started = false;

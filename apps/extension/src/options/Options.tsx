@@ -1,10 +1,12 @@
 import { DEFAULT_PRESET, type Point, type SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { ProviderId } from '@dr-too-long/shared/providers';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { ERROR_MESSAGES } from '../error-messages.ts';
-import { readApiKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
+import { readKeyProvider } from '../settings/api-key.ts';
 import { readOutputLanguage } from '../settings/output-language.ts';
 import { portSummarizer } from '../summarize-port.ts';
 import { EverySite } from './EverySite.tsx';
+import { KeyForm } from './KeyForm.tsx';
 import { OutputLanguage } from './OutputLanguage.tsx';
 
 const SAMPLE = [
@@ -20,25 +22,19 @@ type Run =
   | { status: 'error'; message: string };
 
 export function Options() {
-  const [hasKey, setHasKey] = useState(false);
-  const [draft, setDraft] = useState('');
+  // Undefined until the saved key's provider has loaded, so the form never flashes another one.
+  const [saved, setSaved] = useState<ProviderId | null>();
   const [run, setRun] = useState<Run>({ status: 'idle' });
   const controller = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    readApiKey().then((key) => setHasKey(key !== null));
+    readKeyProvider().then(setSaved);
   }, []);
 
-  async function save(event: Event) {
-    event.preventDefault();
-    await writeApiKey(draft);
-    setDraft('');
-    setHasKey(true);
-  }
-
-  async function remove() {
-    await removeApiKey();
-    setHasKey(false);
+  function keyChanged(provider: ProviderId | null) {
+    controller.current?.abort();
+    controller.current = null;
+    setSaved(provider);
     setRun({ status: 'idle' });
   }
 
@@ -49,6 +45,8 @@ export function Options() {
     const outputLanguage = await readOutputLanguage();
     const request = { v: 2, preset: DEFAULT_PRESET, outputLanguage, sentences: SAMPLE } as const;
     for await (const event of portSummarizer.summarize(request, { signal: current.signal })) {
+      // A run that a key change ended must not report on the new key.
+      if (controller.current !== current) return;
       setRun(toRun(event));
     }
   }
@@ -56,33 +54,11 @@ export function Options() {
   return (
     <main>
       <h1>Dr. Too Long</h1>
-      <p class="status">
-        {hasKey
-          ? 'An OpenAI API key is saved on this device.'
-          : 'No API key is saved. Summaries need your own OpenAI API key.'}
-      </p>
-      <form onSubmit={save}>
-        <input
-          type="password"
-          value={draft}
-          onInput={(event) => setDraft(event.currentTarget.value)}
-          placeholder={hasKey ? 'Replace the saved key' : 'Paste your OpenAI API key'}
-          aria-label="OpenAI API key"
-          autocomplete="off"
-        />
-        <button type="submit" disabled={draft.trim() === ''}>
-          Save
-        </button>
-        {hasKey && (
-          <button type="button" onClick={remove}>
-            Remove key
-          </button>
-        )}
-      </form>
+      {saved !== undefined && <KeyForm saved={saved} onChange={keyChanged} />}
       <OutputLanguage />
       <EverySite />
       <div class="actions">
-        <button type="button" onClick={test} disabled={!hasKey || run.status === 'running'}>
+        <button type="button" onClick={test} disabled={!saved || run.status === 'running'}>
           Test key
         </button>
         {run.status === 'running' && (

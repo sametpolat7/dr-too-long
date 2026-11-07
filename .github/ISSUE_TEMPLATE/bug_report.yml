@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in the extension does not work as the README describes.
+body:
+  - type: markdown
+    attributes:
+      value: Never paste an API key, the text you selected or a private page address here. Report a security flaw privately instead, through the link on the previous page.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you saw instead, with the exact message the card or the options page showed.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use a public page where you can.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - OpenAI
+        - Claude
+        - Gemini
+        - None, the bug is not in a summary
+    validations:
+      required: true
+  - type: input
+    id: chrome
+    attributes:
+      label: Chrome version
+      description: The first line of chrome://version.
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: Extension build
+      description: The commit you built from (`git rev-parse --short HEAD`).
+    validations:
+      required: true

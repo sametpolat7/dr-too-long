@@ -1,8 +1,9 @@
 import type { PresetId } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 
-// Content scripts cannot reach storage, so the background reads and saves the summary language and
-// shape for them and keeps the sites where the reader hid the bubble.
+// A lint rule and the bundle check keep content scripts away from storage, so the background reads
+// and saves the summary language and shape for them and keeps the sites where the reader hid the
+// bubble.
 export type Message =
   | { type: 'open-options' }
   | { type: 'unsupported-page' }
@@ -25,13 +26,11 @@ export function requestLanguageChoice(): Promise<string | null> {
   return browser.runtime.sendMessage(message);
 }
 
-// The shape the reader used last.
 export function requestPreset(): Promise<PresetId> {
   const message: Message = { type: 'read-preset' };
   return browser.runtime.sendMessage(message);
 }
 
-// Whether the reader hid the bubble on this page's site in this tab.
 export function requestBubbleHidden(): Promise<boolean> {
   const message: Message = { type: 'read-bubble-hidden' };
   return browser.runtime.sendMessage(message);
