@@ -61,7 +61,6 @@ export function createRuns({ summarizer, sentences, initial, show, signal }: Run
     if (viewKey(view) === viewKey(shown)) show(view, state);
   }
 
-  // A view that errored runs again when it is selected again.
   function switchTo(view: View): void {
     if (viewKey(view) === viewKey(shown)) return;
     shown = view;

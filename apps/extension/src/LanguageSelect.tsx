@@ -1,6 +1,5 @@
 import { autoLabel, LANGUAGES } from './languages.ts';
 
-// The select's value for Auto, which the settings store as no choice at all.
 const AUTO = '';
 
 interface LanguageSelectProps {

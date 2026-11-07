@@ -6,8 +6,8 @@ catalog:
   typescript: 6.0.3
   vitest: 5.0.5
 
-minimumReleaseAge: 4320 # minutes: skip versions published less than three days ago
+minimumReleaseAge: 4320 # three days, in minutes
 
-# Git hooks are installed manually, so lefthook's install script stays off.
+# Git hooks are installed manually.
 allowBuilds:
   lefthook: false

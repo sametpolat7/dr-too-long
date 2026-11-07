@@ -41,8 +41,7 @@ function holdsSentence(text: string): boolean {
   return SENTENCE_END.test(trimmed) || segmentSentences(trimmed).length > 1;
 }
 
-// Offers the bubble once the reader has finished selecting: a short delay after the mouse button or
-// a key is released, never during a drag.
+// Offers the bubble once the reader has finished selecting.
 export function watchSelections({
   isValid,
   signal,
