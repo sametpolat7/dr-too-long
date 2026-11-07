@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "24.19.2",
+    "fake-indexeddb": "6.2.7",
     "happy-dom": "21.0.4",
     "typescript": "catalog:",
     "vitest": "catalog:",
