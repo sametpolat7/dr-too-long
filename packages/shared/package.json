@@ -16,6 +16,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.85",
+    "@ai-sdk/google": "4.0.102",
     "@ai-sdk/openai": "4.0.99",
     "ai": "7.0.148",
     "zod": "4.6.7"
