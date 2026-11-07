@@ -19,8 +19,7 @@
     "typecheck": "pnpm --recursive typecheck",
     "test": "pnpm --recursive test",
     "check:manifest": "pnpm --filter @dr-too-long/extension check:manifest",
-    "check:bundle": "pnpm --filter @dr-too-long/extension check:bundle",
-    "evals": "pnpm --filter @dr-too-long/evals evals"
+    "check:bundle": "pnpm --filter @dr-too-long/extension check:bundle"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
