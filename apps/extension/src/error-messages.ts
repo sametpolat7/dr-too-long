@@ -5,7 +5,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   unauthorized: 'The provider rejected the API key.',
   rate_limited: 'The provider is rate limiting this key. Try again in a moment.',
   quota_exceeded:
-    'The OpenAI account has no credit left. Add credit in its billing settings, then try again.',
+    'The account behind this key is out of credit or at its spending limit. Check its billing settings, then try again.',
   network: 'The provider could not be reached.',
   aborted: 'The run was cancelled.',
   disconnected: 'The background worker stopped before the summary finished.',
