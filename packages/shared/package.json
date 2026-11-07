@@ -1,7 +1,7 @@
 {
   "name": "@dr-too-long/shared",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

@@ -2,7 +2,7 @@
   "name": "@dr-too-long/extension",
   "version": "0.1.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "wxt",
