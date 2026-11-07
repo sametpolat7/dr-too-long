@@ -73,9 +73,4 @@ As checked on 2026-11-07:
 
 ## Contributing
 
-- One branch and one pull request per change, with a [Conventional Commits](https://www.conventionalcommits.org) title.
-- Maintainers set one type label (`feature`, `improvement`, `fix` or `maintenance`), any concern labels that apply (`accessibility`, `browser-compat`, `performance`, `ui/ux` or `privacy`), and the milestone. The type labels group the release notes.
-- Merge once CI is green. The repository allows only merge commits, so a pull request's commits reach `main` unchanged.
-- No direct pushes to `main`.
-
-Git hooks enforce this locally. Run `pnpm exec lefthook install` once after cloning. The hooks check formatting, block API keys in commits, check commit titles and refuse pushes to `main`. They are local only and `--no-verify` skips them, so they support the convention rather than enforce it.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report a security flaw privately, as [SECURITY.md](SECURITY.md) explains.
