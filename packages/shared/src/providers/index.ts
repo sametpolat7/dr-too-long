@@ -1,40 +1,12 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import type { JSONValue, LanguageModel } from 'ai';
+export const PROVIDER_IDS = ['openai', 'anthropic', 'google'] as const;
 
-export type ProviderOptions = Record<string, Record<string, JSONValue>>;
+export type ProviderId = (typeof PROVIDER_IDS)[number];
 
-export interface Provider {
-  apiHost: string;
-  createModel(apiKey: string, modelId: string): LanguageModel;
-}
-
-export const PROVIDERS = {
-  openai: {
-    apiHost: 'https://api.openai.com',
-    createModel: (apiKey, modelId) => createOpenAI({ apiKey })(modelId),
-  },
-} satisfies Record<string, Provider>;
-
-export interface ModelChoice {
-  provider: keyof typeof PROVIDERS;
-  modelId: string;
-  providerOptions?: ProviderOptions;
-}
-
-export interface ModelSetup {
-  model: LanguageModel;
-  providerOptions?: ProviderOptions;
-}
-
-// First of four candidates in the model eval of 2026-10-25 (apps/evals). Reasoning effort 'none',
-// its lowest-latency mode, lost nothing to 'low'.
-export const ACTIVE_MODEL: ModelChoice = {
-  provider: 'openai',
-  modelId: 'gpt-6-luna',
-  providerOptions: { openai: { reasoningEffort: 'none' } },
+export const PROVIDERS: Record<ProviderId, { name: string; apiHost: string }> = {
+  openai: { name: 'OpenAI', apiHost: 'https://api.openai.com' },
+  anthropic: { name: 'Claude', apiHost: 'https://api.anthropic.com' },
+  google: { name: 'Gemini', apiHost: 'https://generativelanguage.googleapis.com' },
 };
 
-export function activeModel(apiKey: string): ModelSetup {
-  const { provider, modelId, providerOptions } = ACTIVE_MODEL;
-  return { model: PROVIDERS[provider].createModel(apiKey, modelId), providerOptions };
-}
+export const isProviderId = (value: unknown): value is ProviderId =>
+  (PROVIDER_IDS as readonly unknown[]).includes(value);
