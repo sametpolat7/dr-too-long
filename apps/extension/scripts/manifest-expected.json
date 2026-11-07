@@ -1,7 +1,11 @@
 {
   "minimum_chrome_version": "110",
   "permissions": ["activeTab", "contextMenus", "scripting", "storage"],
-  "host_permissions": ["https://api.openai.com/*"],
+  "host_permissions": [
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
   "optional_host_permissions": ["https://*/*"],
   "commands": {
     "_execute_action": {

@@ -1,4 +1,4 @@
-import { ACTIVE_MODEL, PROVIDERS } from '@dr-too-long/shared/providers';
+import { PROVIDERS } from '@dr-too-long/shared/providers';
 import { defineConfig } from 'wxt';
 import { EVERY_SITE } from './src/every-site.ts';
 
@@ -19,7 +19,7 @@ export default defineConfig({
       _execute_action: { suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' } },
     },
     permissions: ['activeTab', 'contextMenus', 'scripting', 'storage'],
-    host_permissions: [`${PROVIDERS[ACTIVE_MODEL.provider].apiHost}/*`],
+    host_permissions: Object.values(PROVIDERS).map(({ apiHost }) => `${apiHost}/*`),
     optional_host_permissions: EVERY_SITE.origins,
   },
 });
