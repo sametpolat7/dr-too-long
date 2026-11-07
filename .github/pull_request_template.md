@@ -21,10 +21,9 @@
 ## Checklist
 
 - [ ] Title follows Conventional Commits, e.g. `feat(extension): add result card`
-- [ ] One type label (`feature`, `improvement`, `fix` or `maintenance`), any concern labels, and the phase's milestone
+- [ ] One type label (`feature`, `improvement`, `fix` or `maintenance`), any concern labels, and the milestone, set by a maintainer
 - [ ] CI passes
 - [ ] The extension loads unpacked in Chrome
 - [ ] Nothing stores or logs selected text, summary text or a page URL
 - [ ] Any new permission is explained above and in `manifest-expected.json`
-- [ ] A model or prompt change carries an eval report from `pnpm evals run`
 - [ ] Size: S / M / L
