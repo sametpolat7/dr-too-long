@@ -21,9 +21,9 @@
 ## Checklist
 
 - [ ] Title follows Conventional Commits, e.g. `feat(extension): add result card`
-- [ ] One type label (`feature`, `improvement`, `fix` or `maintenance`), any concern labels, and the milestone, set by a maintainer
-- [ ] CI passes
-- [ ] The extension loads unpacked in Chrome
+- [ ] `pnpm verify` passes: the audit, lint, types, tests, the build checks and the smoke test
+- [ ] Tests cover the change
+- [ ] I tried the change in Chrome with the build loaded unpacked
 - [ ] Nothing stores or logs selected text, summary text or a page URL
 - [ ] Any new permission is explained above and in `manifest-expected.json`
 - [ ] Size: S / M / L
