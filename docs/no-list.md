@@ -9,7 +9,7 @@ Everything below stays out. This list changes only through a pull request.
 - No key of ours. Every reader brings their own OpenAI, Anthropic or Google API key.
 - No whole-page, PDF or video summaries, follow-up chat, history or per-site style memory.
 - No sidebar, popup, side panel or menu before the summary. Every gesture runs Summary directly.
-- No third preset, length settings or tone options. The summary's size follows the text.
+- No third shape, length settings or tone options. The summary's size follows the text.
 - No user settings for the bubble delay or the selection cap. They are constants: the cap in `packages/shared`, enforced in the extension, and the delay in the extension.
 - No language-specific sentence rules. ICU's root rules and a merge of uppercase initials set the boundaries in every language; no language's abbreviation or ordinal conventions are special-cased.
 
