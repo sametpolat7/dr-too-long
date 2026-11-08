@@ -32,14 +32,15 @@ const {
   };
 });
 vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
-  createShadowRootUi: async (
-    _ctx: unknown,
-    options: { onRemove: (root: HTMLElement) => void },
-  ) => ({
-    uiContainer: container,
-    mount: () => undefined,
-    remove: () => options.onRemove(container),
-  }),
+  createShadowRootUi: async (_ctx: unknown, options: { onRemove: (root: HTMLElement) => void }) => {
+    document.body.append(container);
+    return {
+      shadowHost: container,
+      uiContainer: container,
+      mount: () => undefined,
+      remove: () => options.onRemove(container),
+    };
+  },
 }));
 vi.mock('../src/content/bubble/bubble.tsx', () => ({ startBubble }));
 const replies: Record<string, () => Promise<unknown>> = {
@@ -64,13 +65,19 @@ const pending = () => ({
 
 let controller: AbortController;
 let valid: boolean;
+// Each test's script is invalidated when it ends, as a newer script would, so no card it left open
+// answers the next test's keys.
+let onInvalidated: Array<() => void>;
 const context = () =>
   ({
     get isValid() {
       return valid;
     },
     signal: controller.signal,
-    onInvalidated: () => () => undefined,
+    onInvalidated: (callback: () => void) => {
+      onInvalidated.push(callback);
+      return () => undefined;
+    },
   }) as unknown as ContentScriptContext;
 
 function select() {
@@ -103,6 +110,7 @@ describe('summarizeSelection', () => {
   beforeEach(() => {
     controller = new AbortController();
     valid = true;
+    onInvalidated = [];
     fakeBrowser.i18n.getUILanguage = () => 'en-US';
     vi.stubGlobal('CSS', { highlights: new Map() });
     layOutText();
@@ -116,6 +124,7 @@ describe('summarizeSelection', () => {
 
   afterEach(() => {
     controller.abort();
+    for (const callback of onInvalidated) callback();
   });
 
   it('paints the card before the worker answers whether the bubble is hidden', async () => {
@@ -233,6 +242,16 @@ describe('summarizeSelection', () => {
     answer(true);
     await settle();
     expect(setHidden).not.toHaveBeenCalledWith(true);
+  });
+
+  it('moves the focus into the card and gives it back when the card closes', async () => {
+    const field = document.body.appendChild(document.createElement('input'));
+    field.focus();
+    await summarizeSelection(context());
+    await settle();
+    expect(document.activeElement).toBe(container.querySelector('[role="dialog"]'));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(document.activeElement).toBe(field);
   });
 
   it('closes the card on Escape and clears the highlight', async () => {

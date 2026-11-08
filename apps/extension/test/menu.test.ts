@@ -20,7 +20,7 @@ describe('addMenuItem', () => {
     await addMenuItem();
     await addMenuItem();
     expect([...items.values()]).toEqual([
-      { id: 'summarize-selection', title: 'Summarize "%s"', contexts: ['selection'] },
+      { id: 'summarize-selection', title: 'Summarize “%s”', contexts: ['selection'] },
     ]);
   });
 });

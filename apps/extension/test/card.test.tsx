@@ -60,6 +60,45 @@ describe('Card', () => {
     vi.useRealTimers();
   });
 
+  it('is a dialog named by its heading', () => {
+    const container = show(done);
+    const dialog = container.querySelector('section');
+    expect(dialog?.getAttribute('role')).toBe('dialog');
+    expect(dialog?.tabIndex).toBe(-1);
+    const title = container.querySelector(`#${dialog?.getAttribute('aria-labelledby')}`);
+    expect(title?.tagName).toBe('H2');
+    expect(title?.textContent).toBe('Dr. Too Long');
+  });
+
+  it('announces the start and the end of a summary in one status that stays mounted', () => {
+    const container = document.createElement('div');
+    show({ status: 'summarizing', points: [] }, {}, container);
+    const status = container.querySelector('[role="status"]');
+    expect(status?.textContent).toBe('Summarizing…');
+    show({ status: 'summarizing', points }, {}, container);
+    expect(container.querySelector('[role="status"]')).toBe(status);
+    show(done, {}, container);
+    expect(container.querySelector('[role="status"]')).toBe(status);
+    expect(status?.querySelector('.visually-hidden')?.textContent).toBe('Summary ready.');
+  });
+
+  it('puts an error in an alert', () => {
+    const container = show({ status: 'error', code: 'network' });
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'The provider could not be reached.',
+    );
+  });
+
+  it('says copying worked to screen readers, beside the button that shows it', async () => {
+    vi.stubGlobal('navigator', { clipboard: { writeText: async () => undefined } });
+    const container = show(done);
+    await act(async () => button(container, 'Copy')?.click());
+    expect(button(container, 'Copied')).toBeDefined();
+    expect(container.querySelector('[role="status"] .visually-hidden')?.textContent).toBe(
+      'Summary copied.',
+    );
+  });
+
   it('joins the points into one paragraph while summarizing', () => {
     const container = show({ status: 'summarizing', points });
     expect(container.querySelector('p')?.textContent).toBe(
@@ -130,7 +169,7 @@ describe('Card', () => {
     const { select } = picker(show(done, { choice: 'tr' }));
     expect(select?.value).toBe('tr');
     expect(select?.options[0]?.textContent).toBe(
-      "Auto: Chrome's language (English (United States))",
+      "Auto: English (United States), Chrome's language",
     );
   });
 
@@ -248,7 +287,9 @@ describe('Card', () => {
     const container = show(done, { onActivate: () => false });
     act(() => pointsOf(container)[0]?.click());
     expect(pointsOf(container)[0]?.className).toBe('point missing');
-    expect(container.textContent).toContain('The passage is no longer on the page.');
+    expect(container.querySelector('[role="status"]')?.textContent).toBe(
+      'The passage is no longer on the page.',
+    );
   });
 
   it.each([

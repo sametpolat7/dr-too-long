@@ -31,6 +31,7 @@ describe('the background worker', () => {
   const calls: string[] = [];
   const createMenuItem = vi.fn();
   const registerContentScripts = vi.fn();
+  const openOptionsPage = vi.fn(async () => undefined);
   let granted: boolean;
   let menuClicked: ReturnType<typeof fakeEvent>;
   let permissionsAdded: ReturnType<typeof fakeEvent>;
@@ -55,7 +56,10 @@ describe('the background worker', () => {
       onRemoved: permissionsRemoved,
       contains: async () => granted,
     });
-    Object.assign(fakeBrowser.runtime, { onConnect: connected });
+    Object.assign(fakeBrowser.runtime, {
+      onConnect: connected,
+      openOptionsPage: openOptionsPage.mockClear(),
+    });
     Object.assign(fakeBrowser.scripting, {
       removeCSS: async () => void calls.push('removeCSS'),
       insertCSS: async (style: object) => void calls.push(`insertCSS ${JSON.stringify(style)}`),
@@ -67,14 +71,23 @@ describe('the background worker', () => {
     background.main();
   });
 
-  it('adds the menu item and syncs the every-site script on install', async () => {
-    vi.spyOn(console, 'info').mockImplementation(() => undefined);
+  it('adds the menu item, syncs the every-site script and opens the options page on install', async () => {
     granted = true;
     await fakeBrowser.runtime.onInstalled.trigger({ reason: 'install' });
     await vi.waitFor(() => expect(registerContentScripts).toHaveBeenCalledOnce());
     expect(createMenuItem).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'summarize-selection', contexts: ['selection'] }),
     );
+    expect(openOptionsPage).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['an update', { reason: 'update', previousVersion: '1.0.0' }],
+    ['a Chrome update', { reason: 'chrome_update' }],
+  ] as const)('keeps the menu item but opens no page on %s', async (_, details) => {
+    await fakeBrowser.runtime.onInstalled.trigger(details);
+    await vi.waitFor(() => expect(createMenuItem).toHaveBeenCalledOnce());
+    expect(openOptionsPage).not.toHaveBeenCalled();
   });
 
   it.each([
