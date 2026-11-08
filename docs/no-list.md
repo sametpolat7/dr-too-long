@@ -6,9 +6,9 @@ Everything below stays out. This list changes only through a pull request.
 ## Scope
 
 - No backend, database, accounts, sign-in, quotas, billing, analytics or telemetry.
-- No key of ours. Every reader brings their own OpenAI, Anthropic or Google API key.
+- No key of ours. Every reader brings their own OpenAI, Claude or Gemini API key.
 - No whole-page, PDF or video summaries, follow-up chat, history or per-site style memory.
-- No sidebar, popup, side panel or menu before the summary. Every gesture runs Summary directly.
+- No sidebar, popup, side panel or menu before the summary. Every gesture runs a summary directly, in the shape the reader used last.
 - No third shape, length settings or tone options. The summary's size follows the text.
 - No user settings for the bubble delay or the selection cap. They are constants: the cap in `packages/shared`, enforced in the extension, and the delay in the extension.
 - No language-specific sentence rules. ICU's root rules and a merge of uppercase initials set the boundaries in every language; no language's abbreviation or ordinal conventions are special-cased.
@@ -36,10 +36,10 @@ Everything below stays out. This list changes only through a pull request.
 ## Platform and engineering
 
 - Chrome Manifest V3 only, minimum version 110: the first Chrome whose extension service worker has no five-minute lifetime cap. Below it only Windows 7 and 8.1 remain, which Chrome stopped updating in January 2023. The bundler target and the TypeScript library (ES2023) follow the floor. No Firefox, Safari or Edge builds.
-- No localisation of the extension UI. Output language is the only language setting.
+- No localization of the extension UI. Output language is the only language setting.
 - No brand beyond the one icon, and no themes beyond the card's light and dark colors, which follow the page.
 - No Playwright suite and no browser downloads. The smoke test drives the Chrome already installed, through its DevTools pipe.
 - No build step for `packages/shared`, no Turborepo, changesets, CHANGELOG or Renovate.
 - No version bumps inside feature PRs. Each upgrade is its own chore PR.
-- No obfuscation. Shipped code stays readable, as the Chrome Web Store requires.
+- No obfuscation. Shipped code is minified, which the Chrome Web Store allows, but never obfuscated, and the source is public.
 - No merges with failing CI and no direct pushes to `main`.

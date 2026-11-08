@@ -59,8 +59,8 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement through the
-contact details on the maintainer's GitHub profile, [@sametpolat7](https://github.com/sametpolat7).
+reported to the community leaders responsible for enforcement at
+samet.polat59@hotmail.com.
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
