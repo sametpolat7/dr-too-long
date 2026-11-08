@@ -1,8 +1,7 @@
 import { browser } from 'wxt/browser';
 import { HIGHLIGHT_CSS } from '../highlight.ts';
+import { SUMMARIZE_SCRIPT } from './scripts.ts';
 
-// WXT emits the runtime-registered content script under this path.
-const SUMMARIZE_SCRIPT = '/content-scripts/summarize.js';
 const BADGE_MS = 3000;
 
 export async function summarizeTab(tabId: number): Promise<void> {

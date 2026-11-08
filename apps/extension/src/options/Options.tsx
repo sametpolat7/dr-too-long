@@ -1,7 +1,7 @@
-import { DEFAULT_PRESET, type Point, type SummaryEvent } from '@dr-too-long/shared/contracts';
+import { DEFAULT_SHAPE, type Point, type SummaryEvent } from '@dr-too-long/shared/contracts';
 import type { ProviderId } from '@dr-too-long/shared/providers';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { ERROR_MESSAGES } from '../error-messages.ts';
+import { ERROR_MESSAGES, httpDetail } from '../error-messages.ts';
 import { readKeyProvider } from '../settings/api-key.ts';
 import { readOutputLanguage } from '../settings/output-language.ts';
 import { portSummarizer } from '../summarize-port.ts';
@@ -19,7 +19,7 @@ type Run =
   | { status: 'idle' }
   | { status: 'running'; points: Point[] }
   | { status: 'done'; points: Point[] }
-  | { status: 'error'; message: string };
+  | { status: 'error'; message: string; detail?: string };
 
 export function Options() {
   // Undefined until the saved key's provider has loaded, so the form never flashes another one.
@@ -43,7 +43,7 @@ export function Options() {
     controller.current = current;
     setRun({ status: 'running', points: [] });
     const outputLanguage = await readOutputLanguage();
-    const request = { v: 2, preset: DEFAULT_PRESET, outputLanguage, sentences: SAMPLE } as const;
+    const request = { shape: DEFAULT_SHAPE, outputLanguage, sentences: SAMPLE };
     for await (const event of portSummarizer.summarize(request, { signal: current.signal })) {
       // A run that a key change ended must not report on the new key.
       if (controller.current !== current) return;
@@ -77,7 +77,12 @@ function Result({ run }: { run: Run }) {
     case 'idle':
       return null;
     case 'error':
-      return <p class="error">{run.message}</p>;
+      return (
+        <>
+          <p class="error">{run.message}</p>
+          {run.detail && <p class="status">{run.detail}</p>}
+        </>
+      );
     default:
       return (
         <>
@@ -99,6 +104,10 @@ function toRun(event: SummaryEvent): Run {
     case 'done':
       return { status: 'done', points: event.output.points };
     case 'error':
-      return { status: 'error', message: ERROR_MESSAGES[event.code] };
+      return {
+        status: 'error',
+        message: ERROR_MESSAGES[event.code],
+        detail: httpDetail(event.httpStatus),
+      };
   }
 }

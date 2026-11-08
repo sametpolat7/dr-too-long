@@ -1,15 +1,15 @@
-import type { PresetId, SummaryEvent } from '@dr-too-long/shared/contracts';
-import type { PortSummarizer } from '../summarize-port.ts';
-import { type CardState, type View, viewKey } from './card/Card.tsx';
+import type { ShapeId, Summarizer, SummaryEvent } from '@dr-too-long/shared/contracts';
+import { httpDetail } from '../error-messages.ts';
+import { type CardState, type View, viewKey } from './card/view.ts';
 
 export interface Runs {
-  select(preset: PresetId): void;
+  select(shape: ShapeId): void;
   selectLanguage(language: string): void;
   regenerate(): void;
 }
 
 interface RunsOptions {
-  summarizer: PortSummarizer;
+  summarizer: Summarizer;
   sentences: string[];
   initial: View;
   show: (view: View, state: CardState) => void;
@@ -40,7 +40,7 @@ export function createRuns({ summarizer, sentences, initial, show, signal }: Run
     update(view, { status: 'summarizing', points: [] });
     try {
       const events = summarizer.summarize(
-        { v: 2, preset: view.preset, outputLanguage: view.language, sentences },
+        { shape: view.shape, outputLanguage: view.language, sentences },
         { signal: run.signal },
       );
       for await (const event of events) {
@@ -71,7 +71,7 @@ export function createRuns({ summarizer, sentences, initial, show, signal }: Run
 
   void start(initial);
   return {
-    select: (preset) => switchTo({ ...shown, preset }),
+    select: (shape) => switchTo({ ...shown, shape }),
     selectLanguage: (language) => switchTo({ ...shown, language }),
     regenerate: () => void start(shown),
   };
@@ -84,6 +84,6 @@ function toState(event: SummaryEvent): CardState {
     case 'done':
       return { status: 'done', points: event.output.points };
     case 'error':
-      return { status: 'error', code: event.code };
+      return { status: 'error', code: event.code, detail: httpDetail(event.httpStatus) };
   }
 }

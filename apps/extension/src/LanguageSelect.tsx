@@ -1,11 +1,10 @@
-import { autoLabel, LANGUAGES } from './languages.ts';
+import { autoLabel, LANGUAGES, type LanguageChoice } from './languages.ts';
 
 const AUTO = '';
 
 interface LanguageSelectProps {
-  // Null is Auto.
-  choice: string | null;
-  onChange: (choice: string | null) => void;
+  choice: LanguageChoice;
+  onChange: (choice: LanguageChoice) => void;
 }
 
 export function LanguageSelect({ choice, onChange }: LanguageSelectProps) {

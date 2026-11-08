@@ -1,5 +1,5 @@
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
-import { requestEverySiteBubble, requestSummarize } from '../messages.ts';
+import { request } from '../messages.ts';
 import { startBubble } from './bubble/bubble.tsx';
 import { offeredRange } from './bubble/watch.ts';
 import { BUBBLE_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
@@ -13,7 +13,7 @@ export async function watchEverySite(ctx: ContentScriptContext): Promise<void> {
   await firstOfferedSelection(ctx.signal);
   const moving = new AbortController();
   const movedOn = noteMovingOn(moving.signal);
-  const shown = await requestEverySiteBubble();
+  const shown = await request('read-every-site-bubble');
   moving.abort();
   // A summarize script started meanwhile, or before this one, watches the page with its own bubble.
   if (!shown || ctx.signal.aborted || document.querySelector(BUBBLE_UI)) return;
@@ -22,7 +22,7 @@ export async function watchEverySite(ctx: ContentScriptContext): Promise<void> {
     // A press or Escape while the worker answered means the reader has left that selection.
     offerCurrent: !movedOn(),
     onSummarize: () =>
-      void requestSummarize().then((started) => {
+      void request('summarize-from-bubble').then((started) => {
         if (!started) ctx.abort();
       }),
   });
@@ -31,7 +31,9 @@ export async function watchEverySite(ctx: ContentScriptContext): Promise<void> {
   window.addEventListener(
     'pageshow',
     (event) => {
-      if (event.persisted) void requestEverySiteBubble().then((next) => bubble.setHidden(!next));
+      if (event.persisted) {
+        void request('read-every-site-bubble').then((next) => bubble.setHidden(!next));
+      }
     },
     { signal: ctx.signal },
   );

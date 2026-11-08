@@ -1,9 +1,9 @@
-import { isPresetId } from '@dr-too-long/shared/contracts';
+import { isShapeId } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 import { isListedLanguage } from '../languages.ts';
-import type { Message } from '../messages.ts';
+import type { Message, Replies } from '../messages.ts';
 import { readLanguageChoice, writeLanguageChoice } from '../settings/output-language.ts';
-import { readPreset, writePreset } from '../settings/preset.ts';
+import { readShape, writeShape } from '../settings/shape.ts';
 import { flashBadge } from './action.ts';
 import { everySiteBubbleShown, summarizeFromBubble } from './every-site.ts';
 import { isBubbleHidden, type Sender, setBubbleHidden } from './hidden-bubble.ts';
@@ -14,6 +14,11 @@ export function handleMessage(
   sender: Sender,
   sendResponse: (response: unknown) => void,
 ): true | undefined {
+  // Typed per message, so an answer of the wrong type fails to compile.
+  const reply = <T extends keyof Replies>(_: T, answer: Promise<Replies[T]>): true => {
+    void answer.then(sendResponse);
+    return true;
+  };
   switch (message.type) {
     case 'open-options':
       void browser.runtime.openOptionsPage();
@@ -22,31 +27,26 @@ export function handleMessage(
       if (sender.tab?.id !== undefined) void flashBadge(sender.tab.id);
       return;
     case 'read-language':
-      void readLanguageChoice().then(sendResponse);
-      return true;
+      return reply(message.type, readLanguageChoice());
     case 'save-language':
       // Auto or a listed language only, so the options page can always show the choice.
       if (message.choice === null || isListedLanguage(message.choice)) {
         void writeLanguageChoice(message.choice);
       }
       return;
-    case 'read-preset':
-      void readPreset().then(sendResponse);
-      return true;
-    case 'save-preset':
-      if (isPresetId(message.preset)) void writePreset(message.preset);
+    case 'read-shape':
+      return reply(message.type, readShape());
+    case 'save-shape':
+      if (isShapeId(message.shape)) void writeShape(message.shape);
       return;
     case 'read-bubble-hidden':
-      void isBubbleHidden(sender).then(sendResponse);
-      return true;
+      return reply(message.type, isBubbleHidden(sender));
     case 'save-bubble-hidden':
-      void setBubbleHidden(sender, message.hidden);
+      if (typeof message.hidden === 'boolean') void setBubbleHidden(sender, message.hidden);
       return;
-    case 'read-every-site':
-      void everySiteBubbleShown(sender).then(sendResponse);
-      return true;
-    case 'summarize':
-      void summarizeFromBubble(sender).then(sendResponse);
-      return true;
+    case 'read-every-site-bubble':
+      return reply(message.type, everySiteBubbleShown(sender));
+    case 'summarize-from-bubble':
+      return reply(message.type, summarizeFromBubble(sender));
   }
 }

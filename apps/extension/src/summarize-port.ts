@@ -1,9 +1,9 @@
-import type { SummarizeRequest, SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { SummarizeRequest, Summarizer, SummaryEvent } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 
 export const SUMMARIZE_PORT = 'summarize';
 
-export const portSummarizer = {
+export const portSummarizer: Summarizer = {
   async *summarize(
     request: SummarizeRequest,
     { signal }: { signal: AbortSignal },
@@ -39,11 +39,7 @@ export const portSummarizer = {
           yield event;
           if (event.type !== 'partial') return;
         } else if (closed) {
-          yield {
-            type: 'error',
-            code: signal.aborted ? 'aborted' : 'disconnected',
-            message: 'The connection to the background worker closed',
-          };
+          yield { type: 'error', code: signal.aborted ? 'aborted' : 'disconnected' };
           return;
         } else {
           await new Promise<void>((resolve) => {
@@ -56,5 +52,3 @@ export const portSummarizer = {
     }
   },
 };
-
-export type PortSummarizer = typeof portSummarizer;

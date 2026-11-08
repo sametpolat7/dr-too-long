@@ -18,3 +18,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     'Text in form fields, editors, embedded frames and widgets cannot be summarized.',
   provider: 'The provider returned an error.',
 };
+
+// Shown under the message, for a bug report to quote.
+export const httpDetail = (httpStatus: number | undefined): string | undefined =>
+  httpStatus === undefined ? undefined : `HTTP status ${httpStatus}`;

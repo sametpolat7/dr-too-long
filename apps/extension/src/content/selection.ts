@@ -2,7 +2,7 @@ import { MAX_SELECTION_CHARS } from '@dr-too-long/shared/limits';
 import { type Sentence, segmentSentences } from '@dr-too-long/shared/segmentation';
 import { type PageText, readPageText } from './anchoring/page-text.ts';
 
-export type SelectionOutcome =
+type SelectionOutcome =
   | { ok: true; sentences: Sentence[]; pageText: PageText }
   | { ok: false; code: 'no_selection' | 'unsupported_selection' | 'too_long'; detail?: string };
 
