@@ -4,6 +4,7 @@ The README's [Development](README.md#development) section builds and loads the e
 
 ## Pull requests
 
+- Run `pnpm verify` before you push. It runs what CI runs: the dependency audit, lint, types, tests, the build, both build checks and the smoke test in your installed Chrome.
 - One branch and one pull request per change, with a [Conventional Commits](https://www.conventionalcommits.org) title.
 - Fill in the pull request template, its security review included.
 - Maintainers set one type label (`feature`, `improvement`, `fix` or `maintenance`), any concern labels that apply (`accessibility`, `browser-compat`, `performance`, `ui/ux` or `privacy`), and the milestone. The type labels group the release notes.
@@ -13,6 +14,13 @@ The README's [Development](README.md#development) section builds and loads the e
 ## Git hooks
 
 Run `pnpm exec lefthook install` once after cloning. The hooks check formatting, block API keys in commits, check commit titles and refuse pushes to `main`. They are local only and `--no-verify` skips them.
+
+## Releasing
+
+1. Open a release pull request that sets the version in `apps/extension/package.json`, which the manifest takes.
+2. Once it is merged, tag the merge commit with a signed tag and push it: `git tag -s v1.0.0 -m "Dr. Too Long 1.0.0"`, then `git push origin v1.0.0`.
+3. The Release workflow runs every check, confirms that the tag names the version, builds the zip, attests where it was built and publishes a GitHub Release with the zip and notes grouped by the type labels.
+4. Upload that zip from the GitHub Release to the Chrome Web Store, never a local build. Anyone can check that it came from this repository: `gh attestation verify dr-too-long-1.0.0-chrome.zip --repo sametpolat7/dr-too-long`.
 
 ## Icons
 

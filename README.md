@@ -46,6 +46,7 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 | `pnpm icons`          | Renders the PNG icons from `apps/extension/design`; needs `rsvg-convert` from librsvg                                            |
 | `pnpm check:bundle`   | Fails if any built content script carries key, storage or provider code                                                          |
 | `pnpm smoke`          | Loads the build into the installed Chrome, headless, and fails on any worker or options page error                               |
+| `pnpm verify`         | Runs what CI runs: the audit, lint, types, tests, the build, both build checks and the smoke test                                |
 
 `apps/evals` is kept empty for a future evaluation system; see [its README](apps/evals/README.md).
 
