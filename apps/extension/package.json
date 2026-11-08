@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "check:manifest": "node scripts/check-manifest.ts",
     "check:bundle": "node scripts/check-content-bundle.ts",
+    "smoke": "node scripts/smoke.ts",
     "icons": "node scripts/render-icons.ts",
     "postinstall": "wxt prepare"
   },
