@@ -1,38 +1,32 @@
-// A guarded key absent from manifest-expected.json must also be absent from the build.
-import { readFileSync } from 'node:fs';
-
-const GUARDED_KEYS = [
-  'icons',
-  'action',
-  'permissions',
-  'optional_permissions',
-  'host_permissions',
-  'optional_host_permissions',
-  'content_scripts',
-  'web_accessible_resources',
-  'commands',
-  'minimum_chrome_version',
-] as const;
+// The built manifest must equal manifest-expected.json, apart from the version, so any new key, such
+// as a permission or a security policy, fails the build until the expected file says so. The
+// package must also carry the licence files.
+import { existsSync, readFileSync } from 'node:fs';
+import { isDeepStrictEqual } from 'node:util';
+import { NOTICES_FILE } from './third-party-notices.ts';
 
 type Manifest = Record<string, unknown>;
 
-function readJson(relativePath: string): Manifest {
-  return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), 'utf8'));
+const output = (name: string) => new URL(`../.output/chrome-mv3/${name}`, import.meta.url);
+const readJson = (url: URL): Manifest => JSON.parse(readFileSync(url, 'utf8'));
+
+const { version: _, ...built } = readJson(output('manifest.json'));
+const expected = readJson(new URL('./manifest-expected.json', import.meta.url));
+
+const keys = [...new Set([...Object.keys(built), ...Object.keys(expected)])].sort();
+const problems = keys.flatMap((key) =>
+  isDeepStrictEqual(built[key], expected[key])
+    ? []
+    : [`${key}: expected ${JSON.stringify(expected[key])}, got ${JSON.stringify(built[key])}`],
+);
+for (const file of ['LICENSE', NOTICES_FILE]) {
+  if (!existsSync(output(file))) problems.push(`${file} is missing from the package`);
 }
 
-const built = readJson('../.output/chrome-mv3/manifest.json');
-const expected = readJson('./manifest-expected.json');
-
-const problems = GUARDED_KEYS.flatMap((key) => {
-  const actual = JSON.stringify(built[key] ?? null);
-  const wanted = JSON.stringify(expected[key] ?? null);
-  return actual === wanted ? [] : [`${key}: expected ${wanted}, got ${actual}`];
-});
-
 if (problems.length > 0) {
-  console.error('The built manifest does not match manifest-expected.json:');
+  console.error('The built package does not match manifest-expected.json:');
   for (const problem of problems) console.error(`  - ${problem}`);
   process.exit(1);
 }
 
-console.info('Manifest matches manifest-expected.json.');
+console.info('The manifest matches manifest-expected.json, and the licence files are in place.');

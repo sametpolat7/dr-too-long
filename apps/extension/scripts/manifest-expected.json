@@ -1,5 +1,7 @@
 {
-  "minimum_chrome_version": "110",
+  "manifest_version": 3,
+  "name": "Dr. Too Long",
+  "description": "Summarize selected text in your language, with every point linked to its source. Runs on your own OpenAI, Claude or Gemini API key.",
   "icons": {
     "16": "icon/16.png",
     "24": "icon/24.png",
@@ -7,12 +9,22 @@
     "48": "icon/48.png",
     "128": "icon/128.png"
   },
+  "homepage_url": "https://github.com/sametpolat7/dr-too-long",
+  "minimum_chrome_version": "110",
   "action": {
     "default_title": "Dr. Too Long: summarize selected text",
     "default_icon": {
       "16": "icon/16.png",
       "24": "icon/24.png",
       "32": "icon/32.png"
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      }
     }
   },
   "permissions": ["activeTab", "contextMenus", "scripting", "storage"],
@@ -22,12 +34,14 @@
     "https://generativelanguage.googleapis.com/*"
   ],
   "optional_host_permissions": ["https://*/*"],
-  "commands": {
-    "_execute_action": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      }
-    }
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "open_in_tab": false,
+    "page": "options.html"
   }
 }

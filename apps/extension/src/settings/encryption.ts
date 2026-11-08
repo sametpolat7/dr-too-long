@@ -10,19 +10,21 @@ const ENTRY = 'api-key';
 
 let cachedKey: Promise<CryptoKey> | undefined;
 
-export async function encrypt(text: string): Promise<Sealed> {
+// The context, such as the key's provider, is sealed with the text without being encrypted: a
+// record whose context was changed no longer decrypts.
+export async function encrypt(text: string, context: string): Promise<Sealed> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(context) },
     await loadKey(),
     new TextEncoder().encode(text),
   );
   return { iv: toBase64(iv), ciphertext: toBase64(new Uint8Array(ciphertext)) };
 }
 
-export async function decrypt({ iv, ciphertext }: Sealed): Promise<string> {
+export async function decrypt({ iv, ciphertext }: Sealed, context: string): Promise<string> {
   const bytes = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: fromBase64(iv) },
+    { name: 'AES-GCM', iv: fromBase64(iv), additionalData: new TextEncoder().encode(context) },
     await loadKey(),
     fromBase64(ciphertext),
   );

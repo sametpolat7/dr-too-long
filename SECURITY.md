@@ -17,7 +17,7 @@ The extension is not yet on the Chrome Web Store. Only the latest commit on `mai
 In scope:
 
 - how the API key is stored, encrypted and removed;
-- anything that lets a web page, or the extension's own content scripts, reach the key, the extension's storage or a provider's API;
+- anything that lets a web page, or the extension's own content scripts, reach the key or the extension's storage, or reach a provider's API other than through the background worker;
 - a request that sends the key or the selected text anywhere but the chosen provider's API, or sends more than the selection;
 - a permission the extension uses beyond what the README explains.
 

@@ -1,6 +1,6 @@
 // The content scripts run inside web pages. The key, the storage APIs and the provider hosts belong
-// to the background worker and the options page and must not reach their bundles.
-import { readFileSync } from 'node:fs';
+// to the background worker and the options page and must not reach any content script's bundle.
+import { readdirSync, readFileSync } from 'node:fs';
 import { PROVIDERS } from '@dr-too-long/shared/providers';
 
 const FORBIDDEN = [
@@ -9,20 +9,19 @@ const FORBIDDEN = [
   'indexedDB',
   ...Object.values(PROVIDERS).map(({ apiHost }) => new URL(apiHost).host),
 ];
-const BUNDLES = ['summarize.js', 'every-site.js'] as const;
+const directory = new URL('../.output/chrome-mv3/content-scripts/', import.meta.url);
+const bundles = readdirSync(directory).filter((name) => name.endsWith('.js'));
 
-const problems = BUNDLES.flatMap((name) => {
-  const bundle = readFileSync(
-    new URL(`../.output/chrome-mv3/content-scripts/${name}`, import.meta.url),
-    'utf8',
-  );
+const problems = bundles.flatMap((name) => {
+  const bundle = readFileSync(new URL(name, directory), 'utf8');
   const found = FORBIDDEN.filter((needle) => bundle.includes(needle));
   return found.length > 0 ? [`${name} carries: ${found.join(', ')}`] : [];
 });
+if (bundles.length === 0) problems.push('No content script was built.');
 
 if (problems.length > 0) {
   for (const problem of problems) console.error(problem);
   process.exit(1);
 }
 
-console.info('The content script bundles carry no key, storage or provider host.');
+console.info(`${bundles.join(' and ')} carry no key, storage or provider host.`);

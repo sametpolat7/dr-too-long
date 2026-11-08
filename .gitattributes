@@ -1,0 +1,3 @@
+# LF everywhere, so Biome's formatting check passes on any system, Windows included.
+* text=auto eol=lf
+*.png binary

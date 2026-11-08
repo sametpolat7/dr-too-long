@@ -43,7 +43,7 @@ describe('api key storage', () => {
     ['the plain-text key an earlier build stored', async () => 'test-plain-key'],
     [
       'a record naming a provider this build lacks',
-      async () => ({ provider: 'mistral', ...(await encrypt('test-key')) }),
+      async () => ({ provider: 'mistral', ...(await encrypt('test-key', 'mistral')) }),
     ],
     ['a record with no ciphertext', async () => ({ provider: 'openai' })],
   ])('reads %s as no key and deletes it', async (_, value) => {
@@ -61,6 +61,13 @@ describe('api key storage', () => {
     expect(await readApiKey()).toBeNull();
     expect(await stored()).toBeUndefined();
     expect(await readKeyProvider()).toBeNull();
+  });
+
+  it('deletes a record whose provider was swapped, so the key never reaches another provider', async () => {
+    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
+    await store({ ...(await stored()), provider: 'anthropic' });
+    expect(await readApiKey()).toBeNull();
+    expect(await stored()).toBeUndefined();
   });
 
   it('forgets a removed key', async () => {
