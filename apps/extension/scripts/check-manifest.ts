@@ -1,6 +1,6 @@
 // The built manifest must equal manifest-expected.json, apart from the version, so any new key, such
 // as a permission or a security policy, fails the build until the expected file says so. The
-// package must also carry the licence files.
+// package must also carry the license files.
 import { existsSync, readFileSync } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { NOTICES_FILE } from './third-party-notices.ts';
@@ -29,4 +29,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.info('The manifest matches manifest-expected.json, and the licence files are in place.');
+console.info('The manifest matches manifest-expected.json, and the license files are in place.');

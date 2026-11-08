@@ -72,7 +72,7 @@ function reveal(range: Range): void {
     return;
   }
   // Centring an element taller than the window, such as a plain-text page's one <pre>, can leave
-  // the sentence screens away, so the sentence's own box is centred instead.
+  // the sentence screens away, so the sentence's own box is centered instead.
   const box = range.getBoundingClientRect();
   const scroller = scrollerOf(target);
   if (scroller === rootScroller()) {

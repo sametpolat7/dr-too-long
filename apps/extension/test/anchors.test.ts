@@ -52,7 +52,7 @@ describe('createAnchors', () => {
     expect(scrollIntoView.mock.instances[0]).toBe(document.querySelector('section'));
   });
 
-  it('centres the sentence itself when its element is taller than the window', () => {
+  it('centers the sentence itself when its element is taller than the window', () => {
     const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
     const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
