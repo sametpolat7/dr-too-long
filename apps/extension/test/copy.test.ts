@@ -18,4 +18,14 @@ describe('copyText', () => {
       'The keeper logged every ship. The notebooks dated the decline.',
     );
   });
+
+  it('puts no space after a full-width sentence mark, even inside closing quotes', () => {
+    const texts = ['灯台守は四十年間記録した。', '「記録は残った。」', '博物館が保管している。'];
+    expect(
+      copyText(
+        'summary',
+        texts.map((text) => ({ text, sentences: [1] })),
+      ),
+    ).toBe('灯台守は四十年間記録した。「記録は残った。」博物館が保管している。');
+  });
 });

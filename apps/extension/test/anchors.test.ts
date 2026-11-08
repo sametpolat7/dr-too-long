@@ -52,6 +52,23 @@ describe('createAnchors', () => {
     expect(scrollIntoView.mock.instances[0]).toBe(document.querySelector('section'));
   });
 
+  it('centres the sentence itself when its element is taller than the window', () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, -4000, 800, 9000),
+    );
+    vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 3000, 600, 40),
+    );
+    expect(anchorsOver('section').activate({ text: '', sentences: [3] })).toBe(true);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollBy).toHaveBeenCalledWith({
+      top: 3000 - (window.innerHeight - 40) / 2,
+      behavior: 'smooth',
+    });
+  });
+
   it('clears the selection, which would paint over the highlight', () => {
     const selection = window.getSelection();
     selection?.selectAllChildren(document.body);

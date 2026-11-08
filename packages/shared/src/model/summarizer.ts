@@ -12,10 +12,15 @@ import { validateOutput } from './validate.ts';
 
 // A handful of points and the JSON around them fit well within this.
 const MAX_OUTPUT_TOKENS = 1024;
+// A provider that stops sending would otherwise hold the card on "Summarizing…" and keep the
+// worker awake.
+const FIRST_CHUNK_MS = 30_000;
+const NEXT_CHUNK_MS = 15_000;
 
 export function createSummarizer({ model, providerOptions }: ModelSetup): Summarizer {
   return {
     async *summarize(request, { signal }) {
+      const call = watchCall(signal);
       let failure: unknown;
       const result = streamText({
         model,
@@ -24,7 +29,8 @@ export function createSummarizer({ model, providerOptions }: ModelSetup): Summar
         providerOptions,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         maxRetries: 0,
-        abortSignal: signal,
+        abortSignal: call.signal,
+        onChunk: call.chunkArrived,
         onError: ({ error }) => {
           failure = error;
         },
@@ -39,8 +45,37 @@ export function createSummarizer({ model, providerOptions }: ModelSetup): Summar
           ? { type: 'done', output: { points } }
           : { type: 'error', code: 'invalid_output' };
       } catch (caught) {
-        yield toErrorEvent(failure ?? caught, signal);
+        yield call.stalled()
+          ? { type: 'error', code: 'timed_out' }
+          : toErrorEvent(failure ?? caught, signal);
+      } finally {
+        call.end();
       }
+    },
+  };
+}
+
+// Aborts the call when the reader cancels or when the provider goes quiet. The SDK's own timeout
+// option merges signals with AbortSignal.any, from Chrome 116; the floor is 110.
+function watchCall(signal: AbortSignal) {
+  const controller = new AbortController();
+  const stall = new Error('The provider stopped sending');
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const wait = (ms: number) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(stall), ms);
+  };
+  const cancel = () => controller.abort(signal.reason);
+  if (signal.aborted) cancel();
+  else signal.addEventListener('abort', cancel, { once: true });
+  wait(FIRST_CHUNK_MS);
+  return {
+    signal: controller.signal,
+    chunkArrived: () => wait(NEXT_CHUNK_MS),
+    stalled: () => controller.signal.reason === stall,
+    end: () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', cancel);
     },
   };
 }

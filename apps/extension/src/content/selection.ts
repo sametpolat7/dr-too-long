@@ -26,7 +26,7 @@ export function inEditable(selection: Selection): boolean {
   return nodes.some((node) => node !== null && isEditable(node));
 }
 
-function isEditable(node: Node): boolean {
+export function isEditable(node: Node): boolean {
   const element = node instanceof Element ? node : node.parentElement;
   return element?.closest(EDITABLE) != null;
 }

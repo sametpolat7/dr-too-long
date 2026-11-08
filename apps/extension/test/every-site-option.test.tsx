@@ -76,6 +76,16 @@ describe('EverySite', () => {
     expect(box()?.checked).toBe(false);
   });
 
+  it('says so when Chrome fails to change the access', async () => {
+    request.mockRejectedValueOnce(new Error('Chrome refused'));
+    const { container, box } = await show();
+    await click(box());
+    expect(box()?.checked).toBe(false);
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'Chrome could not change this access. Try again.',
+    );
+  });
+
   it("follows a grant given or withdrawn on the extension's details page, until it closes", async () => {
     const { container, box } = await show();
     granted = true;

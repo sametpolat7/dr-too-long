@@ -66,5 +66,30 @@ function reveal(range: Range): void {
   let target = range.startContainer.parentElement;
   // A display: contents wrapper has no box to scroll into view.
   while (target && getComputedStyle(target).display === 'contents') target = target.parentElement;
-  target?.scrollIntoView({ block: 'center', behavior });
+  if (!target) return;
+  if (target.getBoundingClientRect().height <= window.innerHeight) {
+    target.scrollIntoView({ block: 'center', behavior });
+    return;
+  }
+  // Centring an element taller than the window, such as a plain-text page's one <pre>, can leave
+  // the sentence screens away, so the sentence's own box is centred instead.
+  const box = range.getBoundingClientRect();
+  const scroller = scrollerOf(target);
+  if (scroller === rootScroller()) {
+    window.scrollBy({ top: box.top - (window.innerHeight - box.height) / 2, behavior });
+    return;
+  }
+  const top = scroller.getBoundingClientRect().top + scroller.clientTop;
+  scroller.scrollBy({ top: box.top - top - (scroller.clientHeight - box.height) / 2, behavior });
+  scroller.scrollIntoView({ block: 'nearest', behavior });
+}
+
+const rootScroller = (): Element => document.scrollingElement ?? document.documentElement;
+
+function scrollerOf(element: Element): Element {
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const scrolls = /auto|scroll/.test(getComputedStyle(node).overflowY);
+    if (scrolls && node.scrollHeight > node.clientHeight) return node;
+  }
+  return rootScroller();
 }

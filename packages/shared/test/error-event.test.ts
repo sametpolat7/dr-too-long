@@ -1,6 +1,7 @@
 import { APICallError, StreamProviderError } from 'ai';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { toErrorEvent } from '../src/model/error-event.ts';
+import { PROVIDER_IDS } from '../src/providers/index.ts';
 import { callProvider } from './provider-call.ts';
 
 const json = (status: number, body: object) => () =>
@@ -17,9 +18,9 @@ const openai = (type: string, code: string) => ({
   error: { message: 'Message.', type, param: null, code },
 });
 
-const anthropic = (type: string, details?: object) => ({
+const anthropic = (type: string, details?: object, message = 'Message.') => ({
   type: 'error',
-  error: { type, message: 'Message.', ...(details && { details }) },
+  error: { type, message, ...(details && { details }) },
 });
 
 const google = (code: number, status: string, reason?: string) => ({
@@ -122,6 +123,62 @@ describe('the error event for a provider response', () => {
       429,
     ],
     [
+      'an Anthropic 400 at a spend limit the reader set',
+      'quota_exceeded',
+      'anthropic',
+      json(
+        400,
+        anthropic(
+          'invalid_request_error',
+          undefined,
+          'You have reached your specified API usage limits. You will regain access on 2026-12-01.',
+        ),
+      ),
+      400,
+    ],
+    [
+      'an Anthropic 400 at a workspace spend limit',
+      'quota_exceeded',
+      'anthropic',
+      json(
+        400,
+        anthropic(
+          'invalid_request_error',
+          undefined,
+          'You have reached your specified workspace API usage limits.',
+        ),
+      ),
+      400,
+    ],
+    [
+      'an Anthropic 400 for another reason',
+      'provider',
+      'anthropic',
+      json(400, anthropic('invalid_request_error')),
+      400,
+    ],
+    [
+      'an OpenAI 404 for a retired model',
+      'model_unavailable',
+      'openai',
+      json(404, openai('invalid_request_error', 'model_not_found')),
+      404,
+    ],
+    [
+      'an Anthropic 404 for a retired model',
+      'model_unavailable',
+      'anthropic',
+      json(404, anthropic('not_found_error')),
+      404,
+    ],
+    [
+      'a Gemini 404 for a retired model',
+      'model_unavailable',
+      'google',
+      json(404, google(404, 'NOT_FOUND')),
+      404,
+    ],
+    [
       'an Anthropic 529 overloaded_error',
       'provider',
       'anthropic',
@@ -212,6 +269,23 @@ describe('the error event for a provider response', () => {
       { type: 'partial', points: [{ text: 'Rivers', sentences: [] }] },
       { type: 'error', code: 'quota_exceeded', httpStatus: 429 },
     ]);
+  });
+});
+
+describe('the error event for a request that fails in the browser', () => {
+  it.each(PROVIDER_IDS)('reports network when %s cannot be reached', async (provider) => {
+    const { events } = await callProvider(provider, () => {
+      throw new TypeError('Failed to fetch');
+    });
+    expect(events).toEqual([{ type: 'error', code: 'network' }]);
+  });
+
+  it('reports unexpected for a request fetch refuses to send', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { events } = await callProvider('openai', () => {
+      throw new TypeError("Failed to execute 'fetch': Invalid value");
+    });
+    expect(events).toEqual([{ type: 'error', code: 'unexpected' }]);
   });
 });
 

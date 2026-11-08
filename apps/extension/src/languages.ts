@@ -6,7 +6,7 @@ export type LanguageChoice = string | null;
 // The languages of the locale list in the chrome.i18n reference, as BCP 47 tags: one entry per
 // language rather than per region, Chinese by script rather than by place, and no Catalan. Thai and
 // Amharic are left out because the sentence segmenter cannot split much of their prose.
-const TAGS = [
+export const LANGUAGE_TAGS = [
   'ar',
   'bg',
   'bn',
@@ -56,29 +56,10 @@ const TAGS = [
   'zh-Hant',
 ];
 
-// English name first, for an English page. Standard names put a qualifier after the language, so
-// Chinese (Simplified) sorts beside Chinese (Traditional).
-function languageLabel(tag: string): string {
-  const options = { type: 'language', languageDisplay: 'standard' } as const;
-  const english = new Intl.DisplayNames(['en'], options).of(tag) ?? tag;
-  const own = new Intl.DisplayNames([tag], options).of(tag) ?? tag;
-  return own === english ? english : `${english} — ${own}`;
-}
-
-const english = new Intl.Collator('en');
-
-export const LANGUAGES = TAGS.map((tag) => ({ tag, label: languageLabel(tag) })).sort((a, b) =>
-  english.compare(a.label, b.label),
-);
-
-export const isListedLanguage = (tag: string): boolean => TAGS.includes(tag);
+export const isListedLanguage = (tag: string): boolean => LANGUAGE_TAGS.includes(tag);
 
 export function resolveLanguage(choice: LanguageChoice): string {
   return choice ?? browser.i18n.getUILanguage();
-}
-
-export function autoLabel(): string {
-  return `Auto: Chrome's language (${languageLabel(browser.i18n.getUILanguage())})`;
 }
 
 interface TextInfo {

@@ -130,6 +130,69 @@ describe('Options', () => {
     expect(keyField(container)?.placeholder).toBe('Replace the saved Gemini key');
   });
 
+  it('keeps Save off for a blank key', async () => {
+    const container = await show();
+    await act(async () => {
+      const input = keyField(container);
+      if (!input) return;
+      input.value = '   ';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(button(container, 'Save')?.disabled).toBe(true);
+  });
+
+  it('refuses a key holding an invisible character and saves nothing', async () => {
+    const container = await show();
+    await saveKey(container, 'sk-test\u200bkey');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'The key holds a character no API key has',
+    );
+    expect(await readApiKey()).toBeNull();
+    expect(keyField(container)?.value).toBe('sk-test\u200bkey');
+  });
+
+  it('says so when the key cannot be saved, and keeps it in the field', async () => {
+    const container = await show();
+    vi.spyOn(fakeBrowser.storage.local, 'set').mockRejectedValue(new Error('Storage is full'));
+    await saveKey(container, 'test-openai-key');
+    await vi.waitFor(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+        'The key could not be saved on this device. Try again.',
+      ),
+    );
+    expect(container.textContent).toContain('No API key is saved.');
+    expect(keyField(container)?.value).toBe('test-openai-key');
+  });
+
+  it('says so when the key cannot be removed', async () => {
+    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
+    const container = await show();
+    vi.spyOn(fakeBrowser.storage.local, 'remove').mockRejectedValue(new Error('Storage is broken'));
+    await act(async () => {
+      button(container, 'Remove key')?.click();
+    });
+    await vi.waitFor(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+        'The key could not be removed. Try again.',
+      ),
+    );
+    expect(container.textContent).toContain('The OpenAI API key is saved on this device.');
+  });
+
+  it('says so when the summary language cannot be saved', async () => {
+    const container = await show();
+    vi.spyOn(fakeBrowser.storage.local, 'set').mockRejectedValue(new Error('Storage is full'));
+    await act(async () => {
+      const select = container.querySelector<HTMLSelectElement>('label.language select');
+      if (!select) return;
+      select.value = 'tr';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await vi.waitFor(() =>
+      expect(container.textContent).toContain('The summary language could not be saved.'),
+    );
+  });
+
   it('removes the saved key', async () => {
     await writeApiKey({ provider: 'anthropic', key: 'test-claude-key' });
     const container = await show();

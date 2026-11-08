@@ -5,6 +5,7 @@ import { EVERY_SITE } from '../every-site.ts';
 // Follows Chrome's grant, which the reader can also change from the extension's details page.
 export function EverySite() {
   const [granted, setGranted] = useState<boolean>();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const update = () => void browser.permissions.contains(EVERY_SITE).then(setGranted);
@@ -23,10 +24,15 @@ export function EverySite() {
   // it as it was. Chrome shows its prompt only for a request made straight from the click.
   async function toggle(event: MouseEvent) {
     event.preventDefault();
-    const changed = granted
-      ? await browser.permissions.remove(EVERY_SITE)
-      : await browser.permissions.request(EVERY_SITE);
-    if (changed) setGranted(!granted);
+    try {
+      const changed = granted
+        ? await browser.permissions.remove(EVERY_SITE)
+        : await browser.permissions.request(EVERY_SITE);
+      if (changed) setGranted(!granted);
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
   }
 
   return (
@@ -41,6 +47,11 @@ export function EverySite() {
         the selection to your provider with your key, as the icon does. Unticking takes effect on
         the pages you open or reload.
       </p>
+      {failed && (
+        <p class="error" role="alert">
+          Chrome could not change this access. Try again.
+        </p>
+      )}
     </div>
   );
 }

@@ -244,6 +244,14 @@ describe('summarizeSelection', () => {
     expect(CSS.highlights.has(HIGHLIGHT_NAME)).toBe(false);
   });
 
+  it("leaves the card open on Escape in the page's own field", async () => {
+    await summarizeSelection(context());
+    await settle();
+    const field = document.body.appendChild(document.createElement('input'));
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(container.querySelector('section')).not.toBeNull();
+  });
+
   it('replaces the card on the next gesture, with the shape saved meanwhile', async () => {
     await summarizeSelection(context());
     await settle();

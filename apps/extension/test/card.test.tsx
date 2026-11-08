@@ -199,6 +199,39 @@ describe('Card', () => {
     expect(first?.className).toBe('point');
   });
 
+  it('leaves a point alone when a drag inside it selected words', () => {
+    const onActivate = vi.fn(() => true);
+    const container = show(done, { onActivate });
+    const point = pointsOf(container)[0];
+    act(() => {
+      point?.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, clientX: 10, clientY: 10 }),
+      );
+      point?.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 60, clientY: 10 }));
+    });
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it('leaves a point alone on the second click of a double click', () => {
+    const onActivate = vi.fn(() => true);
+    const container = show(done, { onActivate });
+    act(() => {
+      pointsOf(container)[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+    });
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it('puts no space after a full-width sentence mark between summary points', () => {
+    const texts = ['これは要約です。', '「次の文です。」', 'Last.'];
+    const container = show({
+      status: 'done',
+      points: texts.map((text) => ({ text, sentences: [1] })),
+    });
+    expect(container.querySelector('p[lang]')?.textContent).toBe(
+      'これは要約です。「次の文です。」Last.',
+    );
+  });
+
   it.each(['Enter', ' '])('activates a point on %j and cancels the default action', (key) => {
     const onActivate = vi.fn(() => true);
     const container = show(done, { onActivate });
@@ -269,23 +302,31 @@ describe('Card', () => {
     expect(container.querySelector('.actions button')).toBeNull();
   });
 
-  it.each(['no_key', 'unauthorized'] as const)('offers the options page on %s', (code) => {
-    const onOpenOptions = vi.fn();
-    const container = show({ status: 'error', code }, { onOpenOptions });
-    button(container, 'Open options')?.click();
-    expect(onOpenOptions).toHaveBeenCalledOnce();
-    expect(button(container, 'Try again')).toBeUndefined();
-  });
-
-  it.each(['rate_limited', 'network', 'disconnected', 'invalid_output', 'provider'] as const)(
-    'offers to try again on %s',
+  it.each(['no_key', 'unauthorized', 'model_unavailable'] as const)(
+    'offers the options page on %s',
     (code) => {
-      const onRegenerate = vi.fn();
-      const container = show({ status: 'error', code }, { onRegenerate });
-      button(container, 'Try again')?.click();
-      expect(onRegenerate).toHaveBeenCalledOnce();
+      const onOpenOptions = vi.fn();
+      const container = show({ status: 'error', code }, { onOpenOptions });
+      button(container, 'Open options')?.click();
+      expect(onOpenOptions).toHaveBeenCalledOnce();
+      expect(button(container, 'Try again')).toBeUndefined();
     },
   );
+
+  it.each([
+    'rate_limited',
+    'network',
+    'timed_out',
+    'disconnected',
+    'invalid_output',
+    'provider',
+    'unexpected',
+  ] as const)('offers to try again on %s', (code) => {
+    const onRegenerate = vi.fn();
+    const container = show({ status: 'error', code }, { onRegenerate });
+    button(container, 'Try again')?.click();
+    expect(onRegenerate).toHaveBeenCalledOnce();
+  });
 
   it.each(['quota_exceeded', 'invalidated'] as const)(
     'offers neither options nor a retry on %s',
