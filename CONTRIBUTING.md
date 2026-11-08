@@ -2,6 +2,10 @@
 
 The README's [Development](README.md#development) section builds and loads the extension. [The "no" list](docs/no-list.md) names what the project leaves out on purpose: a feature gets in only if it makes the skim faster or the summary more trustworthy.
 
+## Proposing a change
+
+Open an issue with the feature form before a large pull request, so the idea can be discussed first. Read the "no" list before you write: a change that conflicts with it needs a pull request to the list itself, with the reason.
+
 ## Pull requests
 
 - Run `pnpm verify` before you push. It runs what CI runs: the dependency audit, lint, types, tests, the build, both build checks and the smoke test in your installed Chrome.
@@ -22,9 +26,21 @@ Run `pnpm exec lefthook install` once after cloning. The hooks check formatting,
 3. The Release workflow runs every check, confirms that the tag names the version, builds the zip, attests where it was built and publishes a GitHub Release with the zip and notes grouped by the type labels.
 4. Upload that zip from the GitHub Release to the Chrome Web Store, never a local build. Anyone can check that it came from this repository: `gh attestation verify dr-too-long-1.0.0-chrome.zip --repo sametpolat7/dr-too-long`.
 
+## Maintaining
+
+- **Before each release,** run the extension with a real key from each provider: **Test key**, both shapes on a long article, a summary in a language other than English, a revoked key and a key with no credit left. Each must end in a summary or the right message.
+- **Saved data stays readable by the previous version.** The Web Store's rollback republishes the previous version in about a minute without review, and that version deletes a stored key it cannot read. Change a storage format only together with a release that both versions can live with.
+- **No new permission warnings in an update.** A permission that adds a warning disables the extension for every reader until they accept it.
+- **Every three months,** check each provider's terms and its model deprecation page ([OpenAI](https://developers.openai.com/api/docs/deprecations), [Claude](https://platform.claude.com/docs/en/about-claude/model-deprecations), [Gemini](https://ai.google.dev/gemini-api/docs/models)), and plan an update before a fixed model retires.
+- **Dependencies.** Dependabot opens npm security fixes and grouped GitHub Actions updates. Other npm updates come by hand, each in its own pull request, after a look at `pnpm outdated`.
+
 ## Icons
 
 The icon's masters are `apps/extension/design/icon.svg` and `icon-small.svg`, the second drawn on whole pixels for 16 and 32 px. After changing one, run `pnpm icons` and commit the PNGs it writes to `apps/extension/public/icon`. It needs `rsvg-convert` from librsvg: `brew install librsvg` or `apt install librsvg2-bin`.
+
+## Writing
+
+The interface and the docs use American English. Call keys and APIs by the product (OpenAI, Claude, Gemini) and terms and services by the company (OpenAI, Anthropic, Google).
 
 ## Keys and text
 

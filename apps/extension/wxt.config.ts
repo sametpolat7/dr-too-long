@@ -41,7 +41,7 @@ export default defineConfig({
       },
     }),
   }),
-  // Every package goes out with its licence: the project's own, and the bundled packages' notices.
+  // Every package goes out with its license: the project's own, and the bundled packages' notices.
   hooks: {
     'vite:build:extendConfig': (entrypoints, config) => {
       const fileName = `${LICENSE_LISTS}/${entrypoints[0]?.name}.json`;
