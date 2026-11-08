@@ -41,6 +41,7 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 | `pnpm format`         | Applies Biome formatting and safe fixes                                        |
 | `pnpm typecheck`      | Type-checks every package                                                      |
 | `pnpm test`           | Runs the unit tests of every package                                           |
+| `pnpm coverage`       | Runs the unit tests with a coverage report per file                            |
 | `pnpm check:manifest` | Fails if the built manifest's permissions differ from `manifest-expected.json` |
 | `pnpm check:bundle`   | Fails if a built content script carries key, storage or provider code          |
 
