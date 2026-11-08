@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
+import { pageTheme, type Theme } from '../theme.ts';
 import { BUBBLE_UI } from '../ui.ts';
 import css from './bubble.css?inline';
 import { type Lines, placeBubble, viewportSize } from './position.ts';
@@ -45,6 +46,7 @@ export async function startBubble(
     render(
       <BubbleButton
         lines={lines}
+        theme={pageTheme()}
         onClick={() => {
           watcher?.dismiss();
           onSummarize();
@@ -76,12 +78,13 @@ export async function startBubble(
 
 interface BubbleButtonProps {
   lines: Lines;
+  theme: Theme;
   onClick: () => void;
 }
 
 // Placed from its own rendered size, so it stays inside the viewport. A press on it keeps the page
 // selection, which the card then reads.
-function BubbleButton({ lines, onClick }: BubbleButtonProps) {
+function BubbleButton({ lines, theme, onClick }: BubbleButtonProps) {
   const button = useRef<HTMLButtonElement>(null);
   useLayoutEffect(() => {
     const element = button.current;
@@ -96,6 +99,7 @@ function BubbleButton({ lines, onClick }: BubbleButtonProps) {
       ref={button}
       type="button"
       class="bubble"
+      data-theme={theme}
       lang="en"
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}

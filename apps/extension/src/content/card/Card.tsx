@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { ERROR_MESSAGES } from '../../error-messages.ts';
 import { LanguageSelect } from '../../LanguageSelect.tsx';
 import { type LanguageChoice, textDirection } from '../../languages.ts';
+import type { Theme } from '../theme.ts';
 import { copyText, separatorAfter } from './copy.ts';
+import { Mark } from './Mark.tsx';
 import { type CardState, type ErrorState, type View, viewKey } from './view.ts';
 
 const SHAPE_LABELS: Record<ShapeId, string> = {
@@ -31,6 +33,8 @@ const DRAG_PX = 4;
 
 interface CardProps {
   state: CardState;
+  // The page's scheme, which the card's colors follow.
+  theme?: Theme;
   // Absent when the selection was refused.
   view?: View;
   choice: LanguageChoice;
@@ -56,6 +60,7 @@ interface Notice {
 // It is a non-modal dialog that takes the focus when it opens.
 export function Card({
   state,
+  theme = 'light',
   view,
   choice,
   onSelect,
@@ -74,6 +79,7 @@ export function Card({
   return (
     <section
       class="card"
+      data-theme={theme}
       role="dialog"
       aria-labelledby="card-title"
       tabIndex={-1}
@@ -82,6 +88,7 @@ export function Card({
     >
       <header>
         <h2 class="title" id="card-title">
+          <Mark />
           Dr. Too Long
         </h2>
         <button type="button" class="close" onClick={onClose} aria-label="Close">
