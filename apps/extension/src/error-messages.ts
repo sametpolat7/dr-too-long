@@ -7,6 +7,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   quota_exceeded:
     'The account behind this key is out of credit or at its spending limit. Check its billing settings, then try again.',
   network: 'The provider could not be reached.',
+  timed_out: 'The provider stopped responding. Try again.',
+  model_unavailable:
+    'The provider no longer offers the model this version of Dr. Too Long uses. An update will fix this; until then, use a key from another provider.',
   aborted: 'The run was cancelled.',
   disconnected: 'The background worker stopped before the summary finished.',
   invalidated:
@@ -17,6 +20,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   unsupported_selection:
     'Text in form fields, editors, embedded frames and widgets cannot be summarized.',
   provider: 'The provider returned an error.',
+  unexpected:
+    'Something went wrong in Dr. Too Long. Try again, and report it if it keeps happening.',
 };
 
 // Shown under the message, for a bug report to quote.

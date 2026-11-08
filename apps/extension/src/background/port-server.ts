@@ -4,6 +4,7 @@ import {
   type SummaryEvent,
   summarizeRequestSchema,
 } from '@dr-too-long/shared/contracts';
+import { reportUnexpected } from '@dr-too-long/shared/model';
 import { browser } from 'wxt/browser';
 import { isListedLanguage } from '../languages.ts';
 import { type ApiKey, readApiKey } from '../settings/api-key.ts';
@@ -56,23 +57,24 @@ async function run(
   createSummarizer: CreateSummarizer,
   signal: AbortSignal,
 ): Promise<void> {
-  const apiKey = await readApiKey();
-  // The card closes its port when the reader closes it or regenerates; a closed port takes no
-  // messages.
-  if (signal.aborted) return;
-  if (!apiKey) {
-    port.postMessage({ type: 'error', code: 'no_key' });
-    port.disconnect();
-    return;
-  }
-
   const release = keepAlive();
   try {
-    const summarizer = createSummarizer(apiKey);
-    for await (const event of summarizer.summarize(request, { signal })) {
+    const apiKey = await readApiKey();
+    // The card closes its port when the reader closes it or regenerates; a closed port takes no
+    // messages.
+    if (signal.aborted) return;
+    if (!apiKey) {
+      port.postMessage({ type: 'error', code: 'no_key' });
+      return;
+    }
+    for await (const event of createSummarizer(apiKey).summarize(request, { signal })) {
       if (signal.aborted) return;
       port.postMessage(event);
     }
+  } catch (error) {
+    // Such as a failed storage read: the card still hears that the run ended.
+    reportUnexpected(error);
+    if (!signal.aborted) port.postMessage({ type: 'error', code: 'unexpected' });
   } finally {
     release();
     port.disconnect();

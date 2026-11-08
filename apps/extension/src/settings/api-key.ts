@@ -37,10 +37,20 @@ export async function readApiKey(): Promise<ApiKey | null> {
   if (stored === null) return null;
   try {
     return { provider: stored.provider, key: await decrypt(stored) };
-  } catch {
-    return null;
+  } catch (error) {
+    // The device key that sealed the record is gone, or the record was altered: it can never be
+    // read again, so it goes, and the options page then shows no key either.
+    if (error instanceof Error && error.name === 'OperationError') {
+      await apiKey.removeValue();
+      return null;
+    }
+    throw error;
   }
 }
+
+// Every provider's keys are printable ASCII. A pasted invisible character would make Chrome refuse
+// the request header.
+export const isWellFormedKey = (key: string): boolean => /^[\x21-\x7E]+$/.test(key.trim());
 
 export async function writeApiKey({ provider, key }: ApiKey): Promise<void> {
   await apiKey.setValue({ provider, ...(await encrypt(key.trim())) });

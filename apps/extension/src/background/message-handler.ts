@@ -1,4 +1,4 @@
-import { isShapeId } from '@dr-too-long/shared/contracts';
+import { DEFAULT_SHAPE, isShapeId } from '@dr-too-long/shared/contracts';
 import { browser } from 'wxt/browser';
 import { isListedLanguage } from '../languages.ts';
 import type { Message, Replies } from '../messages.ts';
@@ -14,9 +14,14 @@ export function handleMessage(
   sender: Sender,
   sendResponse: (response: unknown) => void,
 ): true | undefined {
-  // Typed per message, so an answer of the wrong type fails to compile.
-  const reply = <T extends keyof Replies>(_: T, answer: Promise<Replies[T]>): true => {
-    void answer.then(sendResponse);
+  // Typed per message, so an answer of the wrong type fails to compile. A failed read answers what
+  // a missing setting reads as, so the asking script never waits.
+  const reply = <T extends keyof Replies>(
+    _: T,
+    answer: Promise<Replies[T]>,
+    fallback: Replies[T],
+  ): true => {
+    void answer.catch(() => fallback).then(sendResponse);
     return true;
   };
   switch (message.type) {
@@ -27,7 +32,7 @@ export function handleMessage(
       if (sender.tab?.id !== undefined) void flashBadge(sender.tab.id);
       return;
     case 'read-language':
-      return reply(message.type, readLanguageChoice());
+      return reply(message.type, readLanguageChoice(), null);
     case 'save-language':
       // Auto or a listed language only, so the options page can always show the choice.
       if (message.choice === null || isListedLanguage(message.choice)) {
@@ -35,18 +40,18 @@ export function handleMessage(
       }
       return;
     case 'read-shape':
-      return reply(message.type, readShape());
+      return reply(message.type, readShape(), DEFAULT_SHAPE);
     case 'save-shape':
       if (isShapeId(message.shape)) void writeShape(message.shape);
       return;
     case 'read-bubble-hidden':
-      return reply(message.type, isBubbleHidden(sender));
+      return reply(message.type, isBubbleHidden(sender), false);
     case 'save-bubble-hidden':
       if (typeof message.hidden === 'boolean') void setBubbleHidden(sender, message.hidden);
       return;
     case 'read-every-site-bubble':
-      return reply(message.type, everySiteBubbleShown(sender));
+      return reply(message.type, everySiteBubbleShown(sender), false);
     case 'summarize-from-bubble':
-      return reply(message.type, summarizeFromBubble(sender));
+      return reply(message.type, summarizeFromBubble(sender), false);
   }
 }
