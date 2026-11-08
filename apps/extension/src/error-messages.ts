@@ -6,17 +6,17 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   rate_limited: 'The provider is rate limiting this key. Try again in a moment.',
   quota_exceeded:
     'The account behind this key is out of credit or at its spending limit. Check its billing settings, then try again.',
-  network: 'The provider could not be reached.',
+  network: 'The provider could not be reached. Check your connection, then try again.',
   timed_out: 'The provider stopped responding. Try again.',
   model_unavailable:
     'The provider no longer offers the model this version of Dr. Too Long uses. An update will fix this; until then, use a key from another provider.',
-  aborted: 'The run was cancelled.',
-  disconnected: 'The background worker stopped before the summary finished.',
+  aborted: 'The summary was canceled.',
+  disconnected: 'Dr. Too Long stopped before the summary finished. Try again.',
   invalidated:
     'Dr. Too Long was updated or reloaded. Start it again from the icon, the shortcut or the menu.',
   invalid_output: 'The model returned no usable summary.',
   no_selection: 'Select some text first.',
-  too_long: 'The selection is too long.',
+  too_long: 'The selection is too long. Select a shorter passage.',
   unsupported_selection:
     'Text in form fields, editors, embedded frames and widgets cannot be summarized.',
   provider: 'The provider returned an error.',

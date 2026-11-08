@@ -38,14 +38,20 @@ export function EverySite() {
   return (
     <div class="every-site">
       <label>
-        <input type="checkbox" checked={granted} onClick={toggle} />
-        Show the bubble on every site
+        <input
+          type="checkbox"
+          name="every-site"
+          checked={granted}
+          onClick={toggle}
+          aria-describedby="every-site-note"
+        />
+        Offer a Summarize bubble on every https site
       </label>
-      <p>
-        Chrome asks for access to every https site. The bubble then appears on the pages you open or
-        reload, with no click on the icon first. It sends nothing until you click it; a click sends
-        the selection to your provider with your key, as the icon does. Unticking takes effect on
-        the pages you open or reload.
+      <p id="every-site-note">
+        The bubble appears above text you select, with no click on the icon first. Chrome asks for
+        access to all https sites. Nothing is sent until you click the bubble; a click sends the
+        selection to your provider with your key, as the icon does. Changes apply to the pages you
+        open or reload.
       </p>
       {failed && (
         <p class="error" role="alert">

@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  padding: 24px;
+  padding: 16px 20px;
   max-width: 560px;
   font:
     14px / 1.5 system-ui,
@@ -8,66 +8,100 @@ body {
   color: #1a1a1a;
 }
 
-h1 {
-  font-size: 18px;
+.intro {
   margin: 0 0 16px;
 }
 
-form,
+section {
+  margin-bottom: 20px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+form {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+input[type="password"],
+select {
+  min-width: 0;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+.agree {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.agree input,
+.every-site input {
+  flex: none;
+  margin: 3px 0 0;
+}
+
 .actions,
 .language {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-bottom: 12px;
-}
-
-input {
-  flex: 1 1 240px;
-  padding: 6px 8px;
-  font: inherit;
-}
-
-.every-site {
-  margin-bottom: 12px;
 }
 
 .every-site label {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.every-site input {
-  flex: none;
-  margin: 0;
-}
-
-.every-site p {
-  margin: 4px 0 0;
-  color: #555;
-}
-
-button,
-select {
+button {
   padding: 6px 12px;
   font: inherit;
 }
 
-.status {
+p {
+  margin: 0;
+}
+
+.status,
+.note,
+.every-site p {
   color: #555;
 }
 
-.note {
-  margin: 0 0 12px;
-  color: #555;
+.sample {
+  margin: 8px 0 0;
 }
 
 .error {
   color: #b00020;
 }
 
-ol {
-  padding-left: 20px;
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+  color: #555;
+  font-size: 13px;
+}
+
+a {
+  color: #0b57d0;
+}
+
+/* Notes, the agreement and the buttons span both columns of the key form. */
+form > .note,
+form > .agree,
+form > .actions {
+  grid-column: 1 / -1;
 }

@@ -105,15 +105,22 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
 
 function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleState): OpenCard {
   const controller = new AbortController();
+  // The card takes the focus when it first paints and gives it back here when it closes.
+  const focusBefore = document.activeElement;
+  let focused = false;
   let anchors: Anchors | undefined;
   let runs: Runs | undefined;
   let choice: LanguageChoice = null;
   let redraw: () => void = () => undefined;
   const close = () => {
+    const focusInCard = ui.shadowHost.contains(document.activeElement);
     controller.abort();
     anchors?.clear();
     ui.remove();
     stopOnInvalidated();
+    if (focusInCard && focusBefore instanceof HTMLElement && focusBefore.isConnected) {
+      focusBefore.focus({ preventScroll: true });
+    }
   };
   const stopOnInvalidated = ctx.onInvalidated(close);
   const card: OpenCard = {
@@ -147,6 +154,10 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
       />,
       ui.uiContainer,
     );
+    if (!focused) {
+      focused = true;
+      ui.uiContainer.querySelector<HTMLElement>('[role="dialog"]')?.focus({ preventScroll: true });
+    }
   };
 
   document.addEventListener(

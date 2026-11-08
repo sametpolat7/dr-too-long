@@ -31,6 +31,7 @@ export function LanguageSelect({ choice, onChange }: LanguageSelectProps) {
     <label class="language">
       Summary language
       <select
+        name="language"
         value={choice ?? AUTO}
         onChange={(event) => {
           const { value } = event.currentTarget;
@@ -38,7 +39,7 @@ export function LanguageSelect({ choice, onChange }: LanguageSelectProps) {
         }}
       >
         <option value={AUTO}>
-          {`Auto: Chrome's language (${languageLabel(browser.i18n.getUILanguage())})`}
+          {`Auto: ${inEnglish.of(browser.i18n.getUILanguage())}, Chrome's language`}
         </option>
         {LANGUAGES.map(({ tag, label }) => (
           <option key={tag} value={tag}>

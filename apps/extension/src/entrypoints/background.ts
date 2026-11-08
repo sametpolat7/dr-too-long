@@ -10,9 +10,10 @@ import { startPortServer } from '../background/port-server.ts';
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(({ reason }) => {
-    console.info(`Dr. Too Long service worker ready (${reason})`);
     void addMenuItem();
     void syncEverySite();
+    // A first install starts with setting up a key; updates leave the reader where they were.
+    if (reason === 'install') void browser.runtime.openOptionsPage();
   });
   // The keyboard shortcut is bound to _execute_action, so it arrives here as a click on the icon.
   browser.action.onClicked.addListener((tab) => {

@@ -16,10 +16,10 @@ describe('LanguageSelect', () => {
     fakeBrowser.i18n.getUILanguage = () => 'en-US';
   });
 
-  it("offers Auto, named after Chrome's language, before every listed language", () => {
+  it("offers Auto, naming Chrome's language, before every listed language", () => {
     const [auto, ...languages] = options();
     expect(auto?.value).toBe('');
-    expect(auto?.text).toBe("Auto: Chrome's language (English (United States))");
+    expect(auto?.text).toBe("Auto: English (United States), Chrome's language");
     expect(languages).toHaveLength(47);
   });
 

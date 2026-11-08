@@ -45,7 +45,15 @@ interface CardProps {
   onActivate: (point: Point) => boolean;
 }
 
+// What the status line says after an action; a hidden one is for screen readers only, beside a
+// button whose own label already shows it.
+interface Notice {
+  text: string;
+  visible: boolean;
+}
+
 // The card's own text is English and left to right, whatever the page's language and direction.
+// It is a non-modal dialog that takes the focus when it opens.
 export function Card({
   state,
   view,
@@ -57,10 +65,25 @@ export function Card({
   onClose,
   ...body
 }: CardProps) {
+  // A notice lapses once the card shows another state or view.
+  const [noted, setNoted] = useState<{ state: CardState; view?: string; notice: Notice }>();
+  const shown = view && viewKey(view);
+  const notice = noted?.state === state && noted.view === shown ? noted.notice : undefined;
+  const setNotice = (next: Notice | undefined) =>
+    setNoted(next && { state, view: shown, notice: next });
   return (
-    <section class="card" lang="en" dir="ltr" aria-label="Summary">
+    <section
+      class="card"
+      role="dialog"
+      aria-labelledby="card-title"
+      tabIndex={-1}
+      lang="en"
+      dir="ltr"
+    >
       <header>
-        <span class="title">Dr. Too Long</span>
+        <h2 class="title" id="card-title">
+          Dr. Too Long
+        </h2>
         <button type="button" class="close" onClick={onClose} aria-label="Close">
           ×
         </button>
@@ -68,7 +91,8 @@ export function Card({
       {view ? (
         <>
           <Shapes selected={view.shape} onSelect={onSelect} />
-          <Body state={state} view={view} {...body} />
+          <Body state={state} view={view} onNotice={setNotice} {...body} />
+          <Status state={state} notice={notice} />
           <footer>
             <Language choice={choice} onLanguage={onLanguage} />
             <BubbleSwitch hidden={bubbleHidden} onBubble={onBubble} />
@@ -101,20 +125,18 @@ function Shapes({ selected, onSelect }: ShapesProps) {
 interface BodyProps extends Pick<CardProps, 'onRegenerate' | 'onOpenOptions' | 'onActivate'> {
   state: CardState;
   view: View;
+  onNotice: (notice: Notice | undefined) => void;
 }
 
-function Body({ state, view, onRegenerate, onOpenOptions, onActivate }: BodyProps) {
+function Body({ state, view, onRegenerate, onOpenOptions, onActivate, onNotice }: BodyProps) {
   switch (state.status) {
     case 'error':
       return <Failure state={state} onRegenerate={onRegenerate} onOpenOptions={onOpenOptions} />;
     case 'summarizing':
       return (
-        <>
-          <Points view={view} points={state.points}>
-            {(point) => point.text}
-          </Points>
-          <p class="status">Summarizing…</p>
-        </>
+        <Points view={view} points={state.points}>
+          {(point) => point.text}
+        </Points>
       );
     case 'done':
       return (
@@ -124,9 +146,26 @@ function Body({ state, view, onRegenerate, onOpenOptions, onActivate }: BodyProp
           points={state.points}
           onActivate={onActivate}
           onRegenerate={onRegenerate}
+          onNotice={onNotice}
         />
       );
   }
+}
+
+// Stays mounted while the card shows a view, so screen readers announce each change. Streamed
+// points are left out of it: only the start and the end of a summary are announced.
+function Status({ state, notice }: { state: CardState; notice: Notice | undefined }) {
+  let visible = '';
+  let spoken = '';
+  if (state.status === 'summarizing') visible = 'Summarizing…';
+  else if (state.status === 'done' && notice?.visible) visible = notice.text;
+  else if (state.status === 'done') spoken = notice?.text ?? 'Summary ready.';
+  return (
+    <p class={visible ? 'status' : 'status quiet'} role="status">
+      {visible}
+      {spoken && <span class="visually-hidden">{spoken}</span>}
+    </p>
+  );
 }
 
 interface FailureProps extends Pick<CardProps, 'onRegenerate' | 'onOpenOptions'> {
@@ -136,8 +175,10 @@ interface FailureProps extends Pick<CardProps, 'onRegenerate' | 'onOpenOptions'>
 function Failure({ state, onRegenerate, onOpenOptions }: FailureProps) {
   return (
     <>
-      <p class="error">{ERROR_MESSAGES[state.code]}</p>
-      {state.detail && <p class="detail">{state.detail}</p>}
+      <div role="alert">
+        <p class="error">{ERROR_MESSAGES[state.code]}</p>
+        {state.detail && <p class="detail">{state.detail}</p>}
+      </div>
       <div class="actions">
         {OPTIONS_ERRORS.has(state.code) && (
           <button type="button" onClick={onOpenOptions}>
@@ -194,12 +235,17 @@ interface SummaryProps {
   points: Point[];
   onActivate: CardProps['onActivate'];
   onRegenerate: CardProps['onRegenerate'];
+  onNotice: BodyProps['onNotice'];
 }
 
-function Summary({ view, points, onActivate, onRegenerate }: SummaryProps) {
+function Summary({ view, points, onActivate, onRegenerate, onNotice }: SummaryProps) {
   const [active, setActive] = useState<Active>();
   const pressedAt = useRef<{ x: number; y: number }>(undefined);
-  const activate = (index: number, point: Point) => setActive({ index, found: onActivate(point) });
+  const activate = (index: number, point: Point) => {
+    const found = onActivate(point);
+    setActive({ index, found });
+    onNotice(found ? undefined : { text: 'The passage is no longer on the page.', visible: true });
+  };
   // A drag or a double click selects words to copy; it does not jump to the passage.
   const selecting = (event: MouseEvent) => {
     const start = pressedAt.current;
@@ -234,9 +280,8 @@ function Summary({ view, points, onActivate, onRegenerate }: SummaryProps) {
           </span>
         )}
       </Points>
-      {active && !active.found && <p class="status">The passage is no longer on the page.</p>}
       <div class="actions">
-        <CopyButton text={copyText(view.shape, points)} />
+        <CopyButton text={copyText(view.shape, points)} onNotice={onNotice} />
         <button type="button" onClick={onRegenerate}>
           Regenerate
         </button>
@@ -286,7 +331,12 @@ function BubbleSwitch({ hidden, onBubble }: BubbleSwitchProps) {
   );
 }
 
-function CopyButton({ text }: { text: string }) {
+interface CopyButtonProps {
+  text: string;
+  onNotice: BodyProps['onNotice'];
+}
+
+function CopyButton({ text, onNotice }: CopyButtonProps) {
   const [label, setLabel] = useState('Copy');
   useEffect(() => {
     if (label === 'Copy') return;
@@ -299,8 +349,10 @@ function CopyButton({ text }: { text: string }) {
     try {
       await navigator.clipboard.writeText(text);
       setLabel('Copied');
+      onNotice({ text: 'Summary copied.', visible: false });
     } catch {
       setLabel('Copy failed');
+      onNotice({ text: 'The page does not allow copying.', visible: false });
     }
   };
   return (
