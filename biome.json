@@ -34,11 +34,38 @@
                   {
                     "group": [
                       "**/settings/**",
+                      "**/background/**",
+                      "**/options/**",
                       "wxt/utils/storage",
                       "@dr-too-long/shared/model",
                       "@dr-too-long/shared/providers"
                     ],
                     "message": "Content scripts never touch the API key or the model. The background worker owns both."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/extension/src/options/**", "apps/extension/src/entrypoints/options/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@dr-too-long/shared/model"],
+                    "message": "The options page reaches the model only through the background worker's summarize port."
+                  },
+                  {
+                    "group": ["**/settings/api-key*"],
+                    "importNamePattern": "readApiKey",
+                    "message": "Only the background worker decrypts the API key."
                   }
                 ]
               }
