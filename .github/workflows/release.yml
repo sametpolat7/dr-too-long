@@ -1,0 +1,48 @@
+name: Release
+
+# A signed vX.Y.Z tag on main releases that version: every check runs, the zip is built here, its
+# provenance is attested, and a GitHub Release holds the zip that goes to the Chrome Web Store.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+      - name: Check that the tag names the extension's version
+        run: |
+          version=$(node --print "require('./apps/extension/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "The tag $GITHUB_REF_NAME does not match the version $version." >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: pnpm zip
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: apps/extension/.output/dr-too-long-${{ env.VERSION }}-chrome.zip
+      # A draft first: a published release cannot take assets once releases are immutable.
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "apps/extension/.output/dr-too-long-$VERSION-chrome.zip" \
+            --title "Dr. Too Long $VERSION" --generate-notes --verify-tag --draft
+          gh release edit "$GITHUB_REF_NAME" --draft=false

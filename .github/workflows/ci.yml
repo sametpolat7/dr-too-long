@@ -4,17 +4,22 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Catches a new advisory against the locked dependencies between pull requests.
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push replaces a pull request's run; every run on main finishes, so each merge has a result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
@@ -23,12 +28,6 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level high
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
-      - run: pnpm check:manifest
-      - run: pnpm check:bundle
-      # Loads the build into the runner's own Chrome; nothing is downloaded.
-      - run: pnpm smoke
+      # The audit, lint, types, tests, the build, both build checks and the smoke test in the runner's
+      # own Chrome, as pnpm verify runs them locally.
+      - run: pnpm verify
