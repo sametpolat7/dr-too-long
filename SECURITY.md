@@ -6,11 +6,11 @@ Dr. Too Long keeps the reader's API key on their device and sends the text they 
 
 Report it through [GitHub's private vulnerability reporting](https://github.com/sametpolat7/dr-too-long/security/advisories/new), never in a public issue or pull request. Describe the flaw, the steps or a proof of concept, and what an attacker gains. Never include a working API key: use a revoked one or a placeholder.
 
-The project has one maintainer, who answers in the private advisory and works out the fix there before anything is made public.
+The project has one maintainer, who answers in the private advisory within seven days and works out the fix there before anything is made public.
 
 ## Supported versions
 
-The extension is not yet on the Chrome Web Store. Only the latest commit on `main` is supported.
+The latest version on the Chrome Web Store and the latest commit on `main` are supported. A fix ships as a new store version.
 
 ## Scope
 
