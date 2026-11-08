@@ -11,3 +11,13 @@ updates:
       prefix: ci
       include: scope
     labels: [maintenance]
+  # Security updates only. Version updates come by hand, each in its own chore PR.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: build
+      include: scope
+    labels: [maintenance]
