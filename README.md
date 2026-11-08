@@ -32,17 +32,17 @@ Chrome leaves the shortcut unset when another extension already holds it; set or
 
 For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev` instead. WXT does not launch a browser; you load the build into your own Chrome profile.
 
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Builds the extension in watch mode with live reload |
-| `pnpm build` | Production build into `apps/extension/.output/chrome-mv3` |
-| `pnpm zip` | Zips the production build for the Chrome Web Store |
-| `pnpm lint` | Checks formatting and lint rules with Biome |
-| `pnpm format` | Applies Biome formatting and safe fixes |
-| `pnpm typecheck` | Type-checks every package |
-| `pnpm test` | Runs the unit tests of every package |
+| Command               | What it does                                                                   |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `pnpm dev`            | Builds the extension in watch mode with live reload                            |
+| `pnpm build`          | Production build into `apps/extension/.output/chrome-mv3`                      |
+| `pnpm zip`            | Zips the production build for the Chrome Web Store                             |
+| `pnpm lint`           | Checks formatting and lint rules with Biome                                    |
+| `pnpm format`         | Applies Biome formatting and safe fixes                                        |
+| `pnpm typecheck`      | Type-checks every package                                                      |
+| `pnpm test`           | Runs the unit tests of every package                                           |
 | `pnpm check:manifest` | Fails if the built manifest's permissions differ from `manifest-expected.json` |
-| `pnpm check:bundle` | Fails if a built content script carries key, storage or provider code |
+| `pnpm check:bundle`   | Fails if a built content script carries key, storage or provider code          |
 
 `apps/evals` is kept empty for a future evaluation system; see [its README](apps/evals/README.md).
 
@@ -54,11 +54,11 @@ Highlights use the CSS Custom Highlight API: the worker inserts one stylesheet r
 
 Dr. Too Long runs on your own API key from OpenAI, Anthropic or Google. Paste it on the options page, never into a file or CI. One key is saved at a time: saving a key for another provider replaces the old one.
 
-| Provider | Where to create a key | Model | Notes |
-| --- | --- | --- | --- |
-| OpenAI | [platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys) | `gpt-6-luna` | Reasoning effort `none` |
-| Claude (Anthropic) | The Claude Console at [platform.claude.com](https://platform.claude.com) | `claude-haiku-5-5` | Thinking off |
-| Gemini (Google) | Google AI Studio at [aistudio.google.com](https://aistudio.google.com) | `gemini-3.5-flash-lite` | Has a free tier; see Google below |
+| Provider           | Where to create a key                                                                | Model                   | Notes                             |
+| ------------------ | ------------------------------------------------------------------------------------ | ----------------------- | --------------------------------- |
+| OpenAI             | [platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys) | `gpt-6-luna`            | Reasoning effort `none`           |
+| Claude (Anthropic) | The Claude Console at [platform.claude.com](https://platform.claude.com)             | `claude-haiku-5-5`      | Thinking off                      |
+| Gemini (Google)    | Google AI Studio at [aistudio.google.com](https://aistudio.google.com)               | `gemini-3.5-flash-lite` | Has a free tier; see Google below |
 
 Each is that provider's cheapest capable model, set in code in `packages/shared/src/model`: you pick the provider, not the model. A summary costs under a cent on any of them, billed to your own account.
 
