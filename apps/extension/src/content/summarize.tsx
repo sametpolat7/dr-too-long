@@ -13,7 +13,7 @@ import { Card } from './card/Card.tsx';
 import css from './card/card.css?inline';
 import type { CardState, View } from './card/view.ts';
 import { createRuns, type Runs } from './runs.ts';
-import { readSelection } from './selection.ts';
+import { isEditable, readSelection } from './selection.ts';
 import { CARD_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
 
 type CardUi = ShadowRootContentScriptUi<HTMLElement>;
@@ -152,7 +152,9 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
   document.addEventListener(
     'keydown',
     (event) => {
-      if (event.key === 'Escape') close();
+      // Escape in the page's own field belongs to it, such as clearing a search box.
+      const inField = event.target instanceof Node && isEditable(event.target);
+      if (event.key === 'Escape' && !inField) close();
     },
     { capture: true, signal: controller.signal },
   );

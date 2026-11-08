@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { ERROR_MESSAGES } from '../../error-messages.ts';
 import { LanguageSelect } from '../../LanguageSelect.tsx';
 import { type LanguageChoice, textDirection } from '../../languages.ts';
-import { copyText } from './copy.ts';
+import { copyText, separatorAfter } from './copy.ts';
 import { type CardState, type ErrorState, type View, viewKey } from './view.ts';
 
 const SHAPE_LABELS: Record<ShapeId, string> = {
@@ -16,14 +16,18 @@ const SHAPE_LABELS: Record<ShapeId, string> = {
 const RETRYABLE = new Set<ErrorCode>([
   'rate_limited',
   'network',
+  'timed_out',
   'disconnected',
   'invalid_output',
   'provider',
+  'unexpected',
 ]);
-const KEY_ERRORS = new Set<ErrorCode>(['no_key', 'unauthorized']);
+const OPTIONS_ERRORS = new Set<ErrorCode>(['no_key', 'unauthorized', 'model_unavailable']);
 
 const COPIED_MS = 2000;
 const SETTLE_MS = 400;
+// A press that moves further than this before the click selected words in the point.
+const DRAG_PX = 4;
 
 interface CardProps {
   state: CardState;
@@ -135,7 +139,7 @@ function Failure({ state, onRegenerate, onOpenOptions }: FailureProps) {
       <p class="error">{ERROR_MESSAGES[state.code]}</p>
       {state.detail && <p class="detail">{state.detail}</p>}
       <div class="actions">
-        {KEY_ERRORS.has(state.code) && (
+        {OPTIONS_ERRORS.has(state.code) && (
           <button type="button" onClick={onOpenOptions}>
             Open options
           </button>
@@ -172,7 +176,7 @@ function Points({ view: { shape, language }, points, children }: PointsProps) {
     <p {...text}>
       {points.map((point, index) => (
         <Fragment key={index}>
-          {index > 0 && ' '}
+          {index > 0 && separatorAfter(points[index - 1]?.text ?? '')}
           {children(point, index)}
         </Fragment>
       ))}
@@ -194,7 +198,15 @@ interface SummaryProps {
 
 function Summary({ view, points, onActivate, onRegenerate }: SummaryProps) {
   const [active, setActive] = useState<Active>();
+  const pressedAt = useRef<{ x: number; y: number }>(undefined);
   const activate = (index: number, point: Point) => setActive({ index, found: onActivate(point) });
+  // A drag or a double click selects words to copy; it does not jump to the passage.
+  const selecting = (event: MouseEvent) => {
+    const start = pressedAt.current;
+    const moved =
+      start !== undefined && Math.hypot(event.clientX - start.x, event.clientY - start.y) > DRAG_PX;
+    return event.detail > 1 || moved;
+  };
   return (
     <>
       <Points view={view} points={points}>
@@ -205,7 +217,12 @@ function Summary({ view, points, onActivate, onRegenerate }: SummaryProps) {
             tabIndex={0}
             class={pointClass(active, index)}
             aria-pressed={active?.index === index}
-            onClick={() => activate(index, point)}
+            onMouseDown={(event) => {
+              pressedAt.current = { x: event.clientX, y: event.clientY };
+            }}
+            onClick={(event) => {
+              if (!selecting(event)) activate(index, point);
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();

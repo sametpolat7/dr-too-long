@@ -16,13 +16,19 @@
   font:
     14px / 1.5 system-ui,
     sans-serif;
+  overflow-wrap: anywhere;
 }
 
+/* Stays at the top of a long card, so × is always in reach. */
 header {
+  position: sticky;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin: -12px -16px 4px;
+  padding: 12px 16px 4px;
+  background: #fff;
 }
 
 .title {
