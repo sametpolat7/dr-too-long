@@ -2,10 +2,9 @@ import { browser } from 'wxt/browser';
 import { EVERY_SITE } from '../every-site.ts';
 import { summarizeTab } from './action.ts';
 import { isBubbleHidden, type Sender } from './hidden-bubble.ts';
+import { EVERY_SITE_SCRIPT } from './scripts.ts';
 
 const SCRIPT_ID = 'every-site';
-// WXT emits the runtime-registered content script under this path.
-const EVERY_SITE_SCRIPT = '/content-scripts/every-site.js';
 
 let syncing = Promise.resolve();
 

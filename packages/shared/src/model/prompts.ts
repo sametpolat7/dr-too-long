@@ -1,6 +1,5 @@
+import type { ShapeId, SummarizeRequest } from '../contracts/index.ts';
 import { countWords } from '../segmentation/index.ts';
-import type { PresetId } from './presets.ts';
-import type { SummarizeRequest } from './request.ts';
 
 // A paragraph or less reads as a short passage.
 const SHORT_TEXT_WORDS = 120;
@@ -11,7 +10,7 @@ const SIZE_GUIDANCE = {
   long: "Size: a long text. A short paragraph, or a handful of points, gives its gist; the richer the text, the more the summary earns, and it stays a fraction of the text's length.",
 };
 
-const SHAPE_GUIDANCE: Record<PresetId, string> = {
+const SHAPE_GUIDANCE: Record<ShapeId, string> = {
   summary:
     'Shape: one paragraph. Open with the bottom line, what the text is about and the main thing it says or concludes, then the reasons, results and turns that make it hold. Keep a figure only where a point rests on it.',
   'key-points':
@@ -23,11 +22,11 @@ interface Prompt {
   prompt: string;
 }
 
-function describeTask({ preset, outputLanguage, sentences }: SummarizeRequest): string {
+function describeTask({ shape, outputLanguage, sentences }: SummarizeRequest): string {
   const size = countWords(sentences.join(' ')) > SHORT_TEXT_WORDS ? 'long' : 'short';
   return [
     SIZE_GUIDANCE[size],
-    SHAPE_GUIDANCE[preset],
+    SHAPE_GUIDANCE[shape],
     `Write every point in ${languageName(outputLanguage)} as an editor would publish it, with no coined words and no term rendered word for word when the language has its own.`,
   ].join('\n');
 }

@@ -1,21 +1,21 @@
 import { storage } from 'wxt/utils/storage';
-import { isListedLanguage, resolveLanguage } from '../languages.ts';
+import { isListedLanguage, type LanguageChoice, resolveLanguage } from '../languages.ts';
 
-// Absent means Auto, which follows Chrome's UI language.
+// Absent means Auto.
 const choice = storage.defineItem<string>('local:outputLanguage');
 
 // A tag that a later version no longer lists reads as Auto.
-const listedOrAuto = (tag: string | null): string | null =>
+const listedOrAuto = (tag: string | null): LanguageChoice =>
   tag !== null && isListedLanguage(tag) ? tag : null;
 
-export const readLanguageChoice = async (): Promise<string | null> =>
+export const readLanguageChoice = async (): Promise<LanguageChoice> =>
   listedOrAuto(await choice.getValue());
 
-export const writeLanguageChoice = (tag: string | null): Promise<void> =>
+export const writeLanguageChoice = (tag: LanguageChoice): Promise<void> =>
   tag === null ? choice.removeValue() : choice.setValue(tag);
 
 // Calls back with each new choice, whether the options page or a card saved it.
-export const watchLanguageChoice = (callback: (tag: string | null) => void): (() => void) =>
+export const watchLanguageChoice = (callback: (tag: LanguageChoice) => void): (() => void) =>
   choice.watch((tag) => callback(listedOrAuto(tag)));
 
 export async function readOutputLanguage(): Promise<string> {

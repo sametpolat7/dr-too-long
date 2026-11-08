@@ -1,7 +1,7 @@
 import { segmentSentences } from '@dr-too-long/shared/segmentation';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { findText, rangeOf, readPageText } from '../src/content/anchoring/page-text.ts';
-import { layOutText } from './layout.ts';
+import { layOutText } from './helpers.ts';
 
 function mount(html: string): Range {
   document.body.innerHTML = html;
@@ -30,17 +30,9 @@ beforeEach(() => {
   layOutText();
 });
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
 describe('readPageText', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it('collapses whitespace and joins inline elements', () => {

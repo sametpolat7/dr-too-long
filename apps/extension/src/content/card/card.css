@@ -61,14 +61,14 @@ p {
   color: #b00020;
 }
 
-.presets,
+.shapes,
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.presets {
+.shapes {
   min-inline-size: 0;
   margin: 0 0 12px;
   padding: 0;
@@ -79,7 +79,7 @@ p {
   margin-top: 12px;
 }
 
-.presets button,
+.shapes button,
 .actions button {
   padding: 4px 10px;
   border: 1px solid #ccc;
@@ -91,12 +91,12 @@ p {
   cursor: pointer;
 }
 
-.presets button:hover,
+.shapes button:hover,
 .actions button:hover {
   background: #f2f2f2;
 }
 
-.presets button[aria-pressed="true"] {
+.shapes button[aria-pressed="true"] {
   border-color: #1a1a1a;
   background: #1a1a1a;
   color: #fff;

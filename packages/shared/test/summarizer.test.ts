@@ -8,8 +8,7 @@ type StreamResult = Awaited<ReturnType<MockLanguageModelV4['doStream']>>;
 type StreamPart = StreamResult['stream'] extends ReadableStream<infer Part> ? Part : never;
 
 const request: SummarizeRequest = {
-  v: 2,
-  preset: 'summary',
+  shape: 'summary',
   outputLanguage: 'en',
   sentences: ['Rivers carve valleys.', 'Valleys collect towns.', 'Towns grow into cities.'],
 };
@@ -113,9 +112,7 @@ describe('createSummarizer', () => {
 
   it('reports invalid_output when the model returns no object', async () => {
     const events = await collect(streaming(textParts(['not json'])));
-    expect(events).toEqual([
-      { type: 'error', code: 'invalid_output', message: expect.any(String) },
-    ]);
+    expect(events).toEqual([{ type: 'error', code: 'invalid_output' }]);
   });
 
   it('reports invalid_output when no point survives validation', async () => {
@@ -138,7 +135,7 @@ describe('createSummarizer', () => {
       data,
     });
     expect(await collect(failing(error))).toEqual([
-      { type: 'error', code: 'quota_exceeded', message: 'HTTP 429' },
+      { type: 'error', code: 'quota_exceeded', httpStatus: 429 },
     ]);
   });
 
@@ -151,13 +148,13 @@ describe('createSummarizer', () => {
       data: { error: { code: 'rate_limit_exceeded' } },
     });
     expect(await collect(failing(error))).toEqual([
-      { type: 'error', code: 'rate_limited', message: 'HTTP 429' },
+      { type: 'error', code: 'rate_limited', httpStatus: 429 },
     ]);
   });
 
   it('reports network when the request never reaches the provider', async () => {
     const events = await collect(failing(new TypeError('Failed to fetch')));
-    expect(events).toEqual([{ type: 'error', code: 'network', message: 'TypeError' }]);
+    expect(events).toEqual([{ type: 'error', code: 'network' }]);
   });
 
   it('reports aborted when the signal fires mid-stream', async () => {

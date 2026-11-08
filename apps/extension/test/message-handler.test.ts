@@ -1,10 +1,11 @@
-import type { PresetId } from '@dr-too-long/shared/contracts';
+import type { ShapeId } from '@dr-too-long/shared/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { handleMessage } from '../src/background/message-handler.ts';
 import type { Message } from '../src/messages.ts';
 import { readLanguageChoice, writeLanguageChoice } from '../src/settings/output-language.ts';
-import { readPreset } from '../src/settings/preset.ts';
+import { readShape } from '../src/settings/shape.ts';
+import { settle } from './helpers.ts';
 
 describe('handleMessage', () => {
   beforeEach(() => {
@@ -30,22 +31,22 @@ describe('handleMessage', () => {
   it('saves no language that the list leaves out', async () => {
     await writeLanguageChoice('tr');
     handleMessage({ type: 'save-language', choice: 'th' }, {}, vi.fn());
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await settle();
     expect(await readLanguageChoice()).toBe('tr');
   });
 
   it('answers the saved shape, Summary until one is saved', async () => {
     const sendResponse = vi.fn();
-    expect(handleMessage({ type: 'read-preset' }, {}, sendResponse)).toBe(true);
+    expect(handleMessage({ type: 'read-shape' }, {}, sendResponse)).toBe(true);
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith('summary'));
   });
 
-  it('saves a shape, and none that the presets leave out', async () => {
-    handleMessage({ type: 'save-preset', preset: 'key-points' }, {}, vi.fn());
-    await vi.waitFor(async () => expect(await readPreset()).toBe('key-points'));
-    handleMessage({ type: 'save-preset', preset: 'essay' as PresetId }, {}, vi.fn());
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(await readPreset()).toBe('key-points');
+  it('saves a shape, and none that the list leaves out', async () => {
+    handleMessage({ type: 'save-shape', shape: 'key-points' }, {}, vi.fn());
+    await vi.waitFor(async () => expect(await readShape()).toBe('key-points'));
+    handleMessage({ type: 'save-shape', shape: 'essay' as ShapeId }, {}, vi.fn());
+    await settle();
+    expect(await readShape()).toBe('key-points');
   });
 
   describe('for the every-site script', () => {
@@ -70,22 +71,22 @@ describe('handleMessage', () => {
     }
 
     it('allows the bubble while the opt-in stands', async () => {
-      expect(await answer({ type: 'read-every-site' })).toBe(true);
+      expect(await answer({ type: 'read-every-site-bubble' })).toBe(true);
     });
 
     it('refuses the bubble once the opt-in is withdrawn', async () => {
       granted = false;
-      expect(await answer({ type: 'read-every-site' })).toBe(false);
+      expect(await answer({ type: 'read-every-site-bubble' })).toBe(false);
     });
 
     it('refuses the bubble where the reader hid it in this tab', async () => {
       handleMessage({ type: 'save-bubble-hidden', hidden: true }, page, vi.fn());
       await vi.waitFor(async () => expect(await answer({ type: 'read-bubble-hidden' })).toBe(true));
-      expect(await answer({ type: 'read-every-site' })).toBe(false);
+      expect(await answer({ type: 'read-every-site-bubble' })).toBe(false);
     });
 
     it("runs the summarize script in the sender's tab on a click", async () => {
-      expect(await answer({ type: 'summarize' })).toBe(true);
+      expect(await answer({ type: 'summarize-from-bubble' })).toBe(true);
       expect(executeScript).toHaveBeenCalledWith({
         target: { tabId: 7 },
         files: ['/content-scripts/summarize.js'],
@@ -93,9 +94,9 @@ describe('handleMessage', () => {
     });
 
     it('runs nothing once the opt-in is withdrawn, or without a tab', async () => {
-      expect(await answer({ type: 'summarize' }, {})).toBe(false);
+      expect(await answer({ type: 'summarize-from-bubble' }, {})).toBe(false);
       granted = false;
-      expect(await answer({ type: 'summarize' })).toBe(false);
+      expect(await answer({ type: 'summarize-from-bubble' })).toBe(false);
       expect(executeScript).not.toHaveBeenCalled();
     });
   });

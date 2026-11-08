@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { forgetTab } from '../src/background/hidden-bubble.ts';
+import { forgetTab, isBubbleHidden } from '../src/background/hidden-bubble.ts';
 import { handleMessage } from '../src/background/message-handler.ts';
+import { settle } from './helpers.ts';
 
 const site = { tab: { id: 7 }, origin: 'https://news.example.com' };
 
@@ -14,7 +15,7 @@ async function read(sender: { tab?: { id?: number }; origin?: string }): Promise
 
 async function hide(sender: { tab?: { id?: number }; origin?: string }, hidden = true) {
   handleMessage({ type: 'save-bubble-hidden', hidden }, sender, vi.fn());
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await vi.waitFor(async () => expect(await isBubbleHidden(sender)).toBe(hidden));
 }
 
 describe('the bubble hidden on a site', () => {
@@ -66,7 +67,8 @@ describe('the bubble hidden on a site', () => {
     ['a file', { ...site, origin: 'file://' }],
     ['no tab', { origin: site.origin }],
   ])('keeps nothing for %s', async (_, sender) => {
-    await hide(sender);
+    handleMessage({ type: 'save-bubble-hidden', hidden: true }, sender, vi.fn());
+    await settle();
     expect(await read(sender)).toBe(false);
     expect(await fakeBrowser.storage.session.get()).toEqual({});
   });

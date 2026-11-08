@@ -5,6 +5,7 @@ import { watchEverySite } from '../content/every-site.ts';
 export default defineContentScript({
   registration: 'runtime',
   cssInjectionMode: 'manual',
+  // Keeps WXT's start-up message off the page's own message listeners.
   noScriptStartedPostMessage: true,
   main: watchEverySite,
 });

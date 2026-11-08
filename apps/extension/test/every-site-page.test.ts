@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { watchEverySite } from '../src/content/every-site.ts';
 import { BUBBLE_UI, SUMMARIZE_STARTED } from '../src/content/ui.ts';
+import { pageshow, settle } from './helpers.ts';
 
 const { startBubble, setHidden, requestEverySiteBubble, requestSummarize } = vi.hoisted(() => {
   const setHidden = vi.fn();
@@ -13,7 +14,10 @@ const { startBubble, setHidden, requestEverySiteBubble, requestSummarize } = vi.
   };
 });
 vi.mock('../src/content/bubble/bubble.tsx', () => ({ startBubble }));
-vi.mock('../src/messages.ts', () => ({ requestEverySiteBubble, requestSummarize }));
+vi.mock('../src/messages.ts', () => ({
+  request: (type: string) =>
+    type === 'read-every-site-bubble' ? requestEverySiteBubble() : requestSummarize(),
+}));
 
 let controller: AbortController;
 const context = () =>
@@ -36,14 +40,8 @@ function select(text: string) {
 const release = () => document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 const key = (type: string, key: string) =>
   document.dispatchEvent(new KeyboardEvent(type, { bubbles: true, key }));
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 const options = () =>
   startBubble.mock.calls[0]?.[1] as unknown as { offerCurrent: boolean; onSummarize: () => void };
-
-// happy-dom's PageTransitionEvent ignores persisted.
-function pageshow(persisted: boolean): Event {
-  return Object.defineProperty(new Event('pageshow'), 'persisted', { value: persisted });
-}
 
 function holdAnswer() {
   let answer: (shown: boolean) => void = () => undefined;

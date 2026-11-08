@@ -6,6 +6,7 @@ import { summarizeSelection } from '../content/summarize.tsx';
 export default defineContentScript({
   registration: 'runtime',
   cssInjectionMode: 'manual',
+  // Keeps WXT's start-up message off the page's own message listeners.
   noScriptStartedPostMessage: true,
   main: summarizeSelection,
 });

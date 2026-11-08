@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { providerModel } from '../src/model/index.ts';
-import { PROVIDER_IDS } from '../src/providers/index.ts';
+import { PROVIDER_IDS, PROVIDERS } from '../src/providers/index.ts';
 import { callProvider } from './provider-call.ts';
 
 const serverError = () => new Response('{}', { status: 500 });
@@ -15,6 +15,12 @@ describe('providerModel', () => {
       provider: sdkProvider,
       modelId,
     });
+  });
+
+  // The manifest grants exactly these hosts, so a call anywhere else would fail in Chrome.
+  it.each(PROVIDER_IDS)('calls %s at its listed API host', async (provider) => {
+    const { url } = await callProvider(provider, serverError);
+    expect(new URL(String(url)).origin).toBe(PROVIDERS[provider].apiHost);
   });
 
   it.each(PROVIDER_IDS)('calls %s without cookies', async (provider) => {

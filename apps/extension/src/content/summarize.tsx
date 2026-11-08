@@ -4,18 +4,14 @@ import {
   createShadowRootUi,
   type ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
-import { resolveLanguage } from '../languages.ts';
-import {
-  requestBubbleHidden,
-  requestLanguageChoice,
-  requestPreset,
-  sendMessage,
-} from '../messages.ts';
+import { type LanguageChoice, resolveLanguage } from '../languages.ts';
+import { request, sendMessage } from '../messages.ts';
 import { portSummarizer } from '../summarize-port.ts';
 import { type Anchors, createAnchors } from './anchoring/anchors.ts';
 import { startBubble } from './bubble/bubble.tsx';
-import { Card, type CardState, type View } from './card/Card.tsx';
+import { Card } from './card/Card.tsx';
 import css from './card/card.css?inline';
+import type { CardState, View } from './card/view.ts';
 import { createRuns, type Runs } from './runs.ts';
 import { readSelection } from './selection.ts';
 import { CARD_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
@@ -90,7 +86,7 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   // a click wins.
   const ask = () => {
     const asked = switches;
-    void requestBubbleHidden().then((next) => {
+    void request('read-bubble-hidden').then((next) => {
       if (switches === asked && ctx.isValid && next !== hidden) apply(next);
     });
   };
@@ -111,7 +107,7 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
   const controller = new AbortController();
   let anchors: Anchors | undefined;
   let runs: Runs | undefined;
-  let choice: string | null = null;
+  let choice: LanguageChoice = null;
   let redraw: () => void = () => undefined;
   const close = () => {
     controller.abort();
@@ -134,9 +130,9 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
         view={view}
         choice={choice}
         // The card switches first: in a script orphaned by an extension reload the saves throw.
-        onSelect={(preset) => {
-          runs?.select(preset);
-          sendMessage({ type: 'save-preset', preset });
+        onSelect={(shape) => {
+          runs?.select(shape);
+          sendMessage({ type: 'save-shape', shape });
         }}
         onLanguage={(next) => {
           runs?.selectLanguage(resolveLanguage(next));
@@ -169,12 +165,12 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
   }
 
   anchors = createAnchors(outcome.pageText, outcome.sentences);
-  void Promise.all([requestLanguageChoice(), requestPreset()]).then(([saved, preset]) => {
+  void Promise.all([request('read-language'), request('read-shape')]).then(([saved, shape]) => {
     choice = saved;
     runs = createRuns({
       summarizer: portSummarizer,
       sentences: outcome.sentences.map((sentence) => sentence.text),
-      initial: { preset, language: resolveLanguage(saved) },
+      initial: { shape, language: resolveLanguage(saved) },
       // Each new state replaces the summary whose point the page may have highlighted.
       show: (view, state) => {
         anchors?.clear();

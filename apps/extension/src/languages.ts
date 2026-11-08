@@ -1,5 +1,8 @@
 import { browser } from 'wxt/browser';
 
+// A listed language's tag, or null for Auto, which follows Chrome's UI language.
+export type LanguageChoice = string | null;
+
 // The languages of the locale list in the chrome.i18n reference, as BCP 47 tags: one entry per
 // language rather than per region, Chinese by script rather than by place, and no Catalan. Thai and
 // Amharic are left out because the sentence segmenter cannot split much of their prose.
@@ -70,7 +73,7 @@ export const LANGUAGES = TAGS.map((tag) => ({ tag, label: languageLabel(tag) }))
 
 export const isListedLanguage = (tag: string): boolean => TAGS.includes(tag);
 
-export function resolveLanguage(choice: string | null): string {
+export function resolveLanguage(choice: LanguageChoice): string {
   return choice ?? browser.i18n.getUILanguage();
 }
 

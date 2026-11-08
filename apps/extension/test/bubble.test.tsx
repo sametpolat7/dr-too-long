@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { type Bubble, startBubble } from '../src/content/bubble/bubble.tsx';
 import { BUBBLE_DELAY_MS } from '../src/content/bubble/watch.ts';
+import { LONG } from './helpers.ts';
 
 // The bubble's closed shadow root, replaced by a container in an open host the test can reach.
 const { host, container } = vi.hoisted(() => {
@@ -14,8 +15,6 @@ vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
     mount: () => document.documentElement.append(host),
   }),
 }));
-
-const LONG = 'The keeper logged every ship that passed the cape for forty years. '.repeat(3);
 
 let valid = true;
 let bubble: Bubble | undefined;
@@ -49,7 +48,6 @@ describe('startBubble', () => {
   });
   afterEach(() => {
     bubble?.setHidden(true);
-    vi.restoreAllMocks();
     vi.useRealTimers();
     document.getSelection()?.removeAllRanges();
   });

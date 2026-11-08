@@ -9,6 +9,7 @@
     "build": "wxt build",
     "zip": "wxt zip",
     "test": "vitest run",
+    "coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "check:manifest": "node scripts/check-manifest.ts",
     "check:bundle": "node scripts/check-content-bundle.ts",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "24.19.2",
+    "@vitest/coverage-v8": "catalog:",
     "fake-indexeddb": "6.2.7",
     "happy-dom": "21.0.4",
     "typescript": "catalog:",

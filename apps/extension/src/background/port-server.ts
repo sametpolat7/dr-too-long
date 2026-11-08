@@ -61,7 +61,7 @@ async function run(
   // messages.
   if (signal.aborted) return;
   if (!apiKey) {
-    port.postMessage({ type: 'error', code: 'no_key', message: 'No API key is saved' });
+    port.postMessage({ type: 'error', code: 'no_key' });
     port.disconnect();
     return;
   }

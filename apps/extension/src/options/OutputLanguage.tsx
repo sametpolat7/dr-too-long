@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { LanguageSelect } from '../LanguageSelect.tsx';
+import type { LanguageChoice } from '../languages.ts';
 import {
   readLanguageChoice,
   watchLanguageChoice,
@@ -8,7 +9,7 @@ import {
 
 export function OutputLanguage() {
   // Undefined until the saved choice has loaded, so the select never flashes Auto.
-  const [choice, setChoice] = useState<string | null>();
+  const [choice, setChoice] = useState<LanguageChoice>();
 
   useEffect(() => {
     readLanguageChoice().then(setChoice);
@@ -17,7 +18,7 @@ export function OutputLanguage() {
 
   if (choice === undefined) return null;
 
-  async function change(next: string | null) {
+  async function change(next: LanguageChoice) {
     await writeLanguageChoice(next);
     setChoice(next);
   }

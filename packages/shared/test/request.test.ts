@@ -3,8 +3,7 @@ import { summarizeRequestSchema } from '../src/contracts/index.ts';
 import { MAX_SELECTION_CHARS } from '../src/limits/index.ts';
 
 const request = {
-  v: 2,
-  preset: 'summary',
+  shape: 'summary',
   outputLanguage: 'tr',
   sentences: ['First sentence.', 'Second sentence.'],
 };
@@ -19,8 +18,8 @@ describe('summarizeRequestSchema', () => {
     expect(summarizeRequestSchema.safeParse(withField).success).toBe(false);
   });
 
-  it('rejects an unknown preset', () => {
-    expect(summarizeRequestSchema.safeParse({ ...request, preset: 'essay' }).success).toBe(false);
+  it('rejects an unknown shape', () => {
+    expect(summarizeRequestSchema.safeParse({ ...request, shape: 'essay' }).success).toBe(false);
   });
 
   it.each(['not a tag', 'en-u-ca-gregory', 'en-x-foo'])(

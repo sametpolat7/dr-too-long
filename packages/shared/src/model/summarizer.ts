@@ -1,14 +1,14 @@
 import { type DeepPartial, Output, streamText } from 'ai';
 import {
-  buildPrompt,
   type Point,
   type Summarizer,
   type SummaryOutput,
   summaryOutputSchema,
-  validateOutput,
 } from '../contracts/index.ts';
 import { toErrorEvent } from './error-event.ts';
+import { buildPrompt } from './prompts.ts';
 import type { ModelSetup } from './provider-model.ts';
+import { validateOutput } from './validate.ts';
 
 // A handful of points and the JSON around them fit well within this.
 const MAX_OUTPUT_TOKENS = 1024;
@@ -37,7 +37,7 @@ export function createSummarizer({ model, providerOptions }: ModelSetup): Summar
         const points = validateOutput(await result.output, request.sentences.length);
         yield points.length > 0
           ? { type: 'done', output: { points } }
-          : { type: 'error', code: 'invalid_output', message: 'No point survived validation' };
+          : { type: 'error', code: 'invalid_output' };
       } catch (caught) {
         yield toErrorEvent(failure ?? caught, signal);
       }

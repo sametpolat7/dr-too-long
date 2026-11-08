@@ -1,31 +1,13 @@
-import {
-  type ErrorCode,
-  type Point,
-  PRESET_IDS,
-  type PresetId,
-} from '@dr-too-long/shared/contracts';
+import { type ErrorCode, type Point, SHAPE_IDS, type ShapeId } from '@dr-too-long/shared/contracts';
 import { type ComponentChild, Fragment } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { ERROR_MESSAGES } from '../../error-messages.ts';
 import { LanguageSelect } from '../../LanguageSelect.tsx';
-import { textDirection } from '../../languages.ts';
+import { type LanguageChoice, textDirection } from '../../languages.ts';
 import { copyText } from './copy.ts';
+import { type CardState, type ErrorState, type View, viewKey } from './view.ts';
 
-type ErrorState = { status: 'error'; code: ErrorCode; detail?: string };
-
-export type CardState =
-  | { status: 'summarizing'; points: Point[] }
-  | { status: 'done'; points: Point[] }
-  | ErrorState;
-
-export interface View {
-  preset: PresetId;
-  language: string;
-}
-
-export const viewKey = ({ preset, language }: View): string => `${preset} ${language}`;
-
-const PRESET_LABELS: Record<PresetId, string> = {
+const SHAPE_LABELS: Record<ShapeId, string> = {
   summary: 'Summary',
   'key-points': 'Key points',
 };
@@ -43,14 +25,13 @@ const KEY_ERRORS = new Set<ErrorCode>(['no_key', 'unauthorized']);
 const COPIED_MS = 2000;
 const SETTLE_MS = 400;
 
-export interface CardProps {
+interface CardProps {
   state: CardState;
   // Absent when the selection was refused.
   view?: View;
-  // Null is Auto.
-  choice: string | null;
-  onSelect: (preset: PresetId) => void;
-  onLanguage: (choice: string | null) => void;
+  choice: LanguageChoice;
+  onSelect: (shape: ShapeId) => void;
+  onLanguage: (choice: LanguageChoice) => void;
   // Whether the bubble is hidden on this site in this tab.
   bubbleHidden: boolean;
   onBubble: (hidden: boolean) => void;
@@ -82,7 +63,7 @@ export function Card({
       </header>
       {view ? (
         <>
-          <Presets selected={view.preset} onSelect={onSelect} />
+          <Shapes selected={view.shape} onSelect={onSelect} />
           <Body state={state} view={view} {...body} />
           <footer>
             <Language choice={choice} onLanguage={onLanguage} />
@@ -96,17 +77,17 @@ export function Card({
   );
 }
 
-interface PresetsProps {
-  selected: PresetId;
+interface ShapesProps {
+  selected: ShapeId;
   onSelect: CardProps['onSelect'];
 }
 
-function Presets({ selected, onSelect }: PresetsProps) {
+function Shapes({ selected, onSelect }: ShapesProps) {
   return (
-    <fieldset class="presets" aria-label="Preset">
-      {PRESET_IDS.map((id) => (
+    <fieldset class="shapes" aria-label="Shape">
+      {SHAPE_IDS.map((id) => (
         <button key={id} type="button" aria-pressed={id === selected} onClick={() => onSelect(id)}>
-          {PRESET_LABELS[id]}
+          {SHAPE_LABELS[id]}
         </button>
       ))}
     </fieldset>
@@ -176,9 +157,9 @@ interface PointsProps {
 }
 
 // The language's own direction, even when a point starts with a name in another script.
-function Points({ view: { preset, language }, points, children }: PointsProps) {
+function Points({ view: { shape, language }, points, children }: PointsProps) {
   const text = { lang: language, dir: textDirection(language) };
-  if (preset === 'key-points') {
+  if (shape === 'key-points') {
     return (
       <ul {...text}>
         {points.map((point, index) => (
@@ -238,7 +219,7 @@ function Summary({ view, points, onActivate, onRegenerate }: SummaryProps) {
       </Points>
       {active && !active.found && <p class="status">The passage is no longer on the page.</p>}
       <div class="actions">
-        <CopyButton text={copyText(view.preset, points)} />
+        <CopyButton text={copyText(view.shape, points)} />
         <button type="button" onClick={onRegenerate}>
           Regenerate
         </button>
@@ -253,7 +234,7 @@ function pointClass(active: Active | undefined, index: number): string {
 }
 
 interface LanguageProps {
-  choice: string | null;
+  choice: LanguageChoice;
   onLanguage: CardProps['onLanguage'];
 }
 
@@ -265,7 +246,7 @@ function Language({ choice: saved, onLanguage }: LanguageProps) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const change = (next: string | null) => {
+  const change = (next: LanguageChoice) => {
     setChoice(next);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => onLanguage(next), SETTLE_MS);

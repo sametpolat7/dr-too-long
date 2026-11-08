@@ -4,8 +4,7 @@ import { createSummarizer, providerModel } from '../src/model/index.ts';
 import type { ProviderId } from '../src/providers/index.ts';
 
 const request: SummarizeRequest = {
-  v: 2,
-  preset: 'summary',
+  shape: 'summary',
   outputLanguage: 'en',
   sentences: ['Rivers carve valleys.'],
 };
@@ -21,8 +20,8 @@ export async function callProvider(provider: ProviderId, respond: () => Response
     })) {
       events.push(event);
     }
-    const [, init] = fetch.mock.calls[0] ?? [];
-    return { events, init };
+    const [url, init] = fetch.mock.calls[0] ?? [];
+    return { events, url, init };
   } finally {
     vi.unstubAllGlobals();
   }
