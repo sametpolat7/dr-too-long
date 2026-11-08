@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MAX_SELECTION_CHARS } from '../limits/index.ts';
-import { PRESET_IDS } from './presets.ts';
+import { SHAPE_IDS } from './shapes.ts';
 
 // A tag the prompt can name: Intl.DisplayNames refuses extensions such as -u-ca-gregory and -x-.
 function isLanguageTag(tag: string): boolean {
@@ -13,8 +13,7 @@ function isLanguageTag(tag: string): boolean {
 }
 
 export const summarizeRequestSchema = z.strictObject({
-  v: z.literal(2),
-  preset: z.enum(PRESET_IDS),
+  shape: z.enum(SHAPE_IDS),
   outputLanguage: z
     .string()
     .refine(isLanguageTag, 'Expected a language tag without extensions, such as en or pt-BR'),

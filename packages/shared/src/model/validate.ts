@@ -1,4 +1,4 @@
-import type { Point, SummaryOutput } from './output.ts';
+import type { Point, SummaryOutput } from '../contracts/index.ts';
 
 function validatePoint(point: Point, sentenceCount: number): Point | null {
   const text = point.text.trim();

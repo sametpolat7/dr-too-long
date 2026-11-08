@@ -19,7 +19,8 @@ export type ErrorCode =
 export type SummaryEvent =
   | { type: 'partial'; points: Point[] }
   | { type: 'done'; output: SummaryOutput }
-  | { type: 'error'; code: ErrorCode; message: string };
+  // The provider's HTTP status, when it answered with one.
+  | { type: 'error'; code: ErrorCode; httpStatus?: number };
 
 export interface Summarizer {
   summarize(

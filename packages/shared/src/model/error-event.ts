@@ -11,7 +11,7 @@ const NO_CREDIT_CODES = ['insufficient_quota', 'billing_error', 'enforced_spend_
 
 // Never the provider's own message: an OpenAI 401 body echoes part of the key.
 export function toErrorEvent(error: unknown, signal: AbortSignal): SummaryEvent {
-  return { type: 'error', code: toErrorCode(error, signal), message: describe(error) };
+  return { type: 'error', code: toErrorCode(error, signal), httpStatus: statusOf(error) };
 }
 
 function toErrorCode(error: unknown, signal: AbortSignal): ErrorCode {
@@ -60,11 +60,4 @@ function codesIn(value: unknown, codes: string[] = []): string[] {
     else codesIn(item, codes);
   }
   return codes;
-}
-
-function describe(error: unknown): string {
-  const status = statusOf(error);
-  if (status !== undefined) return `HTTP ${status}`;
-  if (APICallError.isInstance(error)) return 'No response from the provider';
-  return error instanceof Error ? error.name : 'Unknown error';
 }
