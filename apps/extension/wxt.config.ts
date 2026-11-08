@@ -7,6 +7,7 @@ import { EVERY_SITE } from './src/every-site.ts';
 import { LINKS } from './src/links.ts';
 
 const MINIMUM_CHROME = 110;
+const API_HOSTS = Object.values(PROVIDERS).map(({ apiHost }) => apiHost);
 
 export default defineConfig({
   srcDir: 'src',
@@ -14,7 +15,7 @@ export default defineConfig({
   webExt: { disabled: true },
   zip: { name: 'dr-too-long', exclude: [`${LICENSE_LISTS}/**`] },
   vite: () => ({ build: { target: `chrome${MINIMUM_CHROME}` } }),
-  manifest: {
+  manifest: ({ command }) => ({
     name: 'Dr. Too Long',
     // Shown on chrome://extensions and in the Web Store, in at most 132 characters.
     description:
@@ -30,9 +31,16 @@ export default defineConfig({
       _execute_action: { suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' } },
     },
     permissions: ['activeTab', 'contextMenus', 'scripting', 'storage'],
-    host_permissions: Object.values(PROVIDERS).map(({ apiHost }) => `${apiHost}/*`),
+    host_permissions: API_HOSTS.map((host) => `${host}/*`),
     optional_host_permissions: EVERY_SITE.origins,
-  },
+    // The worker and the options page may fetch the three provider APIs and nothing else, whatever a
+    // bundled package tries. Builds only: WXT's dev reload talks to a local server.
+    ...(command === 'build' && {
+      content_security_policy: {
+        extension_pages: `script-src 'self'; object-src 'self'; connect-src ${API_HOSTS.join(' ')}`,
+      },
+    }),
+  }),
   // Every package goes out with its licence: the project's own, and the bundled packages' notices.
   hooks: {
     'vite:build:extendConfig': (entrypoints, config) => {

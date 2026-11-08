@@ -9,6 +9,9 @@ import { handleMessage } from '../background/message-handler.ts';
 import { startPortServer } from '../background/port-server.ts';
 
 export default defineBackground(() => {
+  // Content scripts never read storage, and Chrome can enforce that for local storage from version
+  // 140. Older versions refuse the call and keep their default.
+  browser.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' }).catch(() => undefined);
   browser.runtime.onInstalled.addListener(({ reason }) => {
     void addMenuItem();
     void syncEverySite();
