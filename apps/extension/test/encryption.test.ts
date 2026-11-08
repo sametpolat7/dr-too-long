@@ -32,17 +32,17 @@ describe('encryption', () => {
 
   it('decrypts what it encrypted, with a fresh IV each time', async () => {
     const { encrypt, decrypt } = await newContext();
-    const first = await encrypt('test-key');
-    const second = await encrypt('test-key');
+    const first = await encrypt('test-key', 'openai');
+    const second = await encrypt('test-key', 'openai');
     expect(first.iv).not.toBe(second.iv);
     expect(first.ciphertext).not.toBe(second.ciphertext);
-    expect(await decrypt(first)).toBe('test-key');
-    expect(await decrypt(second)).toBe('test-key');
+    expect(await decrypt(first, 'openai')).toBe('test-key');
+    expect(await decrypt(second, 'openai')).toBe('test-key');
   });
 
   it('keeps one non-extractable AES-GCM key in IndexedDB', async () => {
     const { encrypt } = await newContext();
-    await encrypt('test-key');
+    await encrypt('test-key', 'openai');
     const keys = await storedKeys();
     expect(keys).toHaveLength(1);
     expect(keys[0]?.extractable).toBe(false);
@@ -53,11 +53,11 @@ describe('encryption', () => {
     const page = await newContext();
     const worker = await newContext();
     const [fromPage, fromWorker] = await Promise.all([
-      page.encrypt('test-page-key'),
-      worker.encrypt('test-worker-key'),
+      page.encrypt('test-page-key', 'openai'),
+      worker.encrypt('test-worker-key', 'openai'),
     ]);
-    expect(await worker.decrypt(fromPage)).toBe('test-page-key');
-    expect(await page.decrypt(fromWorker)).toBe('test-worker-key');
+    expect(await worker.decrypt(fromPage, 'openai')).toBe('test-page-key');
+    expect(await page.decrypt(fromWorker, 'openai')).toBe('test-worker-key');
     expect(await storedKeys()).toHaveLength(1);
   });
 
@@ -66,9 +66,9 @@ describe('encryption', () => {
     const open = vi.spyOn(indexedDB, 'open').mockImplementationOnce(() => {
       throw new DOMException('Internal error opening backing store', 'UnknownError');
     });
-    await expect(encrypt('test-key')).rejects.toThrow('backing store');
+    await expect(encrypt('test-key', 'openai')).rejects.toThrow('backing store');
     open.mockRestore();
-    expect(await decrypt(await encrypt('test-key'))).toBe('test-key');
+    expect(await decrypt(await encrypt('test-key', 'openai'), 'openai')).toBe('test-key');
   });
 
   it('fails rather than waits when the key cannot be stored', async () => {
@@ -76,11 +76,17 @@ describe('encryption', () => {
     vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementationOnce(() => {
       throw new DOMException('Quota exceeded', 'QuotaExceededError');
     });
-    await expect(encrypt('test-key')).rejects.toBeDefined();
+    await expect(encrypt('test-key', 'openai')).rejects.toBeDefined();
+  });
+
+  it('refuses a record whose context was changed', async () => {
+    const { encrypt, decrypt } = await newContext();
+    const sealed = await encrypt('test-key', 'openai');
+    await expect(decrypt(sealed, 'anthropic')).rejects.toMatchObject({ name: 'OperationError' });
   });
 
   it('decrypts in a later context what an earlier one encrypted', async () => {
-    const sealed = await (await newContext()).encrypt('test-key');
-    expect(await (await newContext()).decrypt(sealed)).toBe('test-key');
+    const sealed = await (await newContext()).encrypt('test-key', 'openai');
+    expect(await (await newContext()).decrypt(sealed, 'openai')).toBe('test-key');
   });
 });

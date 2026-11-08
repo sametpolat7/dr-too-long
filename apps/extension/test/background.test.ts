@@ -32,6 +32,7 @@ describe('the background worker', () => {
   const createMenuItem = vi.fn();
   const registerContentScripts = vi.fn();
   const openOptionsPage = vi.fn(async () => undefined);
+  const setAccessLevel = vi.fn(async (_: { accessLevel: string }) => undefined);
   let granted: boolean;
   let menuClicked: ReturnType<typeof fakeEvent>;
   let permissionsAdded: ReturnType<typeof fakeEvent>;
@@ -56,6 +57,7 @@ describe('the background worker', () => {
       onRemoved: permissionsRemoved,
       contains: async () => granted,
     });
+    Object.assign(fakeBrowser.storage.local, { setAccessLevel: setAccessLevel.mockClear() });
     Object.assign(fakeBrowser.runtime, {
       onConnect: connected,
       openOptionsPage: openOptionsPage.mockClear(),
@@ -103,6 +105,15 @@ describe('the background worker', () => {
         `execute ${JSON.stringify({ target: { tabId: 3 }, files: [SUMMARIZE_SCRIPT] })}`,
       ]),
     );
+  });
+
+  it('closes local storage to content scripts, where Chrome allows it', () => {
+    expect(setAccessLevel).toHaveBeenCalledWith({ accessLevel: 'TRUSTED_CONTEXTS' });
+  });
+
+  it('starts on a Chrome older than 140, which refuses to close local storage', () => {
+    setAccessLevel.mockRejectedValueOnce(new Error('Not supported'));
+    expect(() => background.main()).not.toThrow();
   });
 
   it('answers the content scripts and the options page', () => {
