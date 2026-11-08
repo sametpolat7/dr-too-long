@@ -32,6 +32,7 @@ Run `pnpm exec lefthook install` once after cloning. The hooks check formatting,
 - **Saved data stays readable by the previous version.** The Web Store's rollback republishes the previous version in about a minute without review, and that version deletes a stored key it cannot read. Change a storage format only together with a release that both versions can live with.
 - **No new permission warnings in an update.** A permission that adds a warning disables the extension for every reader until they accept it.
 - **Every three months,** check each provider's terms and its model deprecation page ([OpenAI](https://developers.openai.com/api/docs/deprecations), [Claude](https://platform.claude.com/docs/en/about-claude/model-deprecations), [Gemini](https://ai.google.dev/gemini-api/docs/models)), and plan an update before a fixed model retires.
+- **The link preview** that GitHub shows for the repository is `.github/social-preview.png`; GitHub takes it only through Settings, General, Social preview.
 - **Dependencies.** Dependabot opens npm security fixes and grouped GitHub Actions updates. Other npm updates come by hand, each in its own pull request, after a look at `pnpm outdated`.
 
 ## Icons

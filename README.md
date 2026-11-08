@@ -13,7 +13,7 @@
   <a href="https://github.com/sametpolat7/dr-too-long/actions/workflows/ci.yml"><img src="https://github.com/sametpolat7/dr-too-long/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
-![The card beside an article: the second key point is selected, and the sentence it rests on is highlighted in the article.](docs/images/summary.png)
+![The card beside an article: the second key point is selected, and the sentence it rests on is highlighted in the article.](docs/store/screenshot-1-key-points.png)
 
 Select the part of a page you are unsure about and Dr. Too Long tells you what it says, in a card beside the text, so you can decide whether the whole thing is worth reading. Click a point and the page highlights the sentences it comes from, so you can check it against the source.
 
