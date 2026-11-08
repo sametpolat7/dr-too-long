@@ -70,6 +70,15 @@ describe('Card', () => {
     expect(title?.textContent).toBe('Dr. Too Long');
   });
 
+  it("shows the extension's mark beside its name, hidden from screen readers", () => {
+    const mark = show(done).querySelector('h2 svg');
+    expect(mark?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it.each(['light', 'dark'] as const)("takes the page's %s scheme", (theme) => {
+    expect(show(done, { theme }).querySelector('section')?.dataset.theme).toBe(theme);
+  });
+
   it('announces the start and the end of a summary in one status that stays mounted', () => {
     const container = document.createElement('div');
     show({ status: 'summarizing', points: [] }, {}, container);
