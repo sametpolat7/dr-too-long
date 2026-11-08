@@ -5,7 +5,7 @@ import {
   type ProviderId,
 } from '@dr-too-long/shared/providers';
 import { useState } from 'preact/hooks';
-import { removeApiKey, writeApiKey } from '../settings/api-key.ts';
+import { isWellFormedKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
 
 interface KeyFormProps {
   // Null when no key is saved.
@@ -20,17 +20,36 @@ const PROVIDER_NAMES = new Intl.ListFormat('en-GB', { type: 'disjunction' }).for
 export function KeyForm({ saved, onChange }: KeyFormProps) {
   const [picked, setPicked] = useState<ProviderId>(saved ?? PROVIDER_IDS[0]);
   const [draft, setDraft] = useState('');
+  const [failure, setFailure] = useState<string>();
   const { name } = PROVIDERS[picked];
 
   async function save(event: Event) {
     event.preventDefault();
-    await writeApiKey({ provider: picked, key: draft });
+    if (!isWellFormedKey(draft)) {
+      setFailure(
+        'The key holds a character no API key has, such as an invisible space. Copy it again from your provider.',
+      );
+      return;
+    }
+    try {
+      await writeApiKey({ provider: picked, key: draft });
+    } catch {
+      setFailure('The key could not be saved on this device. Try again.');
+      return;
+    }
+    setFailure(undefined);
     setDraft('');
     onChange(picked);
   }
 
   async function remove() {
-    await removeApiKey();
+    try {
+      await removeApiKey();
+    } catch {
+      setFailure('The key could not be removed. Try again.');
+      return;
+    }
+    setFailure(undefined);
     onChange(null);
   }
 
@@ -75,6 +94,11 @@ export function KeyForm({ saved, onChange }: KeyFormProps) {
           </button>
         )}
       </form>
+      {failure && (
+        <p class="error" role="alert">
+          {failure}
+        </p>
+      )}
       <p class="note">
         {`A summary sends the text you select to the ${name} API with this key, under your account.`}
         {picked === 'google' &&

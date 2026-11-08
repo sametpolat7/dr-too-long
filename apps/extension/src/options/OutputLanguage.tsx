@@ -10,6 +10,7 @@ import {
 export function OutputLanguage() {
   // Undefined until the saved choice has loaded, so the select never flashes Auto.
   const [choice, setChoice] = useState<LanguageChoice>();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     readLanguageChoice().then(setChoice);
@@ -19,9 +20,23 @@ export function OutputLanguage() {
   if (choice === undefined) return null;
 
   async function change(next: LanguageChoice) {
-    await writeLanguageChoice(next);
-    setChoice(next);
+    try {
+      await writeLanguageChoice(next);
+      setChoice(next);
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
   }
 
-  return <LanguageSelect choice={choice} onChange={change} />;
+  return (
+    <>
+      <LanguageSelect choice={choice} onChange={change} />
+      {failed && (
+        <p class="error" role="alert">
+          The summary language could not be saved. Try again.
+        </p>
+      )}
+    </>
+  );
 }
