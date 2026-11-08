@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { handleConnect, type SummarizePort } from '../src/background/port-server.ts';
 import { type ApiKey, writeApiKey } from '../src/settings/api-key.ts';
+import { settle } from './helpers.ts';
 
 const request: SummarizeRequest = {
-  v: 2,
-  preset: 'summary',
+  shape: 'summary',
   outputLanguage: 'tr',
   sentences: ['One.', 'Two.'],
 };
@@ -74,7 +74,7 @@ describe('handleConnect', () => {
     port.receive(request);
 
     await vi.waitFor(() => expect(port.disconnected).toBe(true));
-    expect(port.sent).toEqual([{ type: 'error', code: 'no_key', message: expect.any(String) }]);
+    expect(port.sent).toEqual([{ type: 'error', code: 'no_key' }]);
     expect(createSummarizer).not.toHaveBeenCalled();
   });
 
@@ -137,7 +137,7 @@ describe('handleConnect', () => {
     port.receive(request);
     port.closeFromClient();
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await settle();
     expect(postMessage).not.toHaveBeenCalled();
   });
 
@@ -165,6 +165,36 @@ describe('handleConnect', () => {
     expect(createSummarizer).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the worker awake during a run and lets it sleep after', async () => {
+    await writeApiKey(apiKey);
+    const getPlatformInfo = vi.fn();
+    fakeBrowser.runtime.getPlatformInfo = getPlatformInfo;
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      let finish: (() => void) | undefined;
+      const port = new FakePort();
+      handleConnect(port, () => ({
+        async *summarize() {
+          await new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+          yield done;
+        },
+      }));
+      port.receive(request);
+      await vi.waitFor(() => expect(finish).toBeDefined());
+      vi.advanceTimersByTime(20_000);
+      expect(getPlatformInfo).toHaveBeenCalledOnce();
+
+      finish?.();
+      await vi.waitFor(() => expect(port.disconnected).toBe(true));
+      vi.advanceTimersByTime(60_000);
+      expect(getPlatformInfo).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('aborts the run when the client disconnects mid-stream', async () => {
     await writeApiKey(apiKey);
     let signal: AbortSignal | undefined;
@@ -183,7 +213,7 @@ describe('handleConnect', () => {
     await vi.waitFor(() => expect(port.sent).toEqual([partial]));
     port.closeFromClient();
     expect(signal?.aborted).toBe(true);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await settle();
     expect(port.sent).toEqual([partial]);
   });
 });

@@ -1,5 +1,5 @@
 import { IDBFactory } from 'fake-indexeddb';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Encryption = typeof import('../src/settings/encryption.ts');
 
@@ -29,7 +29,6 @@ function storedKeys(): Promise<CryptoKey[]> {
 
 describe('encryption', () => {
   beforeEach(() => vi.stubGlobal('indexedDB', new IDBFactory()));
-  afterEach(() => vi.unstubAllGlobals());
 
   it('decrypts what it encrypted, with a fresh IV each time', async () => {
     const { encrypt, decrypt } = await newContext();

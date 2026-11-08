@@ -1,17 +1,16 @@
-import type { SummarizeRequest, SummaryEvent } from '@dr-too-long/shared/contracts';
+import type { SummarizeRequest, Summarizer, SummaryEvent } from '@dr-too-long/shared/contracts';
 import { describe, expect, it, vi } from 'vitest';
-import type { CardState, View } from '../src/content/card/Card.tsx';
+import type { CardState, View } from '../src/content/card/view.ts';
 import { createRuns } from '../src/content/runs.ts';
-import type { PortSummarizer } from '../src/summarize-port.ts';
+import { settle } from './helpers.ts';
 
 const point = (text: string) => ({ text, sentences: [1] });
-const summary: View = { preset: 'summary', language: 'en' };
-const keyPoints: View = { preset: 'key-points', language: 'en' };
+const summary: View = { shape: 'summary', language: 'en' };
+const keyPoints: View = { shape: 'key-points', language: 'en' };
 const doneEvent = (text: string): SummaryEvent => ({
   type: 'done',
   output: { points: [point(text)] },
 });
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 interface Call {
   request: SummarizeRequest;
@@ -21,7 +20,7 @@ interface Call {
 
 function fakeSummarizer() {
   const calls: Call[] = [];
-  const summarizer: PortSummarizer = {
+  const summarizer: Summarizer = {
     async *summarize(request, { signal }) {
       const queue: SummaryEvent[] = [];
       let wake: () => void = () => undefined;
@@ -40,7 +39,7 @@ function fakeSummarizer() {
           yield event;
           if (event.type !== 'partial') return;
         } else if (signal.aborted) {
-          yield { type: 'error', code: 'aborted', message: 'Aborted' };
+          yield { type: 'error', code: 'aborted' };
           return;
         } else {
           await new Promise<void>((resolve) => {
@@ -73,8 +72,7 @@ describe('createRuns', () => {
     const { calls, last } = setup();
     expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
     expect(calls[0]?.request).toEqual({
-      v: 2,
-      preset: 'summary',
+      shape: 'summary',
       outputLanguage: 'en',
       sentences: ['One.', 'Two.'],
     });
@@ -93,12 +91,12 @@ describe('createRuns', () => {
     const { runs, calls, shown, last } = setup();
     runs.select('key-points');
     expect(calls[0]?.signal.aborted).toBe(false);
-    expect(calls[1]?.request).toMatchObject({ preset: 'key-points', outputLanguage: 'en' });
+    expect(calls[1]?.request).toMatchObject({ shape: 'key-points', outputLanguage: 'en' });
     expect(last()).toEqual([keyPoints, { status: 'summarizing', points: [] }]);
 
     calls[0]?.send({ type: 'partial', points: [point('Half')] });
     await settle();
-    expect(shown.filter(([view]) => view.preset === 'summary')).toHaveLength(1);
+    expect(shown.filter(([view]) => view.shape === 'summary')).toHaveLength(1);
     runs.select('summary');
     expect(last()).toEqual([summary, { status: 'summarizing', points: [point('Half')] }]);
     calls[0]?.send(doneEvent('Whole.'));
@@ -114,17 +112,17 @@ describe('createRuns', () => {
     expect(last()).toEqual([keyPoints, { status: 'done', points: [point('Kept.')] }]);
   });
 
-  it('runs the shown preset in another language and keeps each language', async () => {
+  it('runs the shown shape in another language and keeps each language', async () => {
     const { runs, calls, last } = setup();
     calls[0]?.send(doneEvent('English.'));
     await vi.waitFor(() => expect(last()?.[1]).toMatchObject({ status: 'done' }));
 
     runs.selectLanguage('tr');
-    expect(calls[1]?.request).toMatchObject({ preset: 'summary', outputLanguage: 'tr' });
+    expect(calls[1]?.request).toMatchObject({ shape: 'summary', outputLanguage: 'tr' });
     calls[1]?.send(doneEvent('Türkçe.'));
     await vi.waitFor(() =>
       expect(last()).toEqual([
-        { preset: 'summary', language: 'tr' },
+        { shape: 'summary', language: 'tr' },
         { status: 'done', points: [point('Türkçe.')] },
       ]),
     );
@@ -134,7 +132,7 @@ describe('createRuns', () => {
     expect(last()).toEqual([summary, { status: 'done', points: [point('English.')] }]);
   });
 
-  it('does nothing when the shown preset or language is selected again', () => {
+  it('does nothing when the shown shape or language is selected again', () => {
     const { runs, calls } = setup();
     runs.select('summary');
     runs.selectLanguage('en');
@@ -149,7 +147,7 @@ describe('createRuns', () => {
     runs.regenerate();
     expect(calls[0]?.signal.aborted).toBe(true);
     expect(calls[1]?.signal.aborted).toBe(false);
-    expect(calls[2]?.request).toMatchObject({ preset: 'summary', outputLanguage: 'en' });
+    expect(calls[2]?.request).toMatchObject({ shape: 'summary', outputLanguage: 'en' });
     expect(last()).toEqual([summary, { status: 'summarizing', points: [] }]);
 
     calls[0]?.send(doneEvent('Stale.'));
@@ -161,14 +159,14 @@ describe('createRuns', () => {
     expect(last()).toEqual([summary, { status: 'done', points: [point('Fresh.')] }]);
   });
 
-  it('runs an errored preset again when it is selected again', async () => {
+  it('runs an errored shape again when it is selected again', async () => {
     const { runs, calls, last } = setup();
-    calls[0]?.send({ type: 'error', code: 'network', message: 'HTTP 0' });
+    calls[0]?.send({ type: 'error', code: 'network' });
     await vi.waitFor(() => expect(last()?.[1]).toEqual({ status: 'error', code: 'network' }));
 
     runs.select('key-points');
     runs.select('summary');
-    expect(calls.map((call) => call.request.preset)).toEqual(['summary', 'key-points', 'summary']);
+    expect(calls.map((call) => call.request.shape)).toEqual(['summary', 'key-points', 'summary']);
   });
 
   it('shows invalidated when the extension was reloaded under the card', async () => {

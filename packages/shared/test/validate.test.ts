@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { type Point, validateOutput } from '../src/contracts/index.ts';
+import type { Point } from '../src/contracts/index.ts';
+import { validateOutput } from '../src/model/validate.ts';
 
 const point = (sentences: number[]): Point => ({ text: 'A point.', sentences });
 const validate = (...points: Point[]) => validateOutput({ points }, 10);
 
 describe('validateOutput with 10 sentences', () => {
-  it('keeps every anchored point, seven of seven', () => {
+  it('keeps every valid point, with no cap on their number', () => {
     const points = Array.from({ length: 7 }, (_, i) => point([i + 1]));
     expect(validate(...points)).toEqual(points);
   });
@@ -22,7 +23,7 @@ describe('validateOutput with 10 sentences', () => {
     expect(validate(point([2.5, 4]))).toEqual([point([4])]);
   });
 
-  it('keeps all eight valid references', () => {
+  it('keeps every valid reference, with no cap on their number', () => {
     expect(validate(point([1, 2, 3, 4, 5, 6, 7, 8]))).toEqual([point([1, 2, 3, 4, 5, 6, 7, 8])]);
   });
 

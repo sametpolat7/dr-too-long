@@ -1,22 +1,36 @@
+import { render } from 'preact';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { summarizeSelection } from '../src/content/summarize.tsx';
-import { layOutText } from './layout.ts';
+import { HIGHLIGHT_NAME } from '../src/highlight.ts';
+import { layOutText, pageshow, settle } from './helpers.ts';
 
-const { container, setHidden, startBubble, requestBubbleHidden, requestPreset, sendMessage } =
-  vi.hoisted(() => {
-    const setHidden = vi.fn();
-    return {
-      // The card's closed shadow root, replaced by a container the test can reach.
-      container: document.createElement('div'),
+const {
+  container,
+  setHidden,
+  startBubble,
+  requestBubbleHidden,
+  requestShape,
+  sendMessage,
+  summarize,
+  canHostShadowRoot,
+} = vi.hoisted(() => {
+  const setHidden = vi.fn();
+  return {
+    // The card's closed shadow root, replaced by a container the test can reach.
+    container: document.createElement('div'),
+    setHidden,
+    startBubble: vi.fn(async (_ctx: unknown, _options: { onSummarize: () => void }) => ({
       setHidden,
-      startBubble: vi.fn(async () => ({ setHidden })),
-      requestBubbleHidden: vi.fn(),
-      requestPreset: vi.fn(),
-      sendMessage: vi.fn(),
-    };
-  });
+    })),
+    requestBubbleHidden: vi.fn(),
+    requestShape: vi.fn(),
+    sendMessage: vi.fn(),
+    summarize: vi.fn(),
+    canHostShadowRoot: vi.fn(() => true),
+  };
+});
 vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
   createShadowRootUi: async (
     _ctx: unknown,
@@ -28,20 +42,25 @@ vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
   }),
 }));
 vi.mock('../src/content/bubble/bubble.tsx', () => ({ startBubble }));
+const replies: Record<string, () => Promise<unknown>> = {
+  'read-bubble-hidden': () => requestBubbleHidden(),
+  'read-language': async () => null,
+  'read-shape': () => requestShape(),
+};
 vi.mock('../src/messages.ts', () => ({
-  requestBubbleHidden,
-  requestLanguageChoice: async () => null,
-  requestPreset,
+  request: (type: string) => replies[type]?.(),
   sendMessage,
 }));
-// A summary that never arrives keeps the card on its first view.
-vi.mock('../src/summarize-port.ts', () => ({
-  portSummarizer: {
-    summarize: () => ({
-      [Symbol.asyncIterator]: () => ({ next: () => new Promise(() => undefined) }),
-    }),
-  },
+vi.mock('../src/summarize-port.ts', () => ({ portSummarizer: { summarize } }));
+vi.mock('../src/content/ui.ts', async (original) => ({
+  ...(await original<typeof import('../src/content/ui.ts')>()),
+  canHostShadowRoot,
 }));
+
+// A summary that never arrives keeps the card on its first view.
+const pending = () => ({
+  [Symbol.asyncIterator]: () => ({ next: () => new Promise(() => undefined) }),
+});
 
 let controller: AbortController;
 let valid: boolean;
@@ -62,11 +81,6 @@ function select() {
   document.getSelection()?.addRange(range);
 }
 
-// happy-dom's PageTransitionEvent ignores persisted.
-function pageshow(persisted: boolean): Event {
-  return Object.defineProperty(new Event('pageshow'), 'persisted', { value: persisted });
-}
-
 function holdAnswer() {
   let answer: (hidden: boolean) => void = () => undefined;
   requestBubbleHidden.mockReturnValueOnce(
@@ -77,7 +91,6 @@ function holdAnswer() {
   return (hidden: boolean) => answer(hidden);
 }
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 const button = (label: string) =>
   [...container.querySelectorAll('button')].find((each) => each.textContent === label);
 
@@ -96,13 +109,13 @@ describe('summarizeSelection', () => {
     select();
     vi.clearAllMocks();
     requestBubbleHidden.mockResolvedValue(false);
-    requestPreset.mockResolvedValue('summary');
+    requestShape.mockResolvedValue('summary');
+    summarize.mockImplementation(pending);
+    render(null, container);
   });
 
   afterEach(() => {
     controller.abort();
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
   it('paints the card before the worker answers whether the bubble is hidden', async () => {
@@ -131,12 +144,12 @@ describe('summarizeSelection', () => {
   });
 
   it('opens on the saved shape and saves the shape the reader picks', async () => {
-    requestPreset.mockResolvedValue('key-points');
+    requestShape.mockResolvedValue('key-points');
     await summarizeSelection(context());
     await settle();
     expect(pressed()).toBe('Key points');
     button('Summary')?.click();
-    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-preset', preset: 'summary' });
+    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-shape', shape: 'summary' });
     expect(pressed()).toBe('Summary');
   });
 
@@ -220,5 +233,69 @@ describe('summarizeSelection', () => {
     answer(true);
     await settle();
     expect(setHidden).not.toHaveBeenCalledWith(true);
+  });
+
+  it('closes the card on Escape and clears the highlight', async () => {
+    await summarizeSelection(context());
+    await settle();
+    CSS.highlights.set(HIGHLIGHT_NAME, {} as Highlight);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(container.querySelector('section')).toBeNull();
+    expect(CSS.highlights.has(HIGHLIGHT_NAME)).toBe(false);
+  });
+
+  it('replaces the card on the next gesture, with the shape saved meanwhile', async () => {
+    await summarizeSelection(context());
+    await settle();
+    expect(pressed()).toBe('Summary');
+    requestShape.mockResolvedValue('key-points');
+    startBubble.mock.calls[0]?.[1].onSummarize();
+    await settle();
+    expect(container.querySelectorAll('section')).toHaveLength(1);
+    expect(pressed()).toBe('Key points');
+    // The first card's run stops with it.
+    expect(summarize.mock.calls[0]?.[1].signal.aborted).toBe(true);
+  });
+
+  it('saves the summary language the reader settles on', async () => {
+    await summarizeSelection(context());
+    await settle();
+    vi.useFakeTimers();
+    try {
+      const select = container.querySelector('select');
+      if (select) select.value = 'tr';
+      select?.dispatchEvent(new Event('change', { bubbles: true }));
+      vi.advanceTimersByTime(400);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-language', choice: 'tr' });
+  });
+
+  it('sends the reader to the options page when no key is saved', async () => {
+    summarize.mockImplementation(async function* () {
+      yield { type: 'error', code: 'no_key' };
+    });
+    await summarizeSelection(context());
+    await settle();
+    expect(container.textContent).toContain('Save an API key first.');
+    button('Open options')?.click();
+    expect(sendMessage).toHaveBeenCalledWith({ type: 'open-options' });
+  });
+
+  it('refuses an empty selection with a card that says so', async () => {
+    document.getSelection()?.removeAllRanges();
+    await summarizeSelection(context());
+    await settle();
+    expect(container.textContent).toContain('Select some text first.');
+    expect(summarize).not.toHaveBeenCalled();
+  });
+
+  it('flashes the badge and opens nothing where the page cannot host the card', async () => {
+    canHostShadowRoot.mockReturnValueOnce(false);
+    await summarizeSelection(context());
+    expect(sendMessage).toHaveBeenCalledWith({ type: 'unsupported-page' });
+    expect(startBubble).not.toHaveBeenCalled();
+    expect(container.querySelector('section')).toBeNull();
   });
 });

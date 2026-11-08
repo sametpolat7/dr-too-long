@@ -6,6 +6,8 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     setupFiles: ['fake-indexeddb/auto'],
+    restoreMocks: true,
+    unstubGlobals: true,
     coverage: { include: ['src/**'], reporter: ['text'] },
   },
 });

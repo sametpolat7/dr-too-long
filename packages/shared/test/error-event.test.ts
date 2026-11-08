@@ -62,138 +62,126 @@ describe('the error event for a provider response', () => {
       'unauthorized',
       'openai',
       json(401, openai('invalid_request_error', 'invalid_api_key')),
-      'HTTP 401',
+      401,
     ],
     [
       'an OpenAI 429 insufficient_quota',
       'quota_exceeded',
       'openai',
       json(429, openai('insufficient_quota', 'insufficient_quota')),
-      'HTTP 429',
+      429,
     ],
     [
       'an OpenAI 429 rate_limit_exceeded',
       'rate_limited',
       'openai',
       json(429, openai('requests', 'rate_limit_exceeded')),
-      'HTTP 429',
+      429,
     ],
-    [
-      'an OpenAI 500',
-      'provider',
-      'openai',
-      json(500, openai('server_error', 'server_error')),
-      'HTTP 500',
-    ],
+    ['an OpenAI 500', 'provider', 'openai', json(500, openai('server_error', 'server_error')), 500],
     [
       'an OpenAI 502 with an HTML body',
       'provider',
       'openai',
       () => new Response('<html>Bad Gateway</html>', { status: 502 }),
-      'HTTP 502',
+      502,
     ],
     [
       'an Anthropic 401 authentication_error',
       'unauthorized',
       'anthropic',
       json(401, anthropic('authentication_error')),
-      'HTTP 401',
+      401,
     ],
     [
       'an Anthropic 403 permission_error',
       'unauthorized',
       'anthropic',
       json(403, anthropic('permission_error')),
-      'HTTP 403',
+      403,
     ],
     [
       'an Anthropic 402 billing_error',
       'quota_exceeded',
       'anthropic',
       json(402, anthropic('billing_error')),
-      'HTTP 402',
+      402,
     ],
     [
       'an Anthropic 429 rate_limit_error',
       'rate_limited',
       'anthropic',
       json(429, anthropic('rate_limit_error')),
-      'HTTP 429',
+      429,
     ],
     [
       'an Anthropic 429 at the spend limit',
       'quota_exceeded',
       'anthropic',
       json(429, anthropic('rate_limit_error', { error_code: 'enforced_spend_limit_reached' })),
-      'HTTP 429',
+      429,
     ],
     [
       'an Anthropic 529 overloaded_error',
       'provider',
       'anthropic',
       json(529, anthropic('overloaded_error')),
-      'HTTP 529',
+      529,
     ],
     [
       'an Anthropic billing_error before the message starts',
       'quota_exceeded',
       'anthropic',
       sse(anthropic('billing_error')),
-      'HTTP 400',
+      400,
     ],
     [
       'a Gemini 400 API_KEY_INVALID',
       'unauthorized',
       'google',
       json(400, google(400, 'INVALID_ARGUMENT', 'API_KEY_INVALID')),
-      'HTTP 400',
+      400,
     ],
     [
       'a Gemini 400 for another reason',
       'provider',
       'google',
       json(400, google(400, 'INVALID_ARGUMENT')),
-      'HTTP 400',
+      400,
     ],
-    [
-      'a Gemini 401',
-      'unauthorized',
-      'google',
-      json(401, google(401, 'UNAUTHENTICATED')),
-      'HTTP 401',
-    ],
+    ['a Gemini 401', 'unauthorized', 'google', json(401, google(401, 'UNAUTHENTICATED')), 401],
     [
       'a Gemini 403 PERMISSION_DENIED',
       'unauthorized',
       'google',
       json(403, google(403, 'PERMISSION_DENIED')),
-      'HTTP 403',
+      403,
     ],
-    ['a Gemini 402', 'quota_exceeded', 'google', json(402, {}), 'HTTP 402'],
+    ['a Gemini 402', 'quota_exceeded', 'google', json(402, {}), 402],
     [
       'a Gemini 429 RESOURCE_EXHAUSTED',
       'rate_limited',
       'google',
       json(429, google(429, 'RESOURCE_EXHAUSTED')),
-      'HTTP 429',
+      429,
     ],
-  ] as const)('maps %s to %s', async (_, code, provider, respond, message) => {
+  ] as const)('maps %s to %s', async (_, code, provider, respond, httpStatus) => {
     const { events } = await callProvider(provider, respond);
-    expect(events).toEqual([{ type: 'error', code, message }]);
+    expect(events).toEqual([{ type: 'error', code, httpStatus }]);
   });
 
   it.each([
-    ['rate_limit_error', 'rate_limited', 'HTTP 429'],
-    ['overloaded_error', 'provider', 'HTTP 529'],
-    ['billing_error', 'quota_exceeded', 'HTTP 400'],
-  ])('maps an Anthropic %s after output has started to %s', async (type, code, message) => {
+    ['rate_limit_error', 'rate_limited', 429],
+    ['overloaded_error', 'provider', 529],
+    ['billing_error', 'quota_exceeded', 400],
+  ])('maps an Anthropic %s after output has started to %s', async (type, code, httpStatus) => {
     const { events } = await callProvider(
       'anthropic',
       sse(messageStart, textStart, textDelta, anthropic(type)),
     );
     expect(events).toEqual([
       { type: 'partial', points: [{ text: 'Rivers', sentences: [] }] },
-      { type: 'error', code, message },
+      { type: 'error', code, httpStatus },
     ]);
   });
 
@@ -222,7 +210,7 @@ describe('the error event for a provider response', () => {
     );
     expect(events).toEqual([
       { type: 'partial', points: [{ text: 'Rivers', sentences: [] }] },
-      { type: 'error', code: 'quota_exceeded', message: 'HTTP 429' },
+      { type: 'error', code: 'quota_exceeded', httpStatus: 429 },
     ]);
   });
 });
@@ -232,11 +220,7 @@ describe('toErrorEvent', () => {
 
   it('reports network when no response came back', () => {
     const error = new APICallError({ message: 'Message.', url: '', requestBodyValues: {} });
-    expect(toErrorEvent(error, signal)).toEqual({
-      type: 'error',
-      code: 'network',
-      message: 'No response from the provider',
-    });
+    expect(toErrorEvent(error, signal)).toEqual({ type: 'error', code: 'network' });
   });
 
   it('reads the type of a stream error', () => {
@@ -246,10 +230,6 @@ describe('toErrorEvent', () => {
 
   it('reports provider for a stream error with neither status nor known code', () => {
     const error = new StreamProviderError({ message: 'Message.', type: 'api_error' });
-    expect(toErrorEvent(error, signal)).toEqual({
-      type: 'error',
-      code: 'provider',
-      message: 'AI_StreamProviderError',
-    });
+    expect(toErrorEvent(error, signal)).toEqual({ type: 'error', code: 'provider' });
   });
 });

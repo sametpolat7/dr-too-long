@@ -165,7 +165,7 @@ describe('Options', () => {
       point.text,
     ]);
     expect(summarize).toHaveBeenCalledWith(
-      { v: 2, preset: 'summary', outputLanguage: 'en-US', sentences: expect.any(Array) },
+      { shape: 'summary', outputLanguage: 'en-US', sentences: expect.any(Array) },
       { signal: expect.any(AbortSignal) },
     );
   });
@@ -220,14 +220,15 @@ describe('Options', () => {
     expect(container.querySelector('li')).toBeNull();
   });
 
-  it('shows the message of an error', async () => {
+  it("shows the message of an error and the provider's HTTP status", async () => {
     await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
-    answer({ type: 'error', code: 'unauthorized', message: 'HTTP 401' });
+    answer({ type: 'error', code: 'unauthorized', httpStatus: 401 });
     const container = await show();
     await testKey(container);
     await vi.waitFor(() =>
       expect(container.textContent).toContain('The provider rejected the API key.'),
     );
+    expect(container.textContent).toContain('HTTP status 401');
     expect(container.querySelector('li')).toBeNull();
   });
 });

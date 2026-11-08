@@ -1,11 +1,12 @@
-import type { PresetId } from '@dr-too-long/shared/contracts';
+import type { ShapeId } from '@dr-too-long/shared/contracts';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { Card, type CardState, type View } from '../src/content/card/Card.tsx';
+import { Card } from '../src/content/card/Card.tsx';
+import type { CardState, View } from '../src/content/card/view.ts';
 
-const view = (preset: PresetId, language = 'en'): View => ({ preset, language });
+const view = (shape: ShapeId, language = 'en'): View => ({ shape, language });
 
 function show(
   state: CardState,
@@ -56,7 +57,6 @@ describe('Card', () => {
     fakeBrowser.i18n.getUILanguage = () => 'en-US';
   });
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -88,7 +88,7 @@ describe('Card', () => {
     expect(items[0]?.querySelector('[role="button"]')).not.toBeNull();
   });
 
-  it('presses the shown preset and asks for another on a click', () => {
+  it('presses the shown shape and asks for another on a click', () => {
     const onSelect = vi.fn();
     const container = show(done, { onSelect });
     const pressed = [...container.querySelectorAll('[aria-pressed="true"]')];
@@ -97,7 +97,7 @@ describe('Card', () => {
     expect(onSelect).toHaveBeenCalledWith('key-points');
   });
 
-  it('offers no preset, language or bubble switch when the selection was refused', () => {
+  it('offers no shape, language or bubble switch when the selection was refused', () => {
     const container = show({ status: 'error', code: 'no_selection' }, { view: undefined });
     expect(button(container, 'Summary')).toBeUndefined();
     expect(container.querySelector('select')).toBeNull();
@@ -219,7 +219,7 @@ describe('Card', () => {
   });
 
   it.each([
-    ['preset', view('key-points')],
+    ['shape', view('key-points')],
     ['language', view('summary', 'tr')],
   ])('shows another %s from memory with no point marked', (_, next) => {
     const container = show(done, { onActivate: () => false });
@@ -240,7 +240,7 @@ describe('Card', () => {
     expect(onRegenerate).toHaveBeenCalledOnce();
   });
 
-  it('copies the summary in its preset shape and says so', async () => {
+  it('copies the summary in its shape and says so', async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal('navigator', { clipboard: { writeText } });
     const container = show(done, { view: view('key-points') });

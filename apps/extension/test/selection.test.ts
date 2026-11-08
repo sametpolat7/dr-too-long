@@ -1,7 +1,7 @@
 import { MAX_SELECTION_CHARS } from '@dr-too-long/shared/limits';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readSelection } from '../src/content/selection.ts';
-import { layOutText } from './layout.ts';
+import { layOutText } from './helpers.ts';
 
 function select(html: string, selector: string): Selection {
   document.body.innerHTML = html;
@@ -18,10 +18,6 @@ describe('readSelection', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     layOutText();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it('reports no_selection without a selection or with a collapsed one', () => {
@@ -50,8 +46,7 @@ describe('readSelection', () => {
   });
 
   it('reports unsupported_selection while an embedded frame holds the focus', () => {
-    document.body.innerHTML = '<iframe title="embed"></iframe>';
-    document.querySelector('iframe')?.focus();
+    vi.spyOn(document, 'activeElement', 'get').mockReturnValue(document.createElement('iframe'));
     expect(readSelection(window.getSelection())).toEqual(unsupported);
   });
 

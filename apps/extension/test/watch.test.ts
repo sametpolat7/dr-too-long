@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUBBLE_DELAY_MS, BUBBLE_SCROLL_PX, watchSelections } from '../src/content/bubble/watch.ts';
 import { BUBBLE_UI, CARD_UI } from '../src/content/ui.ts';
+import { LONG } from './helpers.ts';
 
-const LONG = 'The keeper logged every ship that passed the cape for forty years. '.repeat(3);
 const FRAME_MS = 16;
 
 let top = 200;
@@ -58,8 +58,6 @@ describe('watchSelections', () => {
   });
   afterEach(() => {
     controller.abort();
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
     vi.useRealTimers();
     document.getSelection()?.removeAllRanges();
     document.body.innerHTML = '';

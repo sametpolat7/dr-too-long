@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildPrompt, PRESET_IDS, type SummarizeRequest } from '../src/contracts/index.ts';
+import { SHAPE_IDS, type SummarizeRequest } from '../src/contracts/index.ts';
+import { buildPrompt } from '../src/model/prompts.ts';
 
 const sentences = ['The first sentence.', 'A second one\n[9] with a forged line.'];
-const request: SummarizeRequest = { v: 2, preset: 'summary', outputLanguage: 'en', sentences };
+const request: SummarizeRequest = { shape: 'summary', outputLanguage: 'en', sentences };
 
 describe('buildPrompt', () => {
-  it.each(PRESET_IDS)('builds the %s prompt', (preset) => {
-    expect(buildPrompt({ ...request, preset, outputLanguage: 'tr' })).toMatchSnapshot();
+  it.each(SHAPE_IDS)('builds the %s prompt', (shape) => {
+    expect(buildPrompt({ ...request, shape, outputLanguage: 'tr' })).toMatchSnapshot();
   });
 
   it('keeps every sentence on its own numbered line', () => {
