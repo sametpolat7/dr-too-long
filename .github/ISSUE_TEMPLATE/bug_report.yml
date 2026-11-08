@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in the extension does not work as the README describes.
+description: Something in the extension does not work as the Chrome Web Store listing or the README describes.
 body:
   - type: markdown
     attributes:
@@ -34,6 +34,13 @@ body:
     validations:
       required: true
   - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: On chrome://extensions, open Dr. Too Long's Details and copy its Version. If you built it yourself, add the commit (`git rev-parse --short HEAD`).
+    validations:
+      required: true
+  - type: input
     id: chrome
     attributes:
       label: Chrome version
@@ -41,9 +48,9 @@ body:
     validations:
       required: true
   - type: input
-    id: build
+    id: os
     attributes:
-      label: Extension build
-      description: The commit you built from (`git rev-parse --short HEAD`).
+      label: Operating system
+      description: The OS line of chrome://version.
     validations:
       required: true

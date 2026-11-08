@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a change that makes the skim faster or the summary more trustworthy.
+body:
+  - type: markdown
+    attributes:
+      value: Before you write, read [the "no" list](https://github.com/sametpolat7/dr-too-long/blob/main/docs/no-list.md), which names what the project leaves out on purpose. Never paste an API key, the text you selected or a private page address here.
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do
+      description: The reading task, and where the extension falls short today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+      description: The change you have in mind, and how it makes the skim faster or the summary more trustworthy.
+    validations:
+      required: true
+  - type: checkboxes
+    id: no-list
+    attributes:
+      label: The "no" list
+      options:
+        - label: The change is not something the "no" list leaves out.
+          required: true
