@@ -1,11 +1,35 @@
+:root {
+  --surface: #fff;
+  --text: #1a1a1a;
+  --muted: #555;
+  --rule: #ddd;
+  --danger: #b00020;
+  --link: #0b57d0;
+
+  color-scheme: light dark;
+}
+
+/* Chrome's options dialog follows Chrome's theme, and so does this page. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #202124;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --rule: #3c4043;
+    --danger: #f28b82;
+    --link: #8ab4f8;
+  }
+}
+
 body {
   margin: 0;
   padding: 16px 20px;
   max-width: 560px;
+  background: var(--surface);
+  color: var(--text);
   font:
     14px / 1.5 system-ui,
     sans-serif;
-  color: #1a1a1a;
 }
 
 .intro {
@@ -74,7 +98,7 @@ p {
 .status,
 .note,
 .every-site p {
-  color: #555;
+  color: var(--muted);
 }
 
 .sample {
@@ -82,7 +106,7 @@ p {
 }
 
 .error {
-  color: #b00020;
+  color: var(--danger);
 }
 
 footer {
@@ -90,13 +114,13 @@ footer {
   flex-wrap: wrap;
   gap: 4px 16px;
   padding-top: 12px;
-  border-top: 1px solid #ddd;
-  color: #555;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
   font-size: 13px;
 }
 
 a {
-  color: #0b57d0;
+  color: var(--link);
 }
 
 /* Notes, the agreement and the buttons span both columns of the key form. */
