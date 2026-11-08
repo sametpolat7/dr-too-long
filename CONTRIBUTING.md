@@ -14,6 +14,10 @@ The README's [Development](README.md#development) section builds and loads the e
 
 Run `pnpm exec lefthook install` once after cloning. The hooks check formatting, block API keys in commits, check commit titles and refuse pushes to `main`. They are local only and `--no-verify` skips them.
 
+## Icons
+
+The icon's masters are `apps/extension/design/icon.svg` and `icon-small.svg`, the second drawn on whole pixels for 16 and 32 px. After changing one, run `pnpm icons` and commit the PNGs it writes to `apps/extension/public/icon`. It needs `rsvg-convert` from librsvg: `brew install librsvg` or `apt install librsvg2-bin`.
+
 ## Keys and text
 
 Test with your own key on the options page, never in a file, a test or CI; tests use fake keys. Never paste an API key, selected text or a private page address into an issue, a pull request or a log.

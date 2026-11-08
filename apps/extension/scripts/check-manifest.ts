@@ -2,6 +2,8 @@
 import { readFileSync } from 'node:fs';
 
 const GUARDED_KEYS = [
+  'icons',
+  'action',
   'permissions',
   'optional_permissions',
   'host_permissions',

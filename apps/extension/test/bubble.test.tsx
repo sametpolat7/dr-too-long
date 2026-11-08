@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { type Bubble, startBubble } from '../src/content/bubble/bubble.tsx';
 import { BUBBLE_DELAY_MS } from '../src/content/bubble/watch.ts';
@@ -67,6 +67,14 @@ describe('startBubble', () => {
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     vi.advanceTimersByTime(BUBBLE_DELAY_MS);
     expect(button()).toBeNull();
+  });
+
+  it('takes a light look on a dark page', async () => {
+    bubble = await startBubble(ctx, { hidden: false, onSummarize: () => undefined });
+    document.body.style.backgroundColor = 'rgb(32, 33, 36)';
+    onTestFinished(() => document.body.removeAttribute('style'));
+    select();
+    expect(button()?.dataset.theme).toBe('dark');
   });
 
   it('offers nothing while hidden on the site, and again once shown', async () => {

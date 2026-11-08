@@ -20,7 +20,8 @@
     "test": "pnpm --recursive test",
     "coverage": "pnpm --recursive coverage",
     "check:manifest": "pnpm --filter @dr-too-long/extension check:manifest",
-    "check:bundle": "pnpm --filter @dr-too-long/extension check:bundle"
+    "check:bundle": "pnpm --filter @dr-too-long/extension check:bundle",
+    "icons": "pnpm --filter @dr-too-long/extension icons"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.5",

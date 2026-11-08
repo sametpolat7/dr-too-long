@@ -32,18 +32,19 @@ Chrome leaves the shortcut unset when another extension already holds it; set or
 
 For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev` instead. WXT does not launch a browser; you load the build into your own Chrome profile.
 
-| Command               | What it does                                                                   |
-| --------------------- | ------------------------------------------------------------------------------ |
-| `pnpm dev`            | Builds the extension in watch mode with live reload                            |
-| `pnpm build`          | Production build into `apps/extension/.output/chrome-mv3`                      |
-| `pnpm zip`            | Zips the production build for the Chrome Web Store                             |
-| `pnpm lint`           | Checks formatting and lint rules with Biome                                    |
-| `pnpm format`         | Applies Biome formatting and safe fixes                                        |
-| `pnpm typecheck`      | Type-checks every package                                                      |
-| `pnpm test`           | Runs the unit tests of every package                                           |
-| `pnpm coverage`       | Runs the unit tests with a coverage report per file                            |
-| `pnpm check:manifest` | Fails if the built manifest's permissions differ from `manifest-expected.json` |
-| `pnpm check:bundle`   | Fails if a built content script carries key, storage or provider code          |
+| Command               | What it does                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`            | Builds the extension in watch mode with live reload                                                           |
+| `pnpm build`          | Production build into `apps/extension/.output/chrome-mv3`                                                     |
+| `pnpm zip`            | Zips the production build for the Chrome Web Store                                                            |
+| `pnpm lint`           | Checks formatting and lint rules with Biome                                                                   |
+| `pnpm format`         | Applies Biome formatting and safe fixes                                                                       |
+| `pnpm typecheck`      | Type-checks every package                                                                                     |
+| `pnpm test`           | Runs the unit tests of every package                                                                          |
+| `pnpm coverage`       | Runs the unit tests with a coverage report per file                                                           |
+| `pnpm check:manifest` | Fails if the built manifest's permissions, icons or other guarded fields differ from `manifest-expected.json` |
+| `pnpm icons`          | Renders the PNG icons from `apps/extension/design`; needs `rsvg-convert` from librsvg                         |
+| `pnpm check:bundle`   | Fails if a built content script carries key, storage or provider code                                         |
 
 `apps/evals` is kept empty for a future evaluation system; see [its README](apps/evals/README.md).
 

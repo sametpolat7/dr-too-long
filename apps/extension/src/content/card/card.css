@@ -1,4 +1,20 @@
+/* One set of colors, which the card swaps for the page's scheme. The passage mark stays yellow with
+   dark text in both, as the page's highlight does. */
 .card {
+  --surface: #fff;
+  --text: #1a1a1a;
+  --muted: #555;
+  --border: #ccc;
+  --rule: #eee;
+  --hover: #f2f2f2;
+  --pressed: #1a1a1a;
+  --pressed-text: #fff;
+  --danger: #b00020;
+  --mark: #ffe58f;
+  --mark-text: #1a1a1a;
+  --shadow: rgb(0 0 0 / 20%);
+
+  color-scheme: light;
   position: fixed;
   top: 16px;
   right: 16px;
@@ -10,13 +26,28 @@
   overflow: auto;
   padding: 12px 16px 16px;
   border-radius: 8px;
-  background: #fff;
-  color: #1a1a1a;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 4px 24px var(--shadow);
   font:
     14px / 1.5 system-ui,
     sans-serif;
   overflow-wrap: anywhere;
+}
+
+.card[data-theme="dark"] {
+  --surface: #202124;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --border: #5f6368;
+  --rule: #3c4043;
+  --hover: #2d2e31;
+  --pressed: #e8eaed;
+  --pressed-text: #202124;
+  --danger: #f28b82;
+  --shadow: rgb(0 0 0 / 50%);
+
+  color-scheme: dark;
 }
 
 /* The card takes the focus as a whole; its controls show their own focus. */
@@ -31,23 +62,30 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -12px -16px 4px;
+  margin: -12px -16px 8px;
   padding: 12px 16px 4px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .title {
+  display: flex;
+  gap: 6px;
+  align-items: center;
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: var(--muted);
+}
+
+.mark {
+  flex: none;
 }
 
 .close {
   padding: 0 4px;
   border: 0;
   background: none;
-  color: #555;
+  color: var(--muted);
   font: inherit;
   font-size: 18px;
   line-height: 1;
@@ -55,7 +93,7 @@ header {
 }
 
 .close:hover {
-  color: #1a1a1a;
+  color: var(--text);
 }
 
 p {
@@ -65,7 +103,7 @@ p {
 .detail,
 .status {
   margin-top: 8px;
-  color: #555;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -83,7 +121,7 @@ p {
 }
 
 .error {
-  color: #b00020;
+  color: var(--danger);
 }
 
 .shapes,
@@ -107,10 +145,10 @@ p {
 .shapes button,
 .actions button {
   padding: 4px 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -118,13 +156,13 @@ p {
 
 .shapes button:hover,
 .actions button:hover {
-  background: #f2f2f2;
+  background: var(--hover);
 }
 
 .shapes button[aria-pressed="true"] {
-  border-color: #1a1a1a;
-  background: #1a1a1a;
-  color: #fff;
+  border-color: var(--pressed);
+  background: var(--pressed);
+  color: var(--pressed-text);
 }
 
 ul {
@@ -139,8 +177,8 @@ footer {
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #eee;
-  color: #555;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -153,10 +191,10 @@ footer {
 
 .language select {
   padding: 3px 6px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
 }
 
@@ -171,7 +209,7 @@ footer {
 }
 
 .bubble-switch:hover {
-  color: #1a1a1a;
+  color: var(--text);
 }
 
 .point {
@@ -184,11 +222,12 @@ footer {
 }
 
 .point.active {
-  background: #ffe58f;
+  background: var(--mark);
+  color: var(--mark-text);
 }
 
 .point.missing {
-  color: #555;
+  color: var(--muted);
 }
 
 /* Forced colors replace backgrounds with system colors, which would hide these marks. */

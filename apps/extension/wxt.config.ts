@@ -19,7 +19,11 @@ export default defineConfig({
       'Summarize selected text in your language, with every point linked to its source. Runs on your own OpenAI, Claude or Gemini API key.',
     homepage_url: LINKS.repository,
     minimum_chrome_version: String(MINIMUM_CHROME),
-    action: { default_title: ACTION_TITLE },
+    // WXT adds every public/icon/<size>.png to icons by itself; the toolbar takes its own set.
+    action: {
+      default_title: ACTION_TITLE,
+      default_icon: { 16: 'icon/16.png', 24: 'icon/24.png', 32: 'icon/32.png' },
+    },
     commands: {
       _execute_action: { suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' } },
     },

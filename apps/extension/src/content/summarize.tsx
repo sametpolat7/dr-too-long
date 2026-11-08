@@ -14,6 +14,7 @@ import css from './card/card.css?inline';
 import type { CardState, View } from './card/view.ts';
 import { createRuns, type Runs } from './runs.ts';
 import { isEditable, readSelection } from './selection.ts';
+import { pageTheme } from './theme.ts';
 import { CARD_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
 
 type CardUi = ShadowRootContentScriptUi<HTMLElement>;
@@ -107,6 +108,7 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
   const controller = new AbortController();
   // The card takes the focus when it first paints and gives it back here when it closes.
   const focusBefore = document.activeElement;
+  const theme = pageTheme();
   let focused = false;
   let anchors: Anchors | undefined;
   let runs: Runs | undefined;
@@ -134,6 +136,7 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
     render(
       <Card
         state={state}
+        theme={theme}
         view={view}
         choice={choice}
         // The card switches first: in a script orphaned by an extension reload the saves throw.
