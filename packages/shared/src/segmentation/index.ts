@@ -35,7 +35,8 @@ export function segmentSentences(text: string): Sentence[] {
 function isFalseBreak(segment: string): boolean {
   const trimmed = segment.trimEnd();
   if (LINE_BREAK.test(segment.slice(trimmed.length))) return false;
-  const word = trimmed.slice(trimmed.search(/\S*$/)).replace(OPENING_PUNCTUATION, '');
+  // Not a search for /\S*$/, which backtracks quadratically over a long run with no space.
+  const word = (trimmed.split(/\s/).at(-1) ?? '').replace(OPENING_PUNCTUATION, '');
   return UPPERCASE_INITIALS.test(word);
 }
 
