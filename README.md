@@ -1,12 +1,86 @@
-# Dr. Too Long
+<p align="center">
+  <img src="apps/extension/public/icon/128.png" width="96" height="96" alt="">
+</p>
 
-A Chrome extension that turns selected text into a summary in your language with one click, so you can decide whether the whole text is worth reading. Every point in the summary is anchored to the passage it came from.
+<h1 align="center">Dr. Too Long</h1>
 
-**Data:** no server, no database, no analytics. Your key and settings stay in your browser, and the text you select goes only to the provider you chose. Selected text, summaries and page addresses are never stored.
+<p align="center">
+  Summarize selected text in your language, with every point linked to its source.<br>
+  Runs on your own OpenAI, Claude or Gemini API key.
+</p>
 
-**License:** MIT, see [LICENSE](LICENSE).
+<p align="center">
+  <a href="https://github.com/sametpolat7/dr-too-long/actions/workflows/ci.yml"><img src="https://github.com/sametpolat7/dr-too-long/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-**Status:** in development, not yet on the Chrome Web Store. What the project leaves out on purpose is listed in [the "no" list](docs/no-list.md).
+![The card beside an article: the second key point is selected, and the sentence it rests on is highlighted in the article.](docs/images/summary.png)
+
+Select the part of a page you are unsure about and Dr. Too Long tells you what it says, in a card beside the text, so you can decide whether the whole thing is worth reading. Click a point and the page highlights the sentences it comes from, so you can check it against the source.
+
+**Status:** in development, not yet on the Chrome Web Store.
+
+## What it does
+
+- **Two shapes.** **Summary** is one paragraph that opens with the bottom line. **Key points** lists what is worth keeping, most valuable first. Both fit the text: a sentence or two for a short passage, more for a long one.
+- **Points you can check.** Each point cites the sentences it rests on. Clicking it highlights them on the page and scrolls to the first.
+- **Your language.** Summaries are written in Chrome's language, or in any of 47 languages you pick.
+- **Nothing in between.** The extension has no server and no account. The text you select goes from your browser to the provider you chose, and nowhere else.
+
+## Install
+
+The Chrome Web Store listing is on its way. Until then, build it from source as [Development](#development) explains and load it unpacked.
+
+## Set up your key
+
+Dr. Too Long is free. You pay only your provider for what you use, under your own account; a summary costs under a cent with any of them.
+
+1. Create an API key with one provider. Make a key for Dr. Too Long alone, with a monthly spending limit.
+
+   | Provider | Where to create a key                                                                                            | Model                   |
+   | -------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------- |
+   | OpenAI   | [platform.openai.com/settings/organization/api-keys](https://platform.openai.com/settings/organization/api-keys) | `gpt-6-luna`            |
+   | Claude   | [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys)                                   | `claude-haiku-5-5`      |
+   | Gemini   | [aistudio.google.com/apikey](https://aistudio.google.com/apikey)                                                 | `gemini-3.5-flash-lite` |
+
+   Each is that provider's cheapest capable model, fixed in code: you choose the provider, not the model.
+
+2. The options page opens when you install the extension. Later, find it under the extension's **Details** on `chrome://extensions`. Pick your provider, paste the key, tick the box that says where your text goes, and click **Save key**.
+3. Click **Test key**. A short sample summary streams in, and the page says "The key works."
+
+One key is saved at a time: a key for another provider replaces it.
+
+## Use
+
+1. Select a few paragraphs on a web page.
+2. Click the toolbar icon, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> (<kbd>Command</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> on a Mac), or right-click the selection and choose **Summarize “…”**.
+3. The card appears at the top right and the summary streams in. Switch between **Summary** and **Key points**; the card opens on the shape you used last next time.
+4. Click a point to highlight its sentences on the page. **Copy** copies the summary, **Regenerate** writes it again, and the **Summary language** list rewrites it in another language.
+5. Press <kbd>Escape</kbd> or click **×** to close the card and clear the highlight.
+
+After a first summary on a page, selecting more text there offers a **Summarize** bubble above it. To get the bubble on every site without clicking the icon first, tick **Offer a Summarize bubble on every https site** on the options page. **Hide the bubble on this site until the tab closes**, at the foot of the card, turns it off for that site.
+
+## Good to know
+
+- A selection can hold up to 10,000 characters. A longer one gets a card that says so.
+- Chrome never lets extensions run on `chrome://` pages, the Chrome Web Store or its PDF viewer. There the icon shows a `!` badge for a moment.
+- Text in form fields, editors and embedded frames cannot be summarized.
+- If another extension already uses the shortcut, set one at `chrome://extensions/shortcuts`.
+- An empty balance or a reached spending limit shows as "out of credit or at its spending limit"; check your provider's billing settings.
+
+## Privacy and permissions
+
+The text you select goes to your provider only when you start a summary, and the extension keeps none of it: no selected text, summaries or page addresses are stored. Your key is encrypted on your device and is sent only to your provider. The [privacy policy](PRIVACY.md) lists every piece of data, where it goes and how long it is kept, and links each provider's terms.
+
+The extension asks Chrome for:
+
+- `activeTab` and `scripting`, to read the selection on the page where you use the icon, the shortcut or the menu item;
+- `contextMenus`, for the menu item;
+- `storage`, for your encrypted key, provider, summary language and shape, and, in memory until the tab closes, the sites where you hid the bubble;
+- access to `api.openai.com`, `api.anthropic.com` and `generativelanguage.googleapis.com`, the three provider APIs. Only the one for your key is called, and a security policy blocks requests to any other address.
+
+It reaches no other site until you use it there, or until you tick the every-site option, which asks Chrome for access to all `https` sites; you can withdraw it at any time.
+
+Dr. Too Long is an independent project. It is not affiliated with or endorsed by OpenAI, Anthropic or Google.
 
 ## Development
 
@@ -17,20 +91,7 @@ pnpm install
 pnpm build
 ```
 
-Load the build in Chrome:
-
-1. Open `chrome://extensions` and turn on **Developer mode**.
-2. Click **Load unpacked** and choose `apps/extension/.output/chrome-mv3`.
-3. After each rebuild, click the extension's **Reload** button.
-4. The options page opens on first install; later, open the extension's **Details** page and click **Extension options**. Pick **OpenAI**, **Claude** or **Gemini** in the provider list, paste that provider's API key, tick the box that says where your text goes, click **Save key**, then **Test key**. A summary of a built-in sample streams in. Summaries are written in Chrome's own language until you choose another under **Summary language**, on the same page or in the card.
-5. Pin the extension's icon from the toolbar's puzzle menu. Open an article, select a few paragraphs and click the icon, press Ctrl+Shift+S (Command+Shift+S on a Mac), or right-click the selection and choose **Summarize “…”**. A card appears at the top right of the page and the summary streams in. Once it is done, click a point in the card: the page highlights the sentences the point rests on and scrolls to the first, and the selection is released, so a further run needs a new selection. If those sentences have left the page, the card says so. Escape or the card's close button dismisses the card and its highlight.
-6. The card opens with the shape you used last, at first **Summary**: one paragraph that opens with the bottom line. The card's **Key points** button lists the things worth keeping from the same selection, most valuable first. A run keeps going while you look at the other shape, so switching back shows it where it got to, and a shape you already saw comes back without a new request while the card is open. Both fit the text: a sentence or two for a short passage, a short paragraph or a handful of points for a long one. **Copy** puts the summary on the clipboard as one paragraph or as `- ` bullets; it needs an `https` page. **Regenerate** runs the shown shape again, and errors the provider may clear on a second run offer **Try again**. The card's **Summary language** list writes the summary again in the language you pick and keeps that choice for later summaries, as the same list on the options page does.
-7. After a run, selecting another passage that holds a complete sentence on the same page shows a **Summarize** bubble above it a moment after you release the mouse button or key; clicking it opens the card for that selection. The bubble never appears while you drag or in a text field, leaves copying alone, and goes away when you press Escape or scroll the text away. **Hide the bubble on this site until the tab closes**, at the foot of the card, keeps it off that site in that tab, also after a reload; the icon, shortcut and menu still work there.
-8. To get the bubble without using the icon first, tick **Offer a Summarize bubble on every https site** on the options page and accept Chrome's prompt. The pages you open or reload afterwards offer the bubble on every `https` site. Untick it, or change the extension's site access on its **Details** page, to stop; pages already open stop offering it once reloaded.
-
-Chrome leaves the shortcut unset when another extension already holds it; set or change it at `chrome://extensions/shortcuts`. A selection inside an embedded frame gets a card saying it cannot be summarized.
-
-For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev` instead. WXT does not launch a browser; you load the build into your own Chrome profile.
+Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and choose `apps/extension/.output/chrome-mv3`. After each rebuild, click the extension's **Reload** button. For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev` instead.
 
 | Command               | What it does                                                                                                                     |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -42,39 +103,18 @@ For live reload, run `pnpm dev` and load `apps/extension/.output/chrome-mv3-dev`
 | `pnpm typecheck`      | Type-checks every package                                                                                                        |
 | `pnpm test`           | Runs the unit tests of every package                                                                                             |
 | `pnpm coverage`       | Runs the unit tests with a coverage report per file                                                                              |
-| `pnpm check:manifest` | Fails if the built manifest differs from `manifest-expected.json` in any field but the version, or the licence files are missing |
-| `pnpm icons`          | Renders the PNG icons from `apps/extension/design`; needs `rsvg-convert` from librsvg                                            |
+| `pnpm check:manifest` | Fails if the built manifest differs from `manifest-expected.json` in any field but the version, or the license files are missing |
 | `pnpm check:bundle`   | Fails if any built content script carries key, storage or provider code                                                          |
 | `pnpm smoke`          | Loads the build into the installed Chrome, headless, and fails on any worker or options page error                               |
 | `pnpm verify`         | Runs what CI runs: the audit, lint, types, tests, the build, both build checks and the smoke test                                |
+| `pnpm icons`          | Renders the PNG icons from `apps/extension/design`; needs `rsvg-convert` from librsvg                                            |
 
-`apps/evals` is kept empty for a future evaluation system; see [its README](apps/evals/README.md).
-
-Chrome never lets an extension run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer; the icon shows a `!` badge there for a moment. The extension asks for `activeTab` and `scripting` to run on the page where you use the icon, shortcut or menu item, and to register the every-site script while you allow it, `contextMenus` for that menu item, and `storage` to keep your encrypted key, provider, summary language and shape and, in memory until the tab closes, the sites where you hid the bubble. Apart from `api.openai.com`, `api.anthropic.com` and `generativelanguage.googleapis.com`, which the background worker calls (only the one for your provider is used), it has no access to any site until you use the icon, shortcut or menu item, or until you tick **Offer a Summarize bubble on every https site**, which asks Chrome for access to every `https` site and can be withdrawn at any time.
-
-Highlights use the CSS Custom Highlight API: the worker inserts one stylesheet rule into the page on each run, and the content script registers the cited sentences under it when you click a point. Highlights add nothing to the page's DOM, and the page's text is never changed.
-
-## Providers
-
-Dr. Too Long runs on your own API key from OpenAI, Anthropic or Google. Paste it on the options page, never into a file or CI. One key is saved at a time: saving a key for another provider replaces the old one.
-
-| Provider           | Where to create a key                                                                                            | Model                   | Notes                             |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------------------------- |
-| OpenAI             | [platform.openai.com/settings/organization/api-keys](https://platform.openai.com/settings/organization/api-keys) | `gpt-6-luna`            | Reasoning effort `none`           |
-| Claude (Anthropic) | The Claude Console at [platform.claude.com](https://platform.claude.com)                                         | `claude-haiku-5-5`      | Thinking off                      |
-| Gemini (Google)    | Google AI Studio at [aistudio.google.com](https://aistudio.google.com)                                           | `gemini-3.5-flash-lite` | Has a free tier; see Google below |
-
-Each is that provider's cheapest capable model, set in code in `packages/shared/src/model`: you pick the provider, not the model. A summary costs under a cent on any of them, billed to your own account.
-
-As checked on 2026-11-07:
-
-- Your API key is encrypted with AES-GCM under a WebCrypto key that is non-extractable and kept in the extension's IndexedDB. Neither page scripts nor the extension's own content scripts see your API key, and it is never synced. **Remove … key**, or uninstalling the extension, deletes it from the extension's storage. Someone with full access to your Chrome profile on disk can still recover it, so use a key created for this extension, with a spending limit.
-- Your key and the text you select travel only from the background service worker to the chosen provider's API, under your account and that provider's terms. A lint rule and a bundle check keep the key, storage and provider code out of the on-page scripts.
-- OpenAI does not use API data for training and keeps abuse-monitoring logs for up to 30 days. The extension sets `store` to `false`, so OpenAI keeps no stored copy of the response.
-- Anthropic does not use API inputs and outputs for training by default and deletes them within 30 days. Organisations under zero data retention cannot call the API from a browser, so their keys are rejected.
-- With a free-tier key, Google may use the text to improve its products, and human reviewers may read it. Paid-tier keys are not used that way, and in the EEA, Switzerland and the UK the paid terms apply to free use too.
-- An empty balance or a reached spending cap shows as "out of credit or at its spending limit"; check the account's billing settings, then try again.
+[ARCHITECTURE.md](ARCHITECTURE.md) explains how the parts fit together, and [the "no" list](docs/no-list.md) names what the project leaves out on purpose. `apps/evals` waits for a contributor to rebuild the summary-quality evals; see [its README](apps/evals/README.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report a security flaw privately, as [SECURITY.md](SECURITY.md) explains.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report a security flaw privately, as [SECURITY.md](SECURITY.md) explains. Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[MIT](LICENSE). The packages the extension bundles are listed, with their licenses, in the `THIRD-PARTY-NOTICES.txt` that each build writes.
