@@ -7,6 +7,8 @@ export type ErrorCode =
   | 'rate_limited'
   | 'quota_exceeded'
   | 'network'
+  | 'timed_out'
+  | 'model_unavailable'
   | 'aborted'
   | 'disconnected'
   | 'invalidated'
@@ -14,7 +16,8 @@ export type ErrorCode =
   | 'no_selection'
   | 'too_long'
   | 'unsupported_selection'
-  | 'provider';
+  | 'provider'
+  | 'unexpected';
 
 export type SummaryEvent =
   | { type: 'partial'; points: Point[] }

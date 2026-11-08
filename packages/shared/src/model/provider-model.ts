@@ -11,9 +11,23 @@ export interface ModelSetup {
   providerOptions?: ProviderOptions;
 }
 
+// A request that never reached the provider: Chrome rejects it with exactly this TypeError. Other
+// TypeErrors from fetch, such as a header it refuses, are not network failures.
+export class ProviderUnreachable extends Error {
+  override name = 'ProviderUnreachable';
+}
+
 // The key authorizes each call; cookies the browser holds for the provider's domain stay out of it.
-const fetchWithoutCookies: typeof fetch = (input, init) =>
-  fetch(input, { ...init, credentials: 'omit' });
+const fetchWithoutCookies: typeof fetch = async (input, init) => {
+  try {
+    return await fetch(input, { ...init, credentials: 'omit' });
+  } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new ProviderUnreachable('Failed to fetch', { cause: error });
+    }
+    throw error;
+  }
+};
 
 const MODELS: Record<ProviderId, (apiKey: string) => ModelSetup> = {
   openai: (apiKey) => ({
