@@ -1,6 +1,6 @@
 import { APICallError, simulateReadableStream } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { SummarizeRequest, Summarizer, SummaryEvent } from '../src/contracts/index.ts';
 import { createSummarizer } from '../src/model/index.ts';
 
@@ -152,9 +152,33 @@ describe('createSummarizer', () => {
     ]);
   });
 
-  it('reports network when the request never reaches the provider', async () => {
-    const events = await collect(failing(new TypeError('Failed to fetch')));
-    expect(events).toEqual([{ type: 'error', code: 'network' }]);
+  it("reports unexpected, and logs no message, for an error that is not the provider's", async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const events = await collect(failing(new TypeError('A selected sentence.')));
+    expect(events).toEqual([{ type: 'error', code: 'unexpected' }]);
+    expect(log).toHaveBeenCalledOnce();
+    expect(String(log.mock.calls[0]?.[0])).toContain('TypeError');
+    expect(String(log.mock.calls[0]?.[0])).not.toContain('A selected sentence.');
+  });
+
+  it.each([
+    ['sends nothing', [], 30_000],
+    ['stops sending', textParts(['{"points":[{"text":"Rivers']).slice(0, 2), 15_000],
+  ])('reports timed_out when the provider %s', async (_, parts, quietMs) => {
+    vi.useFakeTimers();
+    onTestFinished(() => void vi.useRealTimers());
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream<StreamPart>({
+          start(controller) {
+            for (const part of parts) controller.enqueue(part);
+          },
+        }),
+      }),
+    });
+    const events = collect(createSummarizer({ model }));
+    await vi.advanceTimersByTimeAsync(quietMs);
+    expect((await events).at(-1)).toEqual({ type: 'error', code: 'timed_out' });
   });
 
   it('reports aborted when the signal fires mid-stream', async () => {

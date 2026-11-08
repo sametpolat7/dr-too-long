@@ -1,28 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { isListedLanguage, LANGUAGES, resolveLanguage, textDirection } from '../src/languages.ts';
+import {
+  isListedLanguage,
+  LANGUAGE_TAGS,
+  resolveLanguage,
+  textDirection,
+} from '../src/languages.ts';
 
-describe('LANGUAGES', () => {
-  it('offers each language once, with no regional variant', () => {
-    const locales = LANGUAGES.map((language) => new Intl.Locale(language.tag));
+describe('LANGUAGE_TAGS', () => {
+  it('lists each language once, with no regional variant', () => {
+    const locales = LANGUAGE_TAGS.map((tag) => new Intl.Locale(tag));
     expect(locales.filter((locale) => locale.region !== undefined)).toEqual([]);
     const others = locales.map((locale) => locale.language).filter((language) => language !== 'zh');
     expect(new Set(others).size).toBe(others.length);
   });
 
-  it('offers Chinese by script without naming a place', () => {
-    expect(LANGUAGES.filter((language) => language.tag.startsWith('zh'))).toEqual([
-      { tag: 'zh-Hans', label: 'Chinese (Simplified) — 中文（简体）' },
-      { tag: 'zh-Hant', label: 'Chinese (Traditional) — 中文（繁體）' },
-    ]);
-  });
-
   it('leaves out Catalan, and Thai and Amharic, whose prose the segmenter cannot split', () => {
     for (const tag of ['ca', 'th', 'am']) expect(isListedLanguage(tag)).toBe(false);
-  });
-
-  it('labels a language by its English name, then its own', () => {
-    expect(LANGUAGES.find((language) => language.tag === 'tr')?.label).toBe('Turkish — Türkçe');
   });
 });
 

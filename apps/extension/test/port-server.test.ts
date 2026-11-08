@@ -141,6 +141,18 @@ describe('handleConnect', () => {
     expect(postMessage).not.toHaveBeenCalled();
   });
 
+  it('reports an unexpected error when the key cannot be read, and logs it', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(fakeBrowser.storage.local, 'get').mockRejectedValue(new Error('Storage is broken'));
+    const port = new FakePort();
+    handleConnect(port, vi.fn());
+    port.receive(request);
+
+    await vi.waitFor(() => expect(port.disconnected).toBe(true));
+    expect(port.sent).toEqual([{ type: 'error', code: 'unexpected' }]);
+    expect(log).toHaveBeenCalledOnce();
+  });
+
   it('closes the port without a reply on a malformed request', async () => {
     await writeApiKey(apiKey);
     const createSummarizer = vi.fn();

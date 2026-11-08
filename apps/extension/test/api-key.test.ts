@@ -55,10 +55,12 @@ describe('api key storage', () => {
     expect(await stored()).toBeUndefined();
   });
 
-  it('reads a record it cannot decrypt as no key', async () => {
+  it('deletes a record it cannot decrypt, so no page reports it as saved', async () => {
     await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
     await store({ ...(await stored()), ciphertext: btoa('tampered') });
     expect(await readApiKey()).toBeNull();
+    expect(await stored()).toBeUndefined();
+    expect(await readKeyProvider()).toBeNull();
   });
 
   it('forgets a removed key', async () => {

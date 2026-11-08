@@ -41,6 +41,13 @@ describe('handleMessage', () => {
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith('summary'));
   });
 
+  it('answers Summary when the saved shape cannot be read', async () => {
+    vi.spyOn(fakeBrowser.storage.local, 'get').mockRejectedValue(new Error('Storage is broken'));
+    const sendResponse = vi.fn();
+    expect(handleMessage({ type: 'read-shape' }, {}, sendResponse)).toBe(true);
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith('summary'));
+  });
+
   it('saves a shape, and none that the list leaves out', async () => {
     handleMessage({ type: 'save-shape', shape: 'key-points' }, {}, vi.fn());
     await vi.waitFor(async () => expect(await readShape()).toBe('key-points'));

@@ -58,6 +58,12 @@ describe('segmentSentences', () => {
     ]);
   });
 
+  it('splits a sentence after a long run with no space without slowing down', () => {
+    const run = 'x'.repeat(100_000);
+    const sentences = segmentSentences(`${run} x. Next.`);
+    expect(sentences.map((sentence) => sentence.text)).toEqual([`${run} x.`, 'Next.']);
+  });
+
   it('returns trimmed text with offsets into the source', () => {
     const source = '  First one.   Second\u00a0one.  ';
     const sentences = segmentSentences(source);
