@@ -36,10 +36,11 @@ export async function readApiKey(): Promise<ApiKey | null> {
   const stored = await readStoredKey();
   if (stored === null) return null;
   try {
-    return { provider: stored.provider, key: await decrypt(stored) };
+    return { provider: stored.provider, key: await decrypt(stored, stored.provider) };
   } catch (error) {
-    // The device key that sealed the record is gone, or the record was altered: it can never be
-    // read again, so it goes, and the options page then shows no key either.
+    // The device key that sealed the record is gone, or the record was altered, its provider
+    // included: it can never be read again, so it goes, and the options page then shows no key
+    // either.
     if (error instanceof Error && error.name === 'OperationError') {
       await apiKey.removeValue();
       return null;
@@ -53,7 +54,7 @@ export async function readApiKey(): Promise<ApiKey | null> {
 export const isWellFormedKey = (key: string): boolean => /^[\x21-\x7E]+$/.test(key.trim());
 
 export async function writeApiKey({ provider, key }: ApiKey): Promise<void> {
-  await apiKey.setValue({ provider, ...(await encrypt(key.trim())) });
+  await apiKey.setValue({ provider, ...(await encrypt(key.trim(), provider)) });
 }
 
 export const removeApiKey = (): Promise<void> => apiKey.removeValue();
