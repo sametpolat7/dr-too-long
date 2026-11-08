@@ -7,7 +7,7 @@ export async function addMenuItem(): Promise<void> {
   // Chrome shows the start of the selection in place of %s.
   browser.contextMenus.create({
     id: 'summarize-selection',
-    title: 'Summarize "%s"',
+    title: 'Summarize “%s”',
     contexts: ['selection'],
   });
 }

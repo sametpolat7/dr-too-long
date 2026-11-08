@@ -1,6 +1,8 @@
 import { PROVIDERS } from '@dr-too-long/shared/providers';
 import { defineConfig } from 'wxt';
+import { ACTION_TITLE } from './src/action-title.ts';
 import { EVERY_SITE } from './src/every-site.ts';
+import { LINKS } from './src/links.ts';
 
 const MINIMUM_CHROME = 110;
 
@@ -12,9 +14,12 @@ export default defineConfig({
   vite: () => ({ build: { target: `chrome${MINIMUM_CHROME}` } }),
   manifest: {
     name: 'Dr. Too Long',
-    description: 'Turns selected text into a summary in your language with one click.',
+    // Shown on chrome://extensions and in the Web Store, in at most 132 characters.
+    description:
+      'Summarize selected text in your language, with every point linked to its source. Runs on your own OpenAI, Claude or Gemini API key.',
+    homepage_url: LINKS.repository,
     minimum_chrome_version: String(MINIMUM_CHROME),
-    action: { default_title: 'Summarize the selection' },
+    action: { default_title: ACTION_TITLE },
     commands: {
       _execute_action: { suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' } },
     },
