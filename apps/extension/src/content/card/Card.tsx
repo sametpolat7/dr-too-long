@@ -59,8 +59,6 @@ interface Notice {
 }
 
 // The card's own text is English and left to right, whatever the page's language and direction.
-// It is a non-modal dialog in the top layer, above everything the page draws, and takes the focus
-// when it opens.
 export function Card({
   state,
   theme = 'light',
@@ -221,7 +219,6 @@ function Body({ state, view, onRetry, onOpenOptions, onActivate, onNotice }: Bod
   }
 }
 
-// Stands in for the points until the first one arrives.
 function Skeleton() {
   return (
     <div class="skeleton" aria-hidden="true">
@@ -385,7 +382,6 @@ interface CopyButtonProps {
   onNotice: BodyProps['onNotice'];
 }
 
-// Its tooltip and icon show the result for a moment; the status line says it to screen readers.
 function CopyButton({ text, onNotice }: CopyButtonProps) {
   const [result, setResult] = useState<'copied' | 'failed'>();
   useEffect(() => {
