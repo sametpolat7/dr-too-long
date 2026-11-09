@@ -1,7 +1,6 @@
 @import "../../ui/tokens.css";
 
-/* Small, in the Summarize color, the same on light and dark pages. The popover attribute's own
-   styles would center it with a border and padding. */
+/* The popover attribute's own styles would center it with a border and padding. */
 .bubble {
   position: fixed;
   inset: auto;
