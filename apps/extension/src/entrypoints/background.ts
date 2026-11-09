@@ -15,7 +15,6 @@ export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(({ reason }) => {
     void addMenuItem();
     void syncEverySite();
-    // A first install starts with setting up a key; updates leave the reader where they were.
     if (reason === 'install') void browser.runtime.openOptionsPage();
   });
   // The icon opens the popup, which asks for a summary by message. The shortcut is a command of its
