@@ -1,0 +1,237 @@
+@import "../ui/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Chrome sizes the popup to its content and draws its frame. */
+body {
+  width: 480px;
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: 14px / 1.5 var(--font);
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 12px;
+}
+
+h1 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mark {
+  display: block;
+  flex: none;
+}
+
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.setup,
+.summarize,
+.group,
+.sub {
+  display: grid;
+}
+
+.setup,
+.sub {
+  gap: 4px;
+}
+
+.summarize {
+  gap: 8px;
+}
+
+.group {
+  gap: 6px;
+}
+
+.setup strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.primary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--pressed);
+  border-radius: 8px;
+  background: var(--pressed);
+  color: var(--pressed-text);
+  font: 500 14px / 1 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.primary:hover {
+  opacity: 0.9;
+}
+
+/* In the color of the Summarize button on the page, as the same action. */
+.go {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 1px solid var(--go-edge);
+  border-radius: 10px;
+  background: var(--go);
+  color: var(--go-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.go:not([aria-disabled="true"]):hover {
+  filter: brightness(0.96);
+}
+
+.go-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  line-height: 1.3;
+}
+
+.go-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.go-line {
+  font-size: 12.5px;
+  opacity: 0.8;
+}
+
+.arrow {
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+/* Off: an outline that says what to do, in place of a dimmed button. */
+.go[aria-disabled="true"] {
+  border: 1px dashed var(--field);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: default;
+}
+
+.go[aria-disabled="true"] .go-line {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.tip {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: 11.5px / 1.3 var(--font);
+}
+
+/* The rules run to the popup's edges. */
+hr {
+  margin: 0 -16px;
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.option input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--pressed);
+}
+
+/* Under the box's label, past the box. */
+.sub {
+  padding-left: 26px;
+  font-size: 13px;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration-color: currentColor;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  vertical-align: 1px;
+}
