@@ -1,7 +1,7 @@
 name: Release
 
-# A signed vX.Y.Z tag on main releases that version: every check runs, the zip is built here, its
-# provenance is attested, and a GitHub Release holds the zip that goes to the Chrome Web Store.
+# A signed vX.Y.Z tag on main releases that version, and a GitHub Release holds the zip that goes to
+# the Chrome Web Store.
 on:
   push:
     tags: ["v*"]
