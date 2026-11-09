@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { type Bubble, startBubble } from '../src/content/bubble/bubble.tsx';
-import { BUBBLE_DELAY_MS } from '../src/content/bubble/watch.ts';
 import { LONG } from './helpers.ts';
 
 // The bubble's closed shadow root, replaced by a container in an open host the test can reach.
@@ -17,6 +16,8 @@ vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
 }));
 
 let valid = true;
+let top = 200;
+let boxes = () => [new DOMRect(40, top, 300, 20)];
 let bubble: Bubble | undefined;
 const ctx = {
   get isValid() {
@@ -33,18 +34,28 @@ function select() {
   document.getSelection()?.addRange(range);
   document.dispatchEvent(new Event('selectionchange'));
   document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-  vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+  vi.advanceTimersByTime(0);
 }
 
 const button = () => container.querySelector('button');
+const place = () => [button()?.style.left, button()?.style.top];
+const scrollTo = (scrolledTo: number) => {
+  top = scrolledTo;
+  document.dispatchEvent(new Event('scroll'));
+  vi.advanceTimersByTime(16);
+};
 
 describe('startBubble', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     valid = true;
-    vi.spyOn(Range.prototype, 'getClientRects').mockReturnValue([
-      new DOMRect(40, 200, 300, 20),
-    ] as unknown as DOMRectList);
+    top = 200;
+    boxes = () => [new DOMRect(40, top, 300, 20)];
+    vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(
+      () => boxes() as unknown as DOMRectList,
+    );
+    // The page shows the selected text, with nothing over it.
+    document.elementsFromPoint = () => [...document.querySelectorAll('p')];
   });
   afterEach(() => {
     bubble?.setHidden(true);
@@ -52,12 +63,15 @@ describe('startBubble', () => {
     document.getSelection()?.removeAllRanges();
   });
 
-  it('shows Summarize above the selection, keeps the selection on a press and summarizes on a click', async () => {
+  it('shows Summarize in the top layer where the selection ended, keeps the selection on a press and summarizes on a click', async () => {
     const onSummarize = vi.fn();
     bubble = await startBubble(ctx, { hidden: false, onSummarize });
     select();
     expect(button()?.textContent).toBe('Summarize');
-    expect([button()?.style.left, button()?.style.top]).toEqual(['40px', '192px']);
+    expect(button()?.querySelector('svg')?.getAttribute('width')).toBe('14');
+    expect(button()?.getAttribute('popover')).toBe('manual');
+    expect(button()?.hasAttribute('data-popover-open')).toBe(true);
+    expect([button()?.style.left, button()?.style.top]).toEqual(['326px', '226px']);
     const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
     button()?.dispatchEvent(press);
     expect(press.defaultPrevented).toBe(true);
@@ -65,11 +79,38 @@ describe('startBubble', () => {
     expect(onSummarize).toHaveBeenCalledOnce();
     expect(button()).toBeNull();
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    vi.advanceTimersByTime(0);
     expect(button()).toBeNull();
   });
 
-  it('takes a light look on a dark page', async () => {
+  it('follows the text with the same offset as the page scrolls, hidden off the screen and back', async () => {
+    bubble = await startBubble(ctx, { hidden: false, onSummarize: () => undefined });
+    select();
+    expect(place()).toEqual(['326px', '226px']);
+    scrollTo(120);
+    expect(place()).toEqual(['326px', '146px']);
+    scrollTo(-3000);
+    expect(button()?.style.visibility).toBe('hidden');
+    scrollTo(200);
+    expect(place()).toEqual(['326px', '226px']);
+    expect(button()?.style.visibility).toBe('');
+  });
+
+  it('places it afresh until the line it stands by is on the screen, then keeps that offset', async () => {
+    bubble = await startBubble(ctx, { hidden: false, onSummarize: () => undefined });
+    top = 600;
+    boxes = () => [new DOMRect(40, top, 300, 20), new DOMRect(40, top + 400, 300, 20)];
+    select();
+    expect(place()).toEqual(['326px', `${window.innerHeight - 8}px`]);
+    scrollTo(400);
+    expect(button()?.style.visibility).toBe('hidden');
+    scrollTo(200);
+    expect(place()).toEqual(['326px', '626px']);
+    scrollTo(0);
+    expect(place()).toEqual(['326px', '426px']);
+  });
+
+  it("takes a dark page's scheme, which its focus ring follows", async () => {
     bubble = await startBubble(ctx, { hidden: false, onSummarize: () => undefined });
     document.body.style.backgroundColor = 'rgb(32, 33, 36)';
     onTestFinished(() => document.body.removeAttribute('style'));
@@ -83,7 +124,7 @@ describe('startBubble', () => {
     expect(button()).toBeNull();
     bubble.setHidden(false);
     select();
-    expect(button()).not.toBeNull();
+    expect(button()?.hasAttribute('data-popover-open')).toBe(true);
     bubble.setHidden(true);
     expect(button()).toBeNull();
     select();
@@ -96,7 +137,7 @@ describe('startBubble', () => {
     range.selectNodeContents(document.body);
     document.getSelection()?.addRange(range);
     bubble = await startBubble(ctx, { hidden: false, offerCurrent: true, onSummarize: vi.fn() });
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    vi.advanceTimersByTime(0);
     expect(button()).not.toBeNull();
   });
 

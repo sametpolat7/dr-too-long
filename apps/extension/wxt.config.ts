@@ -6,7 +6,7 @@ import { ACTION_TITLE } from './src/action-title.ts';
 import { EVERY_SITE } from './src/every-site.ts';
 import { LINKS } from './src/links.ts';
 
-const MINIMUM_CHROME = 110;
+const MINIMUM_CHROME = 114;
 const API_HOSTS = Object.values(PROVIDERS).map(({ apiHost }) => apiHost);
 
 export default defineConfig({
@@ -28,13 +28,16 @@ export default defineConfig({
       default_icon: { 16: 'icon/16.png', 24: 'icon/24.png', 32: 'icon/32.png' },
     },
     commands: {
-      _execute_action: { suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' } },
+      summarize: {
+        suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' },
+        description: 'Summarize the selected text',
+      },
     },
     permissions: ['activeTab', 'contextMenus', 'scripting', 'storage'],
     host_permissions: API_HOSTS.map((host) => `${host}/*`),
     optional_host_permissions: EVERY_SITE.origins,
-    // The worker and the options page may fetch the three provider APIs and nothing else, whatever a
-    // bundled package tries. Builds only: WXT's dev reload talks to a local server.
+    // The worker, the options page and the popup may fetch the three provider APIs and nothing else,
+    // whatever a bundled package tries. Builds only: WXT's dev reload talks to a local server.
     ...(command === 'build' && {
       content_security_policy: {
         extension_pages: `script-src 'self'; object-src 'self'; connect-src ${API_HOSTS.join(' ')}`,

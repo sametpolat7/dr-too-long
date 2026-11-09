@@ -1,34 +1,29 @@
 import {
-  isProviderId,
   PROVIDER_IDS,
   PROVIDERS,
   type ProviderId,
   providerOfKey,
 } from '@dr-too-long/shared/providers';
-import type { ComponentChildren } from 'preact';
-import { useRef, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { LINKS } from '../links.ts';
-import { isWellFormedKey, removeApiKey, writeApiKey } from '../settings/api-key.ts';
+import { isWellFormedKey, writeApiKey } from '../settings/api-key.ts';
 
 interface KeyFormProps {
   // Null when no key is saved.
   saved: ProviderId | null;
-  onChange: (saved: ProviderId | null) => void;
-  // More buttons for the same row, such as Test key.
-  children?: ComponentChildren;
+  onSave: (provider: ProviderId) => void;
+  // Given while a saved key is being replaced.
+  onCancel?: () => void;
 }
 
-// "OpenAI, Claude or Gemini", without the serial comma, as in the rest of the text.
-const PROVIDER_NAMES = new Intl.ListFormat('en-GB', { type: 'disjunction' }).format(
-  PROVIDER_IDS.map((id) => PROVIDERS[id].name),
-);
+// "an OpenAI", "a Claude", "a Gemini".
+const withArticle = (name: string) => `${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name}`;
 
-export function KeyForm({ saved, onChange, children }: KeyFormProps) {
+export function KeyForm({ saved, onSave, onCancel }: KeyFormProps) {
   const [picked, setPicked] = useState<ProviderId>(saved ?? PROVIDER_IDS[0]);
   const [draft, setDraft] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [failure, setFailure] = useState<string>();
-  const keyField = useRef<HTMLInputElement>(null);
   const { name, keysUrl } = PROVIDERS[picked];
 
   function refusal(): string | undefined {
@@ -37,7 +32,7 @@ export function KeyForm({ saved, onChange, children }: KeyFormProps) {
     }
     const owner = providerOfKey(draft.trim());
     if (owner && owner !== picked) {
-      return `This looks like a ${PROVIDERS[owner].name} key. Pick ${PROVIDERS[owner].name} as the provider, or paste your ${name} key.`;
+      return `This looks like ${withArticle(PROVIDERS[owner].name)} key. Pick ${PROVIDERS[owner].name} as the provider, or paste your ${name} key.`;
     }
   }
 
@@ -54,72 +49,66 @@ export function KeyForm({ saved, onChange, children }: KeyFormProps) {
       setFailure('The key could not be saved on this device. Try again.');
       return;
     }
-    setFailure(undefined);
-    setDraft('');
-    setAgreed(false);
-    onChange(picked);
-    keyField.current?.focus();
-  }
-
-  async function remove() {
-    try {
-      await removeApiKey();
-    } catch {
-      setFailure('The key could not be removed. Try again.');
-      return;
-    }
-    setFailure(undefined);
-    onChange(null);
-    // The Remove button goes with the key, so focus moves to where a new one is pasted.
-    keyField.current?.focus();
+    onSave(picked);
   }
 
   return (
     <>
-      <p class="status" role="status">
-        {saved
-          ? `Your ${PROVIDERS[saved].name} API key is saved on this device.`
-          : `No API key is saved yet. Summaries need your own ${PROVIDER_NAMES} API key.`}
+      <p class="lead">
+        Dr. Too Long runs on your own API key, so you stay in control. The key is encrypted on this
+        device and is only ever sent to the provider you choose.
       </p>
       <form onSubmit={save}>
-        <label for="provider">Provider</label>
-        <select
-          id="provider"
-          name="provider"
-          value={picked}
-          onChange={(event) => {
-            const { value } = event.currentTarget;
-            if (isProviderId(value)) setPicked(value);
-          }}
-        >
-          {PROVIDER_IDS.map((id) => (
-            <option key={id} value={id}>
-              {PROVIDERS[id].name}
-            </option>
-          ))}
-        </select>
-        <label for="api-key">{name} API key</label>
-        <input
-          ref={keyField}
-          id="api-key"
-          name="api-key"
-          type="password"
-          value={draft}
-          onInput={(event) => setDraft(event.currentTarget.value)}
-          autocomplete="off"
-          spellcheck={false}
-        />
-        <p class="note">
-          <a href={keysUrl} target="_blank" rel="noreferrer">
-            Get an API key from {name}
-          </a>
-          . Use a key made for Dr. Too Long, with a monthly spending limit.
-          {picked === 'google' &&
-            ' With an unpaid Gemini key, Google may use the text you send to improve its products, and human reviewers may read it.'}
-        </p>
-        {saved && saved !== picked && (
-          <p class="note">Saving replaces your saved {PROVIDERS[saved].name} key.</p>
-        )}
+        <div class="fields">
+          <span id="provider-label" class="label">
+            Provider
+          </span>
+          <div class="segments" role="radiogroup" aria-labelledby="provider-label">
+            {PROVIDER_IDS.map((id) => (
+              <label key={id}>
+                <input
+                  type="radio"
+                  name="provider"
+                  value={id}
+                  checked={id === picked}
+                  // The agreement and any refusal name the provider they were given for.
+                  onChange={() => {
+                    setPicked(id);
+                    setAgreed(false);
+                    setFailure(undefined);
+                  }}
+                />
+                {PROVIDERS[id].name}
+              </label>
+            ))}
+          </div>
+          <label for="api-key" class="label">
+            {name} API key
+          </label>
+          <input
+            id="api-key"
+            name="api-key"
+            type="password"
+            value={draft}
+            onInput={(event) => setDraft(event.currentTarget.value)}
+            placeholder="Paste your key here"
+            autocomplete="off"
+            spellcheck={false}
+          />
+          <p class="note">
+            No key yet?{' '}
+            <a href={keysUrl} target="_blank" rel="noreferrer">
+              Get {withArticle(name)} API key
+            </a>
+            . A key made just for Dr. Too Long, with a monthly spending limit, keeps your costs
+            predictable.
+            {picked === 'google' &&
+              ' Good to know: with an unpaid Gemini key, Google may use the text you send to improve its products, and people may review it.'}
+          </p>
+          {saved && saved !== picked && (
+            <p class="note">Saving replaces your saved {PROVIDERS[saved].name} key.</p>
+          )}
+        </div>
         <label class="agree">
           <input
             type="checkbox"
@@ -128,8 +117,8 @@ export function KeyForm({ saved, onChange, children }: KeyFormProps) {
             onChange={(event) => setAgreed(event.currentTarget.checked)}
           />
           <span>
-            I understand that each summary sends the text I select, with this key, to {name}, and
-            that nothing else leaves my browser, as the{' '}
+            I understand that each summary sends the text I select, with this key, to {name}.
+            Nothing else from the page leaves my browser, as the{' '}
             <a href={LINKS.privacy} target="_blank" rel="noreferrer">
               privacy policy
             </a>{' '}
@@ -137,15 +126,14 @@ export function KeyForm({ saved, onChange, children }: KeyFormProps) {
           </span>
         </label>
         <div class="actions">
-          <button type="submit" disabled={draft.trim() === '' || !agreed}>
+          <button type="submit" class="primary" disabled={draft.trim() === '' || !agreed}>
             Save key
           </button>
-          {saved && (
-            <button type="button" onClick={remove}>
-              Remove {PROVIDERS[saved].name} key
+          {onCancel && (
+            <button type="button" onClick={onCancel}>
+              Cancel
             </button>
           )}
-          {children}
         </div>
       </form>
       {failure && (

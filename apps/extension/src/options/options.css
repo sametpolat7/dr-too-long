@@ -1,118 +1,236 @@
-:root {
-  --surface: #fff;
-  --text: #1a1a1a;
-  --muted: #555;
-  --rule: #ddd;
-  --danger: #b00020;
-  --link: #0b57d0;
+@import "../ui/tokens.css";
 
-  color-scheme: light dark;
-}
-
-/* Chrome's options dialog follows Chrome's theme, and so does this page. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #202124;
-    --text: #e8eaed;
-    --muted: #9aa0a6;
-    --rule: #3c4043;
-    --danger: #f28b82;
-    --link: #8ab4f8;
-  }
-}
-
+/* Chrome widens its options dialog only as far as the page's content needs, so the page sets its
+   own width. */
 body {
+  width: 640px;
   margin: 0;
-  padding: 16px 20px;
-  max-width: 560px;
+  padding: 20px 24px 18px;
   background: var(--surface);
   color: var(--text);
-  font:
-    14px / 1.5 system-ui,
-    sans-serif;
-}
-
-.intro {
-  margin: 0 0 16px;
-}
-
-section {
-  margin-bottom: 20px;
-}
-
-h2 {
-  margin: 0 0 8px;
-  font-size: 15px;
-}
-
-form {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 8px 12px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-input[type="password"],
-select {
-  min-width: 0;
-  padding: 6px 8px;
-  font: inherit;
-}
-
-.agree {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.agree input,
-.every-site input {
-  flex: none;
-  margin: 3px 0 0;
-}
-
-.actions,
-.language {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.every-site label {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-button {
-  padding: 6px 12px;
-  font: inherit;
+  font: 14px / 1.5 var(--font);
 }
 
 p {
   margin: 0;
 }
 
-.status,
-.note,
-.every-site p {
+/* Margins rather than grid gaps: a status stays mounted while empty, so screen readers hear it
+   change, and an empty paragraph's margins collapse where a grid gap would leave a hole. */
+main > * + *,
+form > * + * {
+  margin-top: 14px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.lead {
+  color: var(--text-soft);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 6px 14px;
+  align-items: center;
+}
+
+.label {
+  font-weight: 500;
+}
+
+.segments {
+  display: inline-flex;
+  justify-self: start;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+
+.segments label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 7px;
+  color: var(--muted);
+  font: 500 13px / 1 var(--font);
+  cursor: pointer;
+}
+
+.segments label:hover {
+  color: var(--text);
+}
+
+.segments label:has(:checked) {
+  background: var(--pressed);
+  color: var(--pressed-text);
+}
+
+.segments label:has(:focus-visible) {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* The radio stays for the keyboard and screen readers; its segment shows it. */
+.segments input {
+  position: absolute;
+  margin: 0;
+  opacity: 0;
+}
+
+input[type="password"] {
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--field);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--pressed);
+}
+
+.agree {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+.saved {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.saved svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--ok);
+}
+
+.saved path {
+  stroke: var(--surface);
+}
+
+.saved strong {
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: 500 13px / 1 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button:enabled:hover {
+  background: var(--hover);
+}
+
+button.primary {
+  border-color: var(--pressed);
+  background: var(--pressed);
+  color: var(--pressed-text);
+}
+
+button.primary:enabled:hover {
+  background: var(--pressed);
+  opacity: 0.9;
+}
+
+button.quiet {
+  border-color: transparent;
+  background: transparent;
   color: var(--muted);
 }
 
-.sample {
-  margin: 8px 0 0;
+button.quiet:enabled:hover {
+  background: transparent;
+  color: var(--danger);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.status,
+.note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.fields > .note {
+  grid-column: 2;
+}
+
+.status.good {
+  color: var(--ok);
+  font-weight: 500;
+}
+
+.sample + .status {
+  margin-top: 6px;
 }
 
 .error {
   color: var(--danger);
 }
 
-footer {
+.sample {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+main > footer {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 16px;
+  margin-top: 18px;
   padding-top: 12px;
   border-top: 1px solid var(--rule);
   color: var(--muted);
@@ -123,9 +241,11 @@ a {
   color: var(--link);
 }
 
-/* Notes, the agreement and the buttons span both columns of the key form. */
-form > .note,
-form > .agree,
-form > .actions {
-  grid-column: 1 / -1;
+@media (forced-colors: active) {
+  /* Forced colors drop the checked segment's fill, so it takes the system's selection colors. */
+  .segments label:has(:checked) {
+    background: SelectedItem;
+    color: SelectedItemText;
+    forced-color-adjust: none;
+  }
 }

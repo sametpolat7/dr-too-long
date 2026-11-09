@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Browser } from 'wxt/browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { isBubbleHidden, setBubbleHidden } from '../src/background/hidden-bubble.ts';
+import { isBubbleHidden, setTabBubbleHidden } from '../src/background/hidden-bubble.ts';
 import { handleMessage } from '../src/background/message-handler.ts';
 import { SUMMARIZE_SCRIPT } from '../src/background/scripts.ts';
 import background from '../src/entrypoints/background.ts';
@@ -35,6 +35,7 @@ describe('the background worker', () => {
   const setAccessLevel = vi.fn(async (_: { accessLevel: string }) => undefined);
   let granted: boolean;
   let menuClicked: ReturnType<typeof fakeEvent>;
+  let commandRun: ReturnType<typeof fakeEvent>;
   let permissionsAdded: ReturnType<typeof fakeEvent>;
   let permissionsRemoved: ReturnType<typeof fakeEvent>;
   let connected: ReturnType<typeof fakeEvent>;
@@ -44,6 +45,7 @@ describe('the background worker', () => {
     calls.length = 0;
     granted = false;
     menuClicked = fakeEvent();
+    commandRun = fakeEvent();
     permissionsAdded = fakeEvent();
     permissionsRemoved = fakeEvent();
     connected = fakeEvent();
@@ -52,6 +54,7 @@ describe('the background worker', () => {
       removeAll: async () => undefined,
       create: createMenuItem.mockReset(),
     });
+    Object.assign(fakeBrowser.commands, { onCommand: commandRun });
     Object.assign(fakeBrowser.permissions, {
       onAdded: permissionsAdded,
       onRemoved: permissionsRemoved,
@@ -93,7 +96,7 @@ describe('the background worker', () => {
   });
 
   it.each([
-    ['a click on the icon or the shortcut', () => fakeBrowser.action.onClicked.trigger(tab)],
+    ['the shortcut', () => commandRun.fire('summarize', tab)],
     ['the menu item', () => menuClicked.fire({}, tab)],
   ])('summarizes the tab on %s, with one copy of the highlight style', async (_, click) => {
     await click();
@@ -116,14 +119,17 @@ describe('the background worker', () => {
     expect(() => background.main()).not.toThrow();
   });
 
-  it('answers the content scripts and the options page', () => {
+  it('answers the content scripts and the popup', () => {
     expect(fakeBrowser.runtime.onMessage.hasListener(handleMessage)).toBe(true);
   });
 
-  it('forgets where the bubble was hidden once the tab closes', async () => {
-    const sender = { tab: { id: 3 }, origin: 'https://example.com' };
-    await setBubbleHidden(sender, true);
-    await fakeBrowser.tabs.onRemoved.trigger(3, { windowId: 1, isWindowClosing: false });
+  it('forgets where the bubble was turned off once the tab closes', async () => {
+    const { id = -1 } = await fakeBrowser.tabs.create({ url: 'https://example.com/' });
+    const sender = { tab: { id }, url: 'https://example.com/', origin: 'https://example.com' };
+    fakeBrowser.tabs.sendMessage = async () => undefined;
+    await setTabBubbleHidden(id, true);
+    expect(await isBubbleHidden(sender)).toBe(true);
+    await fakeBrowser.tabs.onRemoved.trigger(id, { windowId: 1, isWindowClosing: false });
     await vi.waitFor(async () => expect(await isBubbleHidden(sender)).toBe(false));
   });
 

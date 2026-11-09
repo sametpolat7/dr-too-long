@@ -2,6 +2,7 @@ import { segmentSentences } from '@dr-too-long/shared/segmentation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAnchors } from '../src/content/anchoring/anchors.ts';
 import { readPageText } from '../src/content/anchoring/page-text.ts';
+import { BUBBLE_UI } from '../src/content/ui.ts';
 import { HIGHLIGHT_NAME } from '../src/highlight.ts';
 import { layOutText } from './helpers.ts';
 
@@ -25,12 +26,27 @@ function anchorsOver(selector: string) {
 const highlighted = () =>
   [...(highlights.get(HIGHLIGHT_NAME) ?? [])].map((range) => range.toString());
 
+// Where the cited sentence's box stands in the viewport.
+const sentenceAt = (box: DOMRect) =>
+  vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(box);
+
+// What the page shows at the sentence's centre, from the top: the paragraph holding it, under
+// whatever covers it.
+const shows = (...selectors: string[]) =>
+  vi
+    .spyOn(document, 'elementsFromPoint')
+    .mockImplementation(() =>
+      selectors.flatMap((selector) => document.querySelector(selector) ?? []),
+    );
+
 describe('createAnchors', () => {
   beforeEach(() => {
     highlights = new Map();
     vi.stubGlobal('CSS', { highlights });
     vi.stubGlobal('Highlight', FakeHighlight);
     layOutText();
+    sentenceAt(new DOMRect(0, 2000, 600, 20));
+    document.elementsFromPoint = () => [];
     document.body.innerHTML =
       '<section><p>One two. Three four.</p><p>Five six.</p></section><aside></aside>';
   });
@@ -58,15 +74,74 @@ describe('createAnchors', () => {
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
       new DOMRect(0, -4000, 800, 9000),
     );
-    vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(
-      new DOMRect(0, 3000, 600, 40),
-    );
+    sentenceAt(new DOMRect(0, 3000, 600, 40));
     expect(anchorsOver('section').activate({ text: '', sentences: [3] })).toBe(true);
     expect(scrollIntoView).not.toHaveBeenCalled();
     expect(scrollBy).toHaveBeenCalledWith({
       top: 3000 - (window.innerHeight - 40) / 2,
       behavior: 'smooth',
     });
+  });
+
+  it('highlights a sentence already in sight without moving the page', () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    sentenceAt(new DOMRect(0, 100, 600, 20));
+    shows('section p');
+    expect(anchorsOver('section').activate({ text: '', sentences: [2] })).toBe(true);
+    expect(highlighted()).toEqual(['Three four.']);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  it('scrolls to a sentence in the viewport that something else covers', () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    sentenceAt(new DOMRect(0, 100, 600, 20));
+    shows('aside', 'section p');
+    anchorsOver('section').activate({ text: '', sentences: [2] });
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+  });
+
+  it('leaves a sentence in sight under the Summarize button where it is', () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    document.body.append(document.createElement(BUBBLE_UI));
+    sentenceAt(new DOMRect(0, 100, 600, 20));
+    shows(BUBBLE_UI, 'section p');
+    anchorsOver('section').activate({ text: '', sentences: [2] });
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['partly below the viewport', new DOMRect(0, window.innerHeight - 10, 600, 20)],
+    ['past its right edge', new DOMRect(window.innerWidth - 100, 100, 600, 20)],
+  ])('scrolls to a sentence %s', (_, box) => {
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    sentenceAt(box);
+    anchorsOver('section').activate({ text: '', sentences: [1] });
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['in sight', 50, false],
+    ['hidden', 300, true],
+  ])('scrolls only when its scroll container keeps an on-screen sentence %s', (_, top, scrolls) => {
+    document.body.innerHTML =
+      '<div style="overflow-y: auto"><section><p>One two.</p><p>Three four.</p></section></div>';
+    const scroller = document.querySelector('div');
+    if (!scroller) throw new Error('Fixture changed');
+    Object.defineProperties(scroller, {
+      scrollHeight: { value: 1000 },
+      clientHeight: { value: 100 },
+      clientWidth: { value: 600 },
+    });
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 600, 100),
+    );
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+    sentenceAt(new DOMRect(0, top, 600, 20));
+    shows('section p + p');
+    anchorsOver('section').activate({ text: '', sentences: [2] });
+    expect(scrollIntoView).toHaveBeenCalledTimes(scrolls ? 1 : 0);
   });
 
   it('clears the selection, which would paint over the highlight', () => {

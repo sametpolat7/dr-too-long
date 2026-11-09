@@ -1,53 +1,34 @@
-/* One set of colors, which the card swaps for the page's scheme. The passage mark stays yellow with
-   dark text in both, as the page's highlight does. */
-.card {
-  --surface: #fff;
-  --text: #1a1a1a;
-  --muted: #555;
-  --border: #ccc;
-  --rule: #eee;
-  --hover: #f2f2f2;
-  --pressed: #1a1a1a;
-  --pressed-text: #fff;
-  --danger: #b00020;
-  --mark: #ffe58f;
-  --mark-text: #1a1a1a;
-  --shadow: rgb(0 0 0 / 20%);
+@import "../../ui/tokens.css";
+@import "../../ui/picker.css";
 
-  color-scheme: light;
+/* The popover attribute's own styles would center the card with a border and padding, and clip the
+   language list and the tooltips, which overhang the bar and the footer; the body scrolls instead. */
+.card {
   position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 2147483647;
+  inset: 16px 16px auto auto;
   box-sizing: border-box;
-  width: 360px;
-  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  width: min(480px, 100vw - 32px);
   max-height: calc(100vh - 32px);
-  overflow: auto;
-  padding: 12px 16px 16px;
-  border-radius: 8px;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 4px 24px var(--shadow);
-  font:
-    14px / 1.5 system-ui,
-    sans-serif;
+  box-shadow: var(--shadow);
+  font: 14px / 1.5 var(--font);
   overflow-wrap: anywhere;
+  animation: card-in 140ms ease-out;
 }
 
-.card[data-theme="dark"] {
-  --surface: #202124;
-  --text: #e8eaed;
-  --muted: #9aa0a6;
-  --border: #5f6368;
-  --rule: #3c4043;
-  --hover: #2d2e31;
-  --pressed: #e8eaed;
-  --pressed-text: #202124;
-  --danger: #f28b82;
-  --shadow: rgb(0 0 0 / 50%);
-
-  color-scheme: dark;
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 /* The card takes the focus as a whole; its controls show their own focus. */
@@ -55,60 +36,240 @@
   outline: none;
 }
 
-/* Stays at the top of a long card, so × is always in reach. */
-header {
-  position: sticky;
-  top: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: -12px -16px 8px;
-  padding: 12px 16px 4px;
-  background: var(--surface);
-}
-
-.title {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.mark {
-  flex: none;
-}
-
-.close {
-  padding: 0 4px;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.close:hover {
-  color: var(--text);
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }
 
 p {
   margin: 0;
 }
 
+/* The one bar, which is the drag handle, as the grip and the grab cursor say. In a narrow window its
+   controls wrap between the grip and Close. */
+header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--rule);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+header:active {
+  cursor: grabbing;
+}
+
+.grip {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+header:hover .grip {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.tools {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tools .picker {
+  margin-left: auto;
+}
+
+.shapes {
+  display: inline-flex;
+  gap: 2px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: var(--surface-2);
+  cursor: default;
+}
+
+.shapes button {
+  height: 26px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font: 500 13px / 1 var(--font);
+  cursor: pointer;
+}
+
+.shapes button:hover {
+  color: var(--text);
+}
+
+.shapes button[aria-pressed="true"] {
+  background: var(--pressed);
+  color: var(--pressed-text);
+}
+
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 16px 4px;
+}
+
+/* A refused selection leaves the card with no footer. */
+.body:last-child {
+  padding-bottom: 16px;
+}
+
+.body ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-inline-start: 18px;
+}
+
+.body li::marker {
+  color: var(--muted);
+}
+
+.skeleton {
+  display: grid;
+  gap: 10px;
+  padding: 8px 0 6px;
+}
+
+.skeleton span {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--skel) 30%, var(--skel-hi) 50%, var(--skel) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+.skeleton span:nth-child(2) {
+  width: 92%;
+}
+
+.skeleton span:nth-child(3) {
+  width: 96%;
+}
+
+.skeleton span:nth-child(4) {
+  width: 64%;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* The padding fills the gap between the lines of a point that wraps, so a click there still lands
+   on the point rather than on the list around it. */
+.point {
+  padding-block: 2px;
+  border-radius: 3px;
+  text-decoration: underline transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms;
+  cursor: pointer;
+}
+
+.point:hover,
+.point:focus-visible {
+  text-decoration-color: var(--muted);
+}
+
+/* Each line of a mark that wraps gets its own rounded ends. */
+.point.active {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  background: var(--mark);
+  color: var(--mark-text);
+  text-decoration-color: transparent;
+}
+
+.point.missing {
+  color: var(--muted);
+}
+
+.failure {
+  display: grid;
+  gap: 6px;
+}
+
+.error {
+  color: var(--danger);
+}
+
 .detail,
 .status {
-  margin-top: 8px;
   color: var(--muted);
   font-size: 13px;
 }
 
-.status.quiet {
-  margin: 0;
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.actions:empty {
+  display: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: 500 13px / 1 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--hover);
 }
 
 .visually-hidden {
@@ -120,121 +281,78 @@ p {
   white-space: nowrap;
 }
 
-.error {
-  color: var(--danger);
-}
-
-.shapes,
-.actions {
+footer {
+  box-sizing: border-box;
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 6px 8px 6px 16px;
+  border-top: 1px solid var(--rule);
 }
 
-.shapes {
-  min-inline-size: 0;
-  margin: 0 0 12px;
-  padding: 0;
-  border: 0;
+/* Tooltips name the icon buttons and the grip, after a short pause or at once on keyboard focus:
+   below the bar's items, from the grip's left edge, which sits at the window's, and above Copy. */
+[data-tip] {
+  position: relative;
 }
 
-.actions:not(:empty) {
-  margin-top: 12px;
-}
-
-.shapes button,
-.actions button {
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.shapes button:hover,
-.actions button:hover {
-  background: var(--hover);
-}
-
-.shapes button[aria-pressed="true"] {
-  border-color: var(--pressed);
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  padding: 5px 8px;
+  border-radius: 6px;
   background: var(--pressed);
   color: var(--pressed-text);
+  font: 500 12px / 1.2 var(--font);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms;
 }
 
-ul {
-  margin: 0;
-  padding-inline-start: 20px;
+[data-tip]:hover::after {
+  opacity: 1;
+  transition-delay: 350ms;
 }
 
-footer {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rule);
-  color: var(--muted);
-  font-size: 13px;
+[data-tip]:focus-visible::after {
+  opacity: 1;
 }
 
-.language {
-  display: flex;
-  flex-direction: column;
-  align-self: stretch;
-  gap: 4px;
+header [data-tip]::after {
+  top: calc(100% + 6px);
+  bottom: auto;
 }
 
-.language select {
-  padding: 3px 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
+.grip::after {
+  right: auto;
+  left: 0;
 }
 
-.bubble-switch {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .skeleton span {
+    animation: none;
+  }
 
-.bubble-switch:hover {
-  color: var(--text);
-}
+  .point {
+    transition: none;
+  }
 
-.point {
-  cursor: pointer;
-}
-
-.point:hover,
-.point:focus-visible {
-  text-decoration: underline;
-}
-
-.point.active {
-  background: var(--mark);
-  color: var(--mark-text);
-}
-
-.point.missing {
-  color: var(--muted);
+  /* Still after the pause on hover, but without fading in. */
+  [data-tip]::after {
+    transition-duration: 0s;
+  }
 }
 
 /* Forced colors replace backgrounds with system colors, which would hide these marks. */
 @media (forced-colors: active) {
   .shapes button[aria-pressed="true"] {
-    border-width: 2px;
-    font-weight: 600;
+    outline: 2px solid;
   }
 
   .point.active {

@@ -1,11 +1,12 @@
 import { render } from 'preact';
+import { browser } from 'wxt/browser';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
   type ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
 import { type LanguageChoice, resolveLanguage } from '../languages.ts';
-import { request, sendMessage } from '../messages.ts';
+import { request, sendMessage, type TabMessage } from '../messages.ts';
 import { portSummarizer } from '../summarize-port.ts';
 import { type Anchors, createAnchors } from './anchoring/anchors.ts';
 import { startBubble } from './bubble/bubble.tsx';
@@ -15,21 +16,9 @@ import type { CardState, View } from './card/view.ts';
 import { createRuns, type Runs } from './runs.ts';
 import { isEditable, readSelection } from './selection.ts';
 import { pageTheme } from './theme.ts';
-import { CARD_UI, canHostShadowRoot, SUMMARIZE_STARTED } from './ui.ts';
+import { CARD_UI, canHostShadowRoot, isOwnUi, SUMMARIZE_STARTED } from './ui.ts';
 
 type CardUi = ShadowRootContentScriptUi<HTMLElement>;
-
-// Whether the bubble is hidden on this page's site in this tab.
-interface BubbleState {
-  isHidden(): boolean;
-  setHidden(hidden: boolean): void;
-}
-
-interface OpenCard {
-  close(): void;
-  // So the card's switch shows whether the bubble is hidden now.
-  redraw(): void;
-}
 
 export async function summarizeSelection(ctx: ContentScriptContext): Promise<void> {
   if (!canHostShadowRoot()) {
@@ -38,9 +27,8 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
   }
   document.dispatchEvent(new Event(SUMMARIZE_STARTED));
 
-  let card: OpenCard | undefined;
-  // Hidden until the worker answers. Its host mounts before the card's, so that the card is drawn
-  // over it.
+  let closeCard: (() => void) | undefined;
+  // Hidden until the worker answers whether the reader turned it off for this site in this tab.
   const bubble = await startBubble(ctx, {
     hidden: true,
     // An extension reload orphans this script, and the check removes its card and bubble instead
@@ -62,33 +50,20 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     },
   });
 
-  // Undefined until the worker answers, which the card's switch reads as shown.
+  // Undefined until the worker answers, so that its first answer always applies.
   let hidden: boolean | undefined;
-  let switches = 0;
-  const apply = (next: boolean) => {
+  const setHidden = (next: boolean) => {
+    if (next === hidden) return;
     hidden = next;
     bubble.setHidden(next);
-    card?.redraw();
-  };
-  const bubbleState: BubbleState = {
-    isHidden: () => hidden === true,
-    // The card switches first: in a script orphaned by an extension reload the save throws.
-    setHidden: (next) => {
-      switches += 1;
-      apply(next);
-      sendMessage({ type: 'save-bubble-hidden', hidden: next });
-    },
   };
   const summarize = () => {
-    card?.close();
-    card = openCard(ctx, ui, bubbleState);
+    closeCard?.();
+    closeCard = openCard(ctx, ui);
   };
-  // The worker answers from before any click on the card's switch made while it answers, so such
-  // a click wins.
   const ask = () => {
-    const asked = switches;
     void request('read-bubble-hidden').then((next) => {
-      if (switches === asked && ctx.isValid && next !== hidden) apply(next);
+      if (ctx.isValid) setHidden(next);
     });
   };
   // A page back from the back-forward cache asks again: meanwhile the reader may have hidden the
@@ -100,11 +75,17 @@ export async function summarizeSelection(ctx: ContentScriptContext): Promise<voi
     },
     { signal: ctx.signal },
   );
+  // The popup turns the bubble off or on for this tab's site.
+  const onMessage = (message: TabMessage) => {
+    if (message.type === 'bubble-hidden') setHidden(message.hidden);
+  };
+  browser.runtime.onMessage.addListener(onMessage);
+  ctx.onInvalidated(() => browser.runtime.onMessage.removeListener(onMessage));
   summarize();
   ask();
 }
 
-function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleState): OpenCard {
+function openCard(ctx: ContentScriptContext, ui: CardUi): () => void {
   const controller = new AbortController();
   // The card takes the focus when it first paints and gives it back here when it closes.
   const focusBefore = document.activeElement;
@@ -113,7 +94,6 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
   let anchors: Anchors | undefined;
   let runs: Runs | undefined;
   let choice: LanguageChoice = null;
-  let redraw: () => void = () => undefined;
   const close = () => {
     const focusInCard = ui.shadowHost.contains(document.activeElement);
     controller.abort();
@@ -125,14 +105,7 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
     }
   };
   const stopOnInvalidated = ctx.onInvalidated(close);
-  const card: OpenCard = {
-    close,
-    redraw: () => {
-      if (!controller.signal.aborted) redraw();
-    },
-  };
   const show = (state: CardState, view?: View) => {
-    redraw = () => show(state, view);
     render(
       <Card
         state={state}
@@ -144,16 +117,18 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
           runs?.select(shape);
           sendMessage({ type: 'save-shape', shape });
         }}
+        // The picker shows the choice it is given. The card is drawn again here, because a choice
+        // that resolves to the language shown, such as Auto, leaves the runs nothing to show.
         onLanguage={(next) => {
+          choice = next;
+          show(state, view);
           runs?.selectLanguage(resolveLanguage(next));
           sendMessage({ type: 'save-language', choice: next });
         }}
-        onRegenerate={() => runs?.regenerate()}
+        onRetry={() => runs?.retry()}
         onClose={close}
         onOpenOptions={() => sendMessage({ type: 'open-options' })}
         onActivate={(point) => anchors?.activate(point) ?? false}
-        bubbleHidden={bubbleState.isHidden()}
-        onBubble={bubbleState.setHidden}
       />,
       ui.uiContainer,
     );
@@ -163,21 +138,34 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
     }
   };
 
+  // The card handles keys and clicks of its own; these listeners are for the page's.
+  const listening = { capture: true, signal: controller.signal };
   document.addEventListener(
     'keydown',
     (event) => {
       // Escape in the page's own field belongs to it, such as clearing a search box.
       const inField = event.target instanceof Node && isEditable(event.target);
-      if (event.key === 'Escape' && !inField) close();
+      if (event.key === 'Escape' && !isOwnUi(event.target) && !inField) close();
     },
-    { capture: true, signal: controller.signal },
+    listening,
+  );
+  // A click on the page closes the card, but not one that ends a drag selecting text, which can
+  // start in the card or end in a text field, nor a click the page's own script sends.
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (event.isTrusted && !isOwnUi(event.target) && document.getSelection()?.type !== 'Range') {
+        close();
+      }
+    },
+    listening,
   );
   ui.mount();
 
   const outcome = readSelection(window.getSelection());
   if (!outcome.ok) {
     show({ status: 'error', code: outcome.code, detail: outcome.detail });
-    return card;
+    return close;
   }
 
   anchors = createAnchors(outcome.pageText, outcome.sentences);
@@ -195,5 +183,5 @@ function openCard(ctx: ContentScriptContext, ui: CardUi, bubbleState: BubbleStat
       signal: controller.signal,
     });
   });
-  return card;
+  return close;
 }

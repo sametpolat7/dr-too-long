@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
@@ -7,6 +8,7 @@ import { HIGHLIGHT_NAME } from '../src/highlight.ts';
 import { layOutText, pageshow, settle } from './helpers.ts';
 
 const {
+  host,
   container,
   setHidden,
   startBubble,
@@ -17,9 +19,11 @@ const {
   canHostShadowRoot,
 } = vi.hoisted(() => {
   const setHidden = vi.fn();
+  // The card's closed shadow root, replaced by a container in an open host the test can reach.
+  const host = document.createElement('dr-too-long-card');
   return {
-    // The card's closed shadow root, replaced by a container the test can reach.
-    container: document.createElement('div'),
+    host,
+    container: host.appendChild(document.createElement('div')),
     setHidden,
     startBubble: vi.fn(async (_ctx: unknown, _options: { onSummarize: () => void }) => ({
       setHidden,
@@ -33,9 +37,9 @@ const {
 });
 vi.mock('wxt/utils/content-script-ui/shadow-root', () => ({
   createShadowRootUi: async (_ctx: unknown, options: { onRemove: (root: HTMLElement) => void }) => {
-    document.body.append(container);
+    document.body.append(host);
     return {
-      shadowHost: container,
+      shadowHost: host,
       uiContainer: container,
       mount: () => undefined,
       remove: () => options.onRemove(container),
@@ -79,6 +83,9 @@ const context = () =>
       return () => undefined;
     },
   }) as unknown as ContentScriptContext;
+const invalidate = () => {
+  for (const callback of onInvalidated.splice(0)) callback();
+};
 
 function select() {
   document.body.innerHTML = '<p>The keeper logged every ship. The notebooks dated the decline.</p>';
@@ -101,10 +108,40 @@ function holdAnswer() {
 const button = (label: string) =>
   [...container.querySelectorAll('button')].find((each) => each.textContent === label);
 
-const HIDE = 'Hide the bubble on this site until the tab closes';
-const SHOW = 'Show the bubble on this site';
-
 const pressed = () => container.querySelector('[aria-pressed="true"]')?.textContent;
+const card = () => container.querySelector('section');
+// The worker's message when the popup turns the bubble off or on for the tab's site.
+const tell = (hidden: boolean) =>
+  fakeBrowser.runtime.onMessage.trigger({ type: 'bubble-hidden', hidden }, {}, () => undefined);
+// A click the reader makes, which Chrome marks as trusted; happy-dom has no isTrusted.
+function readerClicks(target: Element | null | undefined) {
+  const event = new MouseEvent('click', { bubbles: true, composed: true });
+  Object.defineProperty(event, 'isTrusted', { value: true });
+  act(() => {
+    target?.dispatchEvent(event);
+  });
+}
+
+const press = (target: EventTarget, key: string) =>
+  act(() => {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  });
+
+function languageField() {
+  const field = container.querySelector<HTMLInputElement>('input[role="combobox"]');
+  if (!field) throw new Error('No language field');
+  return field;
+}
+
+function choose(query: string) {
+  const field = languageField();
+  act(() => field.focus());
+  act(() => {
+    field.value = query;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  press(field, 'Enter');
+}
 
 describe('summarizeSelection', () => {
   beforeEach(() => {
@@ -124,15 +161,14 @@ describe('summarizeSelection', () => {
 
   afterEach(() => {
     controller.abort();
-    for (const callback of onInvalidated) callback();
+    invalidate();
   });
 
   it('paints the card before the worker answers whether the bubble is hidden', async () => {
     const answer = holdAnswer();
     await summarizeSelection(context());
     await settle();
-    expect(container.querySelector('section')).not.toBeNull();
-    expect(button(HIDE)).toBeDefined();
+    expect(card()).not.toBeNull();
     expect(startBubble).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ hidden: true }),
@@ -141,15 +177,31 @@ describe('summarizeSelection', () => {
     answer(true);
     await settle();
     expect(setHidden).toHaveBeenCalledWith(true);
-    expect(button(SHOW)).toBeDefined();
-    expect(sendMessage).not.toHaveBeenCalledWith({ type: 'save-bubble-hidden', hidden: true });
   });
 
   it('starts the bubble once the worker answers that it is not hidden', async () => {
     await summarizeSelection(context());
     await settle();
     expect(setHidden).toHaveBeenCalledExactlyOnceWith(false);
-    expect(button(HIDE)).toBeDefined();
+  });
+
+  it('turns the bubble off and on as the popup tells it, until the script is invalidated', async () => {
+    await summarizeSelection(context());
+    await settle();
+    await tell(true);
+    expect(setHidden).toHaveBeenLastCalledWith(true);
+    await tell(false);
+    expect(setHidden).toHaveBeenLastCalledWith(false);
+    expect(setHidden).toHaveBeenCalledTimes(3);
+    invalidate();
+    expect(fakeBrowser.runtime.onMessage.hasListeners()).toBe(false);
+  });
+
+  it('leaves the bubble as it is when the popup tells it what it already does', async () => {
+    await summarizeSelection(context());
+    await settle();
+    await tell(false);
+    expect(setHidden).toHaveBeenCalledExactlyOnceWith(false);
   });
 
   it('opens on the saved shape and saves the shape the reader picks', async () => {
@@ -160,26 +212,6 @@ describe('summarizeSelection', () => {
     button('Summary')?.click();
     expect(sendMessage).toHaveBeenCalledWith({ type: 'save-shape', shape: 'summary' });
     expect(pressed()).toBe('Summary');
-  });
-
-  it('hides the bubble from the card, saves it and shows the switch the other way', async () => {
-    await summarizeSelection(context());
-    await settle();
-    button(HIDE)?.click();
-    expect(setHidden).toHaveBeenLastCalledWith(true);
-    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-bubble-hidden', hidden: true });
-    expect(button(SHOW)).toBeDefined();
-  });
-
-  it('switches the card even when an extension reload orphaned the script and the save throws', async () => {
-    await summarizeSelection(context());
-    await settle();
-    sendMessage.mockImplementationOnce(() => {
-      throw new Error('Extension context invalidated.');
-    });
-    expect(() => button(HIDE)?.click()).toThrow('Extension context invalidated.');
-    expect(setHidden).toHaveBeenLastCalledWith(true);
-    expect(button(SHOW)).toBeDefined();
   });
 
   it('asks again when the page comes back from the back-forward cache', async () => {
@@ -196,20 +228,18 @@ describe('summarizeSelection', () => {
     window.dispatchEvent(pageshow(true));
     await settle();
     expect(setHidden).toHaveBeenCalledWith(true);
-    expect(button(SHOW)).toBeDefined();
-    expect(sendMessage).not.toHaveBeenCalledWith({ type: 'save-bubble-hidden', hidden: true });
   });
 
   it('draws no card the reader closed when the page comes back', async () => {
     await summarizeSelection(context());
     await settle();
-    container.querySelector<HTMLButtonElement>('button.close')?.click();
-    expect(container.querySelector('section')).toBeNull();
+    container.querySelector<HTMLButtonElement>('button[aria-label="Close"]')?.click();
+    expect(card()).toBeNull();
     requestBubbleHidden.mockResolvedValue(true);
     window.dispatchEvent(pageshow(true));
     await settle();
     expect(setHidden).toHaveBeenCalledWith(true);
-    expect(container.querySelector('section')).toBeNull();
+    expect(card()).toBeNull();
   });
 
   it('asks nothing when the page comes back after an extension reload orphaned the script', async () => {
@@ -219,18 +249,6 @@ describe('summarizeSelection', () => {
     window.dispatchEvent(pageshow(true));
     await settle();
     expect(requestBubbleHidden).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps a click on the switch made while the worker answers', async () => {
-    await summarizeSelection(context());
-    await settle();
-    const answer = holdAnswer();
-    window.dispatchEvent(pageshow(true));
-    button(HIDE)?.click();
-    answer(false);
-    await settle();
-    expect(setHidden).toHaveBeenLastCalledWith(true);
-    expect(button(SHOW)).toBeDefined();
   });
 
   it('ignores an answer that arrives after a new script replaced this one', async () => {
@@ -250,7 +268,7 @@ describe('summarizeSelection', () => {
     await summarizeSelection(context());
     await settle();
     expect(document.activeElement).toBe(container.querySelector('[role="dialog"]'));
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    press(document, 'Escape');
     expect(document.activeElement).toBe(field);
   });
 
@@ -258,17 +276,67 @@ describe('summarizeSelection', () => {
     await summarizeSelection(context());
     await settle();
     CSS.highlights.set(HIGHLIGHT_NAME, {} as Highlight);
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(container.querySelector('section')).toBeNull();
+    press(document, 'Escape');
+    expect(card()).toBeNull();
     expect(CSS.highlights.has(HIGHLIGHT_NAME)).toBe(false);
   });
 
   it("leaves the card open on Escape in the page's own field", async () => {
     await summarizeSelection(context());
     await settle();
-    const field = document.body.appendChild(document.createElement('input'));
-    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(container.querySelector('section')).not.toBeNull();
+    press(document.body.appendChild(document.createElement('input')), 'Escape');
+    expect(card()).not.toBeNull();
+  });
+
+  // Chrome retargets an event from inside the closed shadow root to the host.
+  it('leaves an Escape from inside the card to the card', async () => {
+    await summarizeSelection(context());
+    await settle();
+    press(host, 'Escape');
+    expect(card()).not.toBeNull();
+  });
+
+  it('keeps the card open on the Escape that closes its language list, and closes on the next', async () => {
+    await summarizeSelection(context());
+    await settle();
+    const field = languageField();
+    act(() => field.focus());
+    press(field, 'Escape');
+    expect(card()).not.toBeNull();
+    press(field, 'Escape');
+    expect(card()).toBeNull();
+  });
+
+  it('closes the card on a click on the page that leaves no text selected', async () => {
+    await summarizeSelection(context());
+    await settle();
+    document.getSelection()?.removeAllRanges();
+    readerClicks(document.body.querySelector('p'));
+    expect(card()).toBeNull();
+  });
+
+  it('keeps the card open after a click that ends selecting text on the page', async () => {
+    await summarizeSelection(context());
+    await settle();
+    readerClicks(document.body.querySelector('p'));
+    expect(card()).not.toBeNull();
+  });
+
+  it("keeps the card open on a click the page's own script sends", async () => {
+    await summarizeSelection(context());
+    await settle();
+    document.getSelection()?.removeAllRanges();
+    act(() => document.body.querySelector('p')?.click());
+    expect(card()).not.toBeNull();
+  });
+
+  it('keeps the card open on clicks inside it', async () => {
+    await summarizeSelection(context());
+    await settle();
+    document.getSelection()?.removeAllRanges();
+    readerClicks(card()?.querySelector('header'));
+    act(() => button('Key points')?.click());
+    expect(card()).not.toBeNull();
   });
 
   it('replaces the card on the next gesture, with the shape saved meanwhile', async () => {
@@ -284,29 +352,50 @@ describe('summarizeSelection', () => {
     expect(summarize.mock.calls[0]?.[1].signal.aborted).toBe(true);
   });
 
-  it('saves the summary language the reader settles on', async () => {
+  it('opens each new card at the top right, wherever the last one was dragged', async () => {
     await summarizeSelection(context());
     await settle();
-    vi.useFakeTimers();
-    try {
-      const select = container.querySelector('select');
-      if (select) select.value = 'tr';
-      select?.dispatchEvent(new Event('change', { bubbles: true }));
-      vi.advanceTimersByTime(400);
-    } finally {
-      vi.useRealTimers();
-    }
-    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-language', choice: 'tr' });
+    const header = container.querySelector('header');
+    const pointer = (type: string, x: number) =>
+      act(() => {
+        header?.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: x }));
+      });
+    pointer('pointerdown', 0);
+    pointer('pointermove', 100);
+    expect(card()?.style.left).toBe('100px');
+    startBubble.mock.calls[0]?.[1].onSummarize();
+    await settle();
+    expect(card()?.style.left).toBe('');
   });
 
-  it('sends the reader to the options page when no key is saved', async () => {
+  it('runs and saves the summary language the reader chooses, at once', async () => {
+    await summarizeSelection(context());
+    await settle();
+    choose('tur');
+    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-language', choice: 'tr' });
+    expect(summarize.mock.calls.at(-1)?.[0]).toMatchObject({ outputLanguage: 'tr' });
+    expect(languageField().value).toBe('Turkish — Türkçe');
+  });
+
+  it('shows the language chosen even when the summary is already in it', async () => {
+    fakeBrowser.i18n.getUILanguage = () => 'tr';
+    await summarizeSelection(context());
+    await settle();
+    expect(languageField().value).toBe('Auto (Turkish)');
+    choose('türkçe');
+    expect(summarize).toHaveBeenCalledOnce();
+    expect(sendMessage).toHaveBeenCalledWith({ type: 'save-language', choice: 'tr' });
+    expect(languageField().value).toBe('Turkish — Türkçe');
+  });
+
+  it('sends the reader to the settings page when no key is saved', async () => {
     summarize.mockImplementation(async function* () {
       yield { type: 'error', code: 'no_key' };
     });
     await summarizeSelection(context());
     await settle();
     expect(container.textContent).toContain('Save an API key first.');
-    button('Open options')?.click();
+    button('Open settings')?.click();
     expect(sendMessage).toHaveBeenCalledWith({ type: 'open-options' });
   });
 
@@ -323,6 +412,6 @@ describe('summarizeSelection', () => {
     await summarizeSelection(context());
     expect(sendMessage).toHaveBeenCalledWith({ type: 'unsupported-page' });
     expect(startBubble).not.toHaveBeenCalled();
-    expect(container.querySelector('section')).toBeNull();
+    expect(card()).toBeNull();
   });
 });

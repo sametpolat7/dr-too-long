@@ -7,6 +7,13 @@ import { readLanguageChoice, writeLanguageChoice } from '../src/settings/output-
 import { readShape } from '../src/settings/shape.ts';
 import { settle } from './helpers.ts';
 
+const popup = { url: 'chrome-extension://test-extension-id/popup.html' };
+const page = {
+  tab: { id: 7 },
+  url: 'https://news.example.com/story',
+  origin: 'https://news.example.com',
+};
+
 describe('handleMessage', () => {
   beforeEach(() => {
     fakeBrowser.reset();
@@ -57,7 +64,6 @@ describe('handleMessage', () => {
   });
 
   describe('for the every-site script', () => {
-    const page = { tab: { id: 7 }, origin: 'https://news.example.com' };
     let granted = true;
     const executeScript = vi.fn(async () => []);
 
@@ -77,19 +83,24 @@ describe('handleMessage', () => {
       return sendResponse.mock.calls[0]?.[0];
     }
 
-    it('allows the bubble while the opt-in stands', async () => {
-      expect(await answer({ type: 'read-every-site-bubble' })).toBe(true);
+    it('shows the bubble while the opt-in stands', async () => {
+      expect(await answer({ type: 'read-every-site-bubble' })).toBe('shown');
     });
 
-    it('refuses the bubble once the opt-in is withdrawn', async () => {
+    it('stops the every-site script once the opt-in is withdrawn', async () => {
       granted = false;
-      expect(await answer({ type: 'read-every-site-bubble' })).toBe(false);
+      expect(await answer({ type: 'read-every-site-bubble' })).toBe('off');
     });
 
-    it('refuses the bubble where the reader hid it in this tab', async () => {
-      handleMessage({ type: 'save-bubble-hidden', hidden: true }, page, vi.fn());
-      await vi.waitFor(async () => expect(await answer({ type: 'read-bubble-hidden' })).toBe(true));
-      expect(await answer({ type: 'read-every-site-bubble' })).toBe(false);
+    it('keeps the bubble hidden where the reader turned it off in this tab', async () => {
+      const { id = -1 } = await fakeBrowser.tabs.create({ url: 'https://news.example.com/story' });
+      fakeBrowser.tabs.sendMessage = async () => undefined;
+      handleMessage({ type: 'save-tab-bubble-hidden', tabId: id, hidden: true }, popup, vi.fn());
+      const sender = { ...page, tab: { id } };
+      await vi.waitFor(async () =>
+        expect(await answer({ type: 'read-bubble-hidden' }, sender)).toBe(true),
+      );
+      expect(await answer({ type: 'read-every-site-bubble' }, sender)).toBe('hidden');
     });
 
     it("runs the summarize script in the sender's tab on a click", async () => {
@@ -105,6 +116,72 @@ describe('handleMessage', () => {
       granted = false;
       expect(await answer({ type: 'summarize-from-bubble' })).toBe(false);
       expect(executeScript).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('from the popup', () => {
+    const executeScript = vi.fn(async () => []);
+    const tellTab = vi.fn(async () => undefined);
+    let tabId: number;
+
+    beforeEach(async () => {
+      executeScript.mockClear();
+      tellTab.mockClear();
+      fakeBrowser.scripting.removeCSS = async () => undefined;
+      fakeBrowser.scripting.insertCSS = async () => undefined;
+      fakeBrowser.scripting.executeScript = executeScript;
+      fakeBrowser.tabs.sendMessage = tellTab;
+      tabId = (await fakeBrowser.tabs.create({ url: 'https://news.example.com/story' })).id ?? -1;
+    });
+
+    async function nothingHappened() {
+      await settle();
+      expect(executeScript).not.toHaveBeenCalled();
+      expect(tellTab).not.toHaveBeenCalled();
+      expect(await fakeBrowser.storage.session.get()).toEqual({});
+    }
+
+    it('runs the summarize script in the tab it names', async () => {
+      expect(handleMessage({ type: 'summarize-tab', tabId }, popup, vi.fn())).toBeUndefined();
+      await vi.waitFor(() =>
+        expect(executeScript).toHaveBeenCalledWith({
+          target: { tabId },
+          files: ['/content-scripts/summarize.js'],
+        }),
+      );
+    });
+
+    it('answers that the bubble is on in a tab that is gone', async () => {
+      const sendResponse = vi.fn();
+      handleMessage({ type: 'read-tab-bubble-hidden', tabId: 99 }, popup, sendResponse);
+      await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith(false));
+    });
+
+    it.each([
+      ['the popup page open in a tab', { ...popup, tab: { id: 2 } }],
+      ['the options page', { url: 'chrome-extension://test-extension-id/options.html' }],
+      ['a content script', page],
+    ])('takes no message about a tab from %s', async (_, sender) => {
+      const sendResponse = vi.fn();
+      const read = { type: 'read-tab-bubble-hidden', tabId } as const;
+      expect(handleMessage(read, sender, sendResponse)).toBeUndefined();
+      handleMessage({ type: 'summarize-tab', tabId }, sender, vi.fn());
+      handleMessage({ type: 'save-tab-bubble-hidden', tabId, hidden: true }, sender, vi.fn());
+      await nothingHappened();
+      expect(sendResponse).not.toHaveBeenCalled();
+    });
+
+    it('takes no tab but by its whole number, and no setting but true or false', async () => {
+      const malformed = [
+        { type: 'summarize-tab', tabId: String(tabId) },
+        { type: 'read-tab-bubble-hidden', tabId: tabId + 0.5 },
+        { type: 'save-tab-bubble-hidden', tabId: String(tabId), hidden: true },
+        { type: 'save-tab-bubble-hidden', tabId, hidden: 'true' },
+      ] as unknown as Message[];
+      for (const message of malformed) {
+        expect(handleMessage(message, popup, vi.fn())).toBeUndefined();
+      }
+      await nothingHappened();
     });
   });
 

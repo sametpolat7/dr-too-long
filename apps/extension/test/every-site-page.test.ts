@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { watchEverySite } from '../src/content/every-site.ts';
 import { BUBBLE_UI, SUMMARIZE_STARTED } from '../src/content/ui.ts';
+import type { EverySiteBubble } from '../src/messages.ts';
 import { pageshow, settle } from './helpers.ts';
 
 const { startBubble, setHidden, requestEverySiteBubble, requestSummarize } = vi.hoisted(() => {
@@ -24,6 +26,9 @@ const context = () =>
   ({
     signal: controller.signal,
     abort: () => controller.abort(),
+    onInvalidated: (callback: () => void) => {
+      controller.signal.addEventListener('abort', callback);
+    },
   }) as unknown as ContentScriptContext;
 
 const PHRASE = 'the keeper';
@@ -40,17 +45,20 @@ function select(text: string) {
 const release = () => document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 const key = (type: string, key: string) =>
   document.dispatchEvent(new KeyboardEvent(type, { bubbles: true, key }));
+// The worker's message when the popup turns the bubble off or on for the tab's site.
+const tell = (hidden: boolean) =>
+  fakeBrowser.runtime.onMessage.trigger({ type: 'bubble-hidden', hidden }, {}, () => undefined);
 const options = () =>
   startBubble.mock.calls[0]?.[1] as unknown as { offerCurrent: boolean; onSummarize: () => void };
 
 function holdAnswer() {
-  let answer: (shown: boolean) => void = () => undefined;
+  let answer: (next: EverySiteBubble) => void = () => undefined;
   requestEverySiteBubble.mockReturnValueOnce(
-    new Promise<boolean>((resolve) => {
+    new Promise<EverySiteBubble>((resolve) => {
       answer = resolve;
     }),
   );
-  return (shown: boolean) => answer(shown);
+  return (next: EverySiteBubble) => answer(next);
 }
 
 describe('watchEverySite', () => {
@@ -59,7 +67,7 @@ describe('watchEverySite', () => {
     startBubble.mockClear();
     setHidden.mockReset();
     requestSummarize.mockReset().mockResolvedValue(true);
-    requestEverySiteBubble.mockReset().mockResolvedValue(true);
+    requestEverySiteBubble.mockReset().mockResolvedValue('shown');
   });
   afterEach(() => {
     controller.abort();
@@ -124,7 +132,7 @@ describe('watchEverySite', () => {
       release();
       await settle();
       act();
-      answer(true);
+      answer('shown');
       await settle();
       expect(options().offerCurrent).toBe(false);
     },
@@ -143,8 +151,8 @@ describe('watchEverySite', () => {
     reads.mockRestore();
   });
 
-  it('shows nothing when the worker says no: the opt-in withdrawn, or the bubble hidden here', async () => {
-    requestEverySiteBubble.mockResolvedValue(false);
+  it('stops when the worker says the opt-in was withdrawn', async () => {
+    requestEverySiteBubble.mockResolvedValue('off');
     void watchEverySite(context());
     select(SENTENCE);
     release();
@@ -152,18 +160,42 @@ describe('watchEverySite', () => {
     expect(startBubble).not.toHaveBeenCalled();
   });
 
+  it('starts the bubble hidden on a site the reader turned it off on, so the popup can show it', async () => {
+    requestEverySiteBubble.mockResolvedValue('hidden');
+    void watchEverySite(context());
+    select(SENTENCE);
+    release();
+    await settle();
+    expect(options()).toMatchObject({ hidden: true });
+    await tell(false);
+    expect(setHidden).toHaveBeenLastCalledWith(false);
+  });
+
   it('asks again when the page comes back from the back-forward cache', async () => {
     void watchEverySite(context());
     select(SENTENCE);
     release();
     await settle();
-    requestEverySiteBubble.mockResolvedValue(false);
+    requestEverySiteBubble.mockResolvedValue('hidden');
     window.dispatchEvent(pageshow(false));
     await settle();
     expect(setHidden).not.toHaveBeenCalled();
     window.dispatchEvent(pageshow(true));
     await settle();
     expect(setHidden).toHaveBeenCalledWith(true);
+  });
+
+  it('turns the bubble off and on as the popup tells it, until the script stops', async () => {
+    void watchEverySite(context());
+    select(SENTENCE);
+    release();
+    await settle();
+    await tell(true);
+    expect(setHidden).toHaveBeenLastCalledWith(true);
+    await tell(false);
+    expect(setHidden).toHaveBeenLastCalledWith(false);
+    controller.abort();
+    expect(fakeBrowser.runtime.onMessage.hasListeners()).toBe(false);
   });
 
   it('stops when a summarize script starts before the selection', async () => {
@@ -183,7 +215,7 @@ describe('watchEverySite', () => {
     await settle();
     expect(requestEverySiteBubble).toHaveBeenCalledOnce();
     document.dispatchEvent(new Event(SUMMARIZE_STARTED));
-    answer(true);
+    answer('shown');
     await settle();
     expect(startBubble).not.toHaveBeenCalled();
   });

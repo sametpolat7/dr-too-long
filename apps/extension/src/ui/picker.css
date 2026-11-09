@@ -1,0 +1,87 @@
+/* The language field in the summary window's bar, compact, with a globe at its start. Its list opens
+   below, right-aligned, and the picker flips it above when that side has more room, sizes it and
+   keeps it inside the window. */
+.picker .field {
+  position: relative;
+}
+
+.picker input {
+  box-sizing: border-box;
+  display: block;
+  width: 176px;
+  height: 30px;
+  padding: 0 28px 0 30px;
+  border: 1px solid var(--field);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: 13px / 1 var(--font);
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.picker input:focus {
+  cursor: text;
+}
+
+.picker .globe,
+.picker .chev {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.picker .globe {
+  left: 10px;
+}
+
+.picker .chev {
+  right: 9px;
+}
+
+.picker [role="listbox"] {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 1;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.picker [role="listbox"][data-side="up"] {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.picker [role="option"] {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.picker [role="option"][aria-selected="true"] {
+  background: var(--hover);
+  outline: 1px solid var(--muted);
+  outline-offset: -1px;
+}
+
+.picker .check,
+.picker .empty {
+  color: var(--muted);
+}
+
+.picker .empty {
+  padding: 6px 8px;
+  font-size: 13px;
+}

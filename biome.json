@@ -21,6 +21,7 @@
     {
       "includes": [
         "apps/extension/src/content/**",
+        "apps/extension/src/ui/**",
         "apps/extension/src/entrypoints/*.content.{ts,tsx}",
         "apps/extension/src/*.{ts,tsx}"
       ],
@@ -36,6 +37,7 @@
                       "**/settings/**",
                       "**/background/**",
                       "**/options/**",
+                      "**/popup/**",
                       "wxt/utils/storage",
                       "@dr-too-long/shared/model",
                       "@dr-too-long/shared/providers"
@@ -50,7 +52,12 @@
       }
     },
     {
-      "includes": ["apps/extension/src/options/**", "apps/extension/src/entrypoints/options/**"],
+      "includes": [
+        "apps/extension/src/options/**",
+        "apps/extension/src/entrypoints/options/**",
+        "apps/extension/src/popup/**",
+        "apps/extension/src/entrypoints/popup/**"
+      ],
       "linter": {
         "rules": {
           "style": {
@@ -60,7 +67,7 @@
                 "patterns": [
                   {
                     "group": ["@dr-too-long/shared/model"],
-                    "message": "The options page reaches the model only through the background worker's summarize port."
+                    "message": "The options page and the popup reach the model only through the background worker."
                   },
                   {
                     "group": ["**/settings/api-key*"],

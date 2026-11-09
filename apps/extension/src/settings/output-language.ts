@@ -14,10 +14,6 @@ export const readLanguageChoice = async (): Promise<LanguageChoice> =>
 export const writeLanguageChoice = (tag: LanguageChoice): Promise<void> =>
   tag === null ? choice.removeValue() : choice.setValue(tag);
 
-// Calls back with each new choice, whether the options page or a card saved it.
-export const watchLanguageChoice = (callback: (tag: LanguageChoice) => void): (() => void) =>
-  choice.watch((tag) => callback(listedOrAuto(tag)));
-
 export async function readOutputLanguage(): Promise<string> {
   return resolveLanguage(await readLanguageChoice());
 }

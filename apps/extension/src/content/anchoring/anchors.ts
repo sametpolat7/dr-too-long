@@ -1,6 +1,7 @@
 import type { Point } from '@dr-too-long/shared/contracts';
 import type { Sentence } from '@dr-too-long/shared/segmentation';
 import { HIGHLIGHT_NAME } from '../../highlight.ts';
+import { isVisible, rootScroller, scrollerOf } from '../sight.ts';
 import { findText, type PageText, rangeOf, readPageText } from './page-text.ts';
 
 export interface Anchors {
@@ -61,19 +62,21 @@ function contentsOf(node: Node): Range {
   return range;
 }
 
+// Leaves the page where it is when the sentence is already in sight.
 function reveal(range: Range): void {
-  const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
   let target = range.startContainer.parentElement;
   // A display: contents wrapper has no box to scroll into view.
   while (target && getComputedStyle(target).display === 'contents') target = target.parentElement;
   if (!target) return;
+  const box = range.getBoundingClientRect();
+  if (isVisible(box, target)) return;
+  const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
   if (target.getBoundingClientRect().height <= window.innerHeight) {
     target.scrollIntoView({ block: 'center', behavior });
     return;
   }
   // Centring an element taller than the window, such as a plain-text page's one <pre>, can leave
   // the sentence screens away, so the sentence's own box is centered instead.
-  const box = range.getBoundingClientRect();
   const scroller = scrollerOf(target);
   if (scroller === rootScroller()) {
     window.scrollBy({ top: box.top - (window.innerHeight - box.height) / 2, behavior });
@@ -82,14 +85,4 @@ function reveal(range: Range): void {
   const top = scroller.getBoundingClientRect().top + scroller.clientTop;
   scroller.scrollBy({ top: box.top - top - (scroller.clientHeight - box.height) / 2, behavior });
   scroller.scrollIntoView({ block: 'nearest', behavior });
-}
-
-const rootScroller = (): Element => document.scrollingElement ?? document.documentElement;
-
-function scrollerOf(element: Element): Element {
-  for (let node: Element | null = element; node; node = node.parentElement) {
-    const scrolls = /auto|scroll/.test(getComputedStyle(node).overflowY);
-    if (scrolls && node.scrollHeight > node.clientHeight) return node;
-  }
-  return rootScroller();
 }

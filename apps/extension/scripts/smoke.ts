@@ -1,7 +1,7 @@
 // Loads the built extension into headless Chrome and fails on any error or DevTools issue from its
-// service worker or options page. It talks to Chrome over the DevTools protocol pipe, so it needs no
-// dependency and no browser download: it uses the Chrome already installed (CHROME_PATH overrides
-// where).
+// service worker, options page or popup. It talks to Chrome over the DevTools protocol pipe, so it
+// needs no dependency and no browser download: it uses the Chrome already installed (CHROME_PATH
+// overrides where).
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,8 +10,10 @@ import type { Readable, Writable } from 'node:stream';
 
 const EXTENSION_DIR = new URL('../.output/chrome-mv3', import.meta.url).pathname;
 const TIMEOUT_MS = 30_000;
-// Long enough for the worker's and the options page's first tasks to settle.
+// Long enough for the worker's and the pages' first tasks to settle.
 const SETTLE_MS = 2_000;
+// Each page opens in a tab of its own. With no key saved in the new profile, the popup asks for one.
+const PAGES = { 'options.html': 'options page', 'popup.html': 'popup' };
 
 interface Message {
   id?: number;
@@ -158,23 +160,27 @@ async function smoke(): Promise<string[]> {
       path: EXTENSION_DIR,
     });
     const origin = `chrome-extension://${id}/`;
-    await cdp.send('Target.createTarget', { url: `${origin}options.html` });
+    for (const page of Object.keys(PAGES)) {
+      await cdp.send('Target.createTarget', { url: `${origin}${page}` });
+    }
     await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 
     const ours = [...targets].filter(([, target]) => target.url.startsWith(origin));
     if (!ours.some(([, target]) => target.type === 'service_worker')) {
       errors.push('The service worker never started.');
     }
-    const options = ours.find(([, target]) => target.url === `${origin}options.html`)?.[0];
-    const rendered =
-      options === undefined
-        ? undefined
-        : await cdp.send<{ result: { value: unknown } }>(
-            'Runtime.evaluate',
-            { expression: 'document.body.textContent.trim().length > 0', returnByValue: true },
-            options,
-          );
-    if (rendered?.result.value !== true) errors.push('The options page rendered nothing.');
+    for (const [page, name] of Object.entries(PAGES)) {
+      const session = ours.find(([, target]) => target.url === `${origin}${page}`)?.[0];
+      const rendered =
+        session === undefined
+          ? undefined
+          : await cdp.send<{ result: { value: unknown } }>(
+              'Runtime.evaluate',
+              { expression: 'document.body.textContent.trim().length > 0', returnByValue: true },
+              session,
+            );
+      if (rendered?.result.value !== true) errors.push(`The ${name} rendered nothing.`);
+    }
     const lines = problems
       .filter(({ url }) => url.startsWith(origin))
       .map(({ url, text }) => `${url.slice(origin.length)}: ${text}`);
@@ -195,4 +201,4 @@ if (errors.length > 0) {
   for (const error of errors) console.error(`  - ${error}`);
   process.exit(1);
 }
-console.info('The built extension loads with no worker or options page error.');
+console.info('The built extension loads with no worker, options page or popup error.');
