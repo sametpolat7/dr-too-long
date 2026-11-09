@@ -26,7 +26,6 @@ const LANGUAGES: Option[] = LANGUAGE_TAGS.map((tag) => ({
   label: languageLabel(tag),
 })).sort((a, b) => collator.compare(a.label, b.label));
 
-// Names Chrome's language without its region, as in "Auto (English)" for en-US.
 function autoOption(): Option {
   const { language } = new Intl.Locale(browser.i18n.getUILanguage());
   return { choice: null, label: `Auto (${inEnglish.of(language)})` };
@@ -90,8 +89,7 @@ interface LanguagePickerProps {
   label: string;
 }
 
-// A combobox in the WAI-ARIA list autocomplete pattern. Typing filters the list; whenever the list
-// closes, the field shows the chosen language again, and only choosing another one reports.
+// A combobox in the WAI-ARIA list autocomplete pattern.
 export function LanguagePicker({ choice, onChange, label }: LanguagePickerProps) {
   const id = useId();
   const field = useRef<HTMLInputElement>(null);
@@ -119,7 +117,6 @@ export function LanguagePicker({ choice, onChange, label }: LanguagePickerProps)
     if (focused.current && query === null) field.current?.select();
   }, [query, text]);
 
-  // Measured as the list opens, before it paints.
   useLayoutEffect(() => {
     const box = field.current?.getBoundingClientRect();
     if (expanded && box) {
