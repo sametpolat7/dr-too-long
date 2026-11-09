@@ -2,10 +2,13 @@ import { render } from 'preact';
 import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
+import { Mark } from '../card/Mark.tsx';
+import { inSight } from '../sight.ts';
 import { pageTheme, type Theme } from '../theme.ts';
 import { BUBBLE_UI } from '../ui.ts';
+import { type Place, viewportSize } from '../viewport.ts';
 import css from './bubble.css?inline';
-import { type Lines, placeBubble, viewportSize } from './position.ts';
+import { anchorOf, atOffset, type Lines, offsetFrom, placeBubble } from './position.ts';
 import { type Watcher, watchSelections } from './watch.ts';
 
 export interface Bubble {
@@ -42,10 +45,12 @@ export async function startBubble(
   let watching: AbortController | undefined;
   let watcher: Watcher | undefined;
   const withdraw = () => render(null, ui.uiContainer);
-  const offer = (lines: Lines) =>
+  const offer = (lines: Lines, following: boolean, visible: boolean) =>
     render(
       <BubbleButton
         lines={lines}
+        following={following}
+        visible={visible}
         theme={pageTheme()}
         onClick={() => {
           watcher?.dismiss();
@@ -78,32 +83,51 @@ export async function startBubble(
 
 interface BubbleButtonProps {
   lines: Lines;
+  following: boolean;
+  visible: boolean;
   theme: Theme;
   onClick: () => void;
 }
 
-// Placed from its own rendered size, so it stays inside the viewport. A press on it keeps the page
-// selection, which the card then reads.
-function BubbleButton({ lines, theme, onClick }: BubbleButtonProps) {
+// In the top layer, above everything the page draws. It is placed inside the viewport from its own
+// rendered size, then keeps that offset from the text while following it. Hidden, it keeps its
+// offset and can be neither clicked nor focused. A press on it keeps the page selection, which the
+// card then reads.
+function BubbleButton({ lines, following, visible, theme, onClick }: BubbleButtonProps) {
   const button = useRef<HTMLButtonElement>(null);
+  const offset = useRef<Place>(undefined);
+  useLayoutEffect(() => {
+    button.current?.showPopover();
+  }, []);
   useLayoutEffect(() => {
     const element = button.current;
     if (!element) return;
-    const { left, top } = placeBubble(lines, element.getBoundingClientRect(), viewportSize());
+    if (!following) offset.current = undefined;
+    element.style.visibility = visible ? '' : 'hidden';
+    if (!visible) return;
+    const { left, top } = offset.current
+      ? atOffset(lines, offset.current)
+      : placeBubble(lines, element.getBoundingClientRect(), viewportSize());
+    // A place kept inside the viewport for a line outside it would part the button from the text.
+    if (!offset.current && inSight(anchorOf(lines))) {
+      offset.current = offsetFrom(lines, { left, top });
+    }
     element.style.left = `${left}px`;
     element.style.top = `${top}px`;
-  }, [lines]);
+  }, [lines, following, visible]);
 
   return (
     <button
       ref={button}
       type="button"
       class="bubble"
+      popover="manual"
       data-theme={theme}
       lang="en"
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
     >
+      <Mark size={14} />
       Summarize
     </button>
   );

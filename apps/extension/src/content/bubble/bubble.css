@@ -1,34 +1,40 @@
-/* Dark on a light page and light on a dark one, so it stands out from the page either way. */
-.bubble {
-  --surface: #1a1a1a;
-  --text: #fff;
-  --hover: #333;
-  --shadow: rgb(0 0 0 / 25%);
+@import "../../ui/tokens.css";
 
+/* Small, in the Summarize color, the same on light and dark pages. The popover attribute's own
+   styles would center it with a border and padding. */
+.bubble {
   position: fixed;
-  z-index: 2147483647;
+  inset: auto;
   box-sizing: border-box;
-  height: 28px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 2px 8px var(--shadow);
-  font:
-    13px / 28px system-ui,
-    sans-serif;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  height: 26px;
+  margin: 0;
+  padding: 0 10px 0 6px;
+  overflow: visible;
+  border: 1px solid var(--go-edge);
+  border-radius: 13px;
+  background: var(--go);
+  color: var(--go-text);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 12%),
+    0 3px 10px rgb(0 0 0 / 14%);
+  font: 600 12px / 1 var(--font);
   white-space: nowrap;
   cursor: pointer;
 }
 
-.bubble[data-theme="dark"] {
-  --surface: #e8eaed;
-  --text: #202124;
-  --hover: #fff;
-  --shadow: rgb(0 0 0 / 50%);
+.bubble:hover {
+  filter: brightness(0.96);
 }
 
-.bubble:hover {
-  background: var(--hover);
+.bubble:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.mark {
+  flex: none;
+  display: block;
 }
