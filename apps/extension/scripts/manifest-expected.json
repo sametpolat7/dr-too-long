@@ -10,21 +10,23 @@
     "128": "icon/128.png"
   },
   "homepage_url": "https://github.com/sametpolat7/dr-too-long",
-  "minimum_chrome_version": "110",
+  "minimum_chrome_version": "114",
   "action": {
-    "default_title": "Dr. Too Long: summarize selected text",
+    "default_title": "Dr. Too Long",
     "default_icon": {
       "16": "icon/16.png",
       "24": "icon/24.png",
       "32": "icon/32.png"
-    }
+    },
+    "default_popup": "popup.html"
   },
   "commands": {
-    "_execute_action": {
+    "summarize": {
       "suggested_key": {
         "default": "Ctrl+Shift+S",
         "mac": "Command+Shift+S"
-      }
+      },
+      "description": "Summarize the selected text"
     }
   },
   "permissions": ["activeTab", "contextMenus", "scripting", "storage"],
