@@ -6,11 +6,17 @@ import { BUBBLE_UI, SUMMARIZE_STARTED } from '../src/content/ui.ts';
 import type { EverySiteBubble } from '../src/messages.ts';
 import { pageshow, settle } from './helpers.ts';
 
+interface BubbleOptions {
+  hidden: boolean;
+  offerCurrent: boolean;
+  onSummarize: () => void;
+}
+
 const { startBubble, setHidden, requestEverySiteBubble, requestSummarize } = vi.hoisted(() => {
   const setHidden = vi.fn();
   return {
     setHidden,
-    startBubble: vi.fn(async (_ctx: unknown, _options: unknown) => ({ setHidden })),
+    startBubble: vi.fn(async (_ctx: unknown, _options: BubbleOptions) => ({ setHidden })),
     requestEverySiteBubble: vi.fn(),
     requestSummarize: vi.fn(),
   };
@@ -45,11 +51,13 @@ function select(text: string) {
 const release = () => document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 const key = (type: string, key: string) =>
   document.dispatchEvent(new KeyboardEvent(type, { bubbles: true, key }));
-// The worker's message when the popup turns the bubble off or on for the tab's site.
 const tell = (hidden: boolean) =>
   fakeBrowser.runtime.onMessage.trigger({ type: 'bubble-hidden', hidden }, {}, () => undefined);
-const options = () =>
-  startBubble.mock.calls[0]?.[1] as unknown as { offerCurrent: boolean; onSummarize: () => void };
+function options(): BubbleOptions {
+  const [, started] = startBubble.mock.calls[0] ?? [];
+  if (!started) throw new Error('The bubble never started');
+  return started;
+}
 
 function holdAnswer() {
   let answer: (next: EverySiteBubble) => void = () => undefined;
@@ -148,7 +156,6 @@ describe('watchEverySite', () => {
     release();
     expect(requestEverySiteBubble).toHaveBeenCalledOnce();
     expect(reads).not.toHaveBeenCalled();
-    reads.mockRestore();
   });
 
   it('stops when the worker says the opt-in was withdrawn', async () => {

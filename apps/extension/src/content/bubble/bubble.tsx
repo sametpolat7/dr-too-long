@@ -89,10 +89,7 @@ interface BubbleButtonProps {
   onClick: () => void;
 }
 
-// In the top layer, above everything the page draws. It is placed inside the viewport from its own
-// rendered size, then keeps that offset from the text while following it. Hidden, it keeps its
-// offset and can be neither clicked nor focused. A press on it keeps the page selection, which the
-// card then reads.
+// A press on it keeps the page selection, which the card then reads.
 function BubbleButton({ lines, following, visible, theme, onClick }: BubbleButtonProps) {
   const button = useRef<HTMLButtonElement>(null);
   const offset = useRef<Place>(undefined);

@@ -24,7 +24,6 @@ export type Message =
   | { type: 'read-tab-bubble-hidden'; tabId: number }
   | { type: 'save-tab-bubble-hidden'; tabId: number; hidden: boolean };
 
-// The worker's answer to each message that asks for one.
 export interface Replies {
   'read-language': LanguageChoice;
   'read-shape': ShapeId;

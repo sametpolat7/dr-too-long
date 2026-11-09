@@ -9,7 +9,6 @@ describe('addMenuItem', () => {
     items.clear();
     fakeBrowser.contextMenus.removeAll = async () => items.clear();
     fakeBrowser.contextMenus.create = (properties) => {
-      // Chrome refuses an id it already holds.
       if (items.has(properties.id)) throw new Error(`Duplicate id ${properties.id}`);
       items.set(properties.id, properties);
       return properties.id ?? 0;

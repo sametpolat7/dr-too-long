@@ -18,7 +18,7 @@ export async function summarizeTab(tabId: number): Promise<void> {
 }
 
 // Shown where the extension cannot work: Chrome's own pages, the Web Store, the PDF viewer and
-// documents that cannot host the card. The tooltip says why while the badge shows.
+// documents that cannot host the card.
 export async function flashBadge(tabId: number): Promise<void> {
   try {
     await browser.action.setBadgeText({ tabId, text: '!' });

@@ -17,7 +17,6 @@ describe('syncEverySite', () => {
     granted = false;
     failNext = false;
     fakeBrowser.permissions.contains = async () => granted;
-    // Chrome's overloads with callbacks do not fit a promise-only fake, hence the assign.
     Object.assign(fakeBrowser.scripting, {
       getRegisteredContentScripts: async (filter?: Filter) =>
         [...scripts.values()].filter((script) => filter?.ids?.includes(script.id) ?? true),
@@ -31,7 +30,6 @@ describe('syncEverySite', () => {
         throw new Error('Registration failed');
       }
       for (const script of added) {
-        // Chrome refuses an id it already holds.
         if (scripts.has(script.id)) throw new Error(`Duplicate script ID '${script.id}'`);
         scripts.set(script.id, script);
       }

@@ -45,8 +45,6 @@ p {
   margin: 0;
 }
 
-/* The one bar, which is the drag handle, as the grip and the grab cursor say. In a narrow window its
-   controls wrap between the grip and Close. */
 header {
   display: flex;
   gap: 8px;
@@ -215,7 +213,6 @@ header:hover .grip {
   text-decoration-color: var(--muted);
 }
 
-/* Each line of a mark that wraps gets its own rounded ends. */
 .point.active {
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
@@ -292,8 +289,7 @@ footer {
   border-top: 1px solid var(--rule);
 }
 
-/* Tooltips name the icon buttons and the grip, after a short pause or at once on keyboard focus:
-   below the bar's items, from the grip's left edge, which sits at the window's, and above Copy. */
+/* The grip's tooltip runs from its left edge, which sits at the window's. */
 [data-tip] {
   position: relative;
 }

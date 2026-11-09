@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  # A newer push replaces a pull request's run; every run on main finishes, so each merge has a result.
+  # Every run on main finishes, so each merge has a result.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -28,6 +28,5 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The audit, lint, types, tests, the build, both build checks and the smoke test in the runner's
-      # own Chrome, as pnpm verify runs them locally.
+      # The smoke test runs in the runner's own Chrome.
       - run: pnpm verify

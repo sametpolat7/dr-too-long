@@ -1,7 +1,7 @@
-/* The extension's colors and font, one set per theme. The summary window and the Summarize button
-   take the page's theme, the popup and the settings page Chrome's, each through data-theme. The
-   passage mark stays yellow with dark text in both, as the page's highlight does, and so does the
-   Summarize color, which marks the summarize action and stands out on light and dark pages alike. */
+/* The summary window and the Summarize button take the page's theme, the popup and the settings
+   page Chrome's, each through data-theme. The passage mark stays yellow with dark text in both, as
+   the page's highlight does, and so does the Summarize color, which marks the summarize action and
+   stands out on light and dark pages alike. */
 [data-theme] {
   --mark: #ffe58f;
   --mark-text: #1a1a1a;

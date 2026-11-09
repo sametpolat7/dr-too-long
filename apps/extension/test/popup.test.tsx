@@ -1,11 +1,12 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { BUBBLE_UI } from '../src/content/ui.ts';
 import type { Message } from '../src/messages.ts';
 import { Popup } from '../src/popup/Popup.tsx';
 import { writeApiKey } from '../src/settings/api-key.ts';
+import { fakeEvent } from './helpers.ts';
 
 const PAGE = 'https://news.example.com/story';
 const BLOCKED = 'Chrome doesn’t let extensions run on this page.';
@@ -31,7 +32,6 @@ interface Injection {
   args: unknown[];
 }
 
-// Runs the probe in this document, as Chrome runs it in the page.
 const runInPage = async ({ func, args }: Injection) => [
   { frameId: 0, documentId: 'page', result: func(...args) },
 ];
@@ -56,7 +56,6 @@ async function show() {
 const button = (container: HTMLElement, label: string) =>
   [...container.querySelectorAll('button')].find((each) => each.textContent?.startsWith(label));
 
-// The text an ARIA reference on the element points at.
 const referred = (element: Element | undefined, attribute: string) =>
   document.getElementById(element?.getAttribute(attribute) ?? '')?.textContent;
 
@@ -86,10 +85,7 @@ describe('Popup', () => {
     fakeBrowser.runtime.openOptionsPage = openOptionsPage;
     fakeBrowser.permissions.contains = async () => granted;
     fakeBrowser.permissions.request = request;
-    fakeBrowser.permissions.onAdded.addListener = () => undefined;
-    fakeBrowser.permissions.onAdded.removeListener = () => undefined;
-    fakeBrowser.permissions.onRemoved.addListener = () => undefined;
-    fakeBrowser.permissions.onRemoved.removeListener = () => undefined;
+    Object.assign(fakeBrowser.permissions, { onAdded: fakeEvent(), onRemoved: fakeEvent() });
     fakeBrowser.runtime.onMessage.addListener((message: Message, _, sendResponse) => {
       sent.push(message);
       if (message.type !== 'read-tab-bubble-hidden') return;
@@ -215,7 +211,6 @@ describe('Popup', () => {
     expect(referred(summarize, 'aria-describedby')).toBe(reason);
     expect(summarize?.textContent).not.toContain('→');
     expect(container.querySelector('kbd') !== null).toBe(shortcut);
-    // It keeps the focus, so a screen reader reads why, and a click does nothing.
     await vi.waitFor(() => expect(document.activeElement).toBe(summarize));
     await click(summarize);
     expect(sent).not.toContainEqual(expect.objectContaining({ type: 'summarize-tab' }));
@@ -224,6 +219,7 @@ describe('Popup', () => {
 
   it('turns Summarize selection off when the page does not answer within a second', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    onTestFinished(() => void vi.useRealTimers());
     selectText(SENTENCE);
     executeScript.mockReturnValue(new Promise(() => undefined));
     const container = document.body.appendChild(document.createElement('div'));
@@ -234,7 +230,6 @@ describe('Popup', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
-    vi.useRealTimers();
     const summarize = button(container, 'Summarize selection');
     expect(summarize?.getAttribute('aria-disabled')).toBe('true');
     expect(referred(summarize, 'aria-describedby')).toBe(BUSY);

@@ -16,7 +16,6 @@ interface KeyFormProps {
   onCancel?: () => void;
 }
 
-// "an OpenAI", "a Claude", "a Gemini".
 const withArticle = (name: string) => `${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name}`;
 
 export function KeyForm({ saved, onSave, onCancel }: KeyFormProps) {

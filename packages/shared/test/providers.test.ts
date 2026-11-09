@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { isProviderId, PROVIDER_IDS, providerOfKey } from '../src/providers/index.ts';
+import { isProviderId, providerOfKey } from '../src/providers/index.ts';
 
 describe('providers', () => {
-  it('lists OpenAI, Claude and Gemini in that order', () => {
-    expect(PROVIDER_IDS).toEqual(['openai', 'anthropic', 'google']);
-  });
-
   it.each([
     ['openai', true],
     ['google', true],

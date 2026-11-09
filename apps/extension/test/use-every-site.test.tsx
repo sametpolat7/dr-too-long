@@ -3,13 +3,14 @@ import { act } from 'preact/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { useEverySite } from '../src/use-every-site.ts';
+import { fakeEvent } from './helpers.ts';
 
 const EVERY_HTTPS_SITE = { origins: ['https://*/*'] };
 
 let granted: boolean;
 let answer: boolean;
-const added = new Set<() => void>();
-const removed = new Set<() => void>();
+let onAdded: ReturnType<typeof fakeEvent>;
+let onRemoved: ReturnType<typeof fakeEvent>;
 const request = vi.fn(async () => {
   if (answer) granted = true;
   return answer;
@@ -19,7 +20,6 @@ const remove = vi.fn(async () => {
   return true;
 });
 
-// What the hook returned on its last render.
 let access: ReturnType<typeof useEverySite>;
 function Harness() {
   access = useEverySite();
@@ -44,20 +44,17 @@ describe('useEverySite', () => {
   beforeEach(() => {
     granted = false;
     answer = true;
-    added.clear();
-    removed.clear();
+    onAdded = fakeEvent();
+    onRemoved = fakeEvent();
     request.mockClear();
     remove.mockClear();
-    fakeBrowser.permissions.contains = async () => granted;
-    fakeBrowser.permissions.request = request;
-    fakeBrowser.permissions.remove = remove;
-    for (const [event, listeners] of [
-      [fakeBrowser.permissions.onAdded, added],
-      [fakeBrowser.permissions.onRemoved, removed],
-    ] as const) {
-      event.addListener = (listener) => listeners.add(listener as () => void);
-      event.removeListener = (listener) => listeners.delete(listener as () => void);
-    }
+    Object.assign(fakeBrowser.permissions, {
+      contains: async () => granted,
+      request,
+      remove,
+      onAdded,
+      onRemoved,
+    });
   });
 
   it('gives the access back when it is on', async () => {
@@ -80,16 +77,12 @@ describe('useEverySite', () => {
   it("follows a grant given or withdrawn on the extension's details page, until unmounted", async () => {
     const container = await mount();
     granted = true;
-    await act(async () => {
-      for (const listener of added) listener();
-    });
+    await act(async () => onAdded.fire());
     expect(access.granted).toBe(true);
     granted = false;
-    await act(async () => {
-      for (const listener of removed) listener();
-    });
+    await act(async () => onRemoved.fire());
     expect(access.granted).toBe(false);
     act(() => render(null, container));
-    expect([added.size, removed.size]).toEqual([0, 0]);
+    expect([onAdded.hasListeners(), onRemoved.hasListeners()]).toEqual([false, false]);
   });
 });

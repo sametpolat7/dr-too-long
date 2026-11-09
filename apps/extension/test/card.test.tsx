@@ -52,7 +52,6 @@ const copyButton = (container: HTMLElement) => iconButton(container, 'Copy summa
 
 const HINT = 'Click a point to see where it comes from.';
 
-// The language picker in the bar has a status of its own.
 const status = (container: HTMLElement) => container.querySelector('footer [role="status"]');
 
 function press(target: EventTarget | null | undefined, key: string): KeyboardEvent {
@@ -69,6 +68,7 @@ describe('Card', () => {
     fakeBrowser.i18n.getUILanguage = () => 'en-US';
   });
   afterEach(() => {
+    vi.useRealTimers();
     document.body.replaceChildren();
   });
 
@@ -183,7 +183,7 @@ describe('Card', () => {
     expect(container.textContent).toContain('Select some text first.');
   });
 
-  it('has neither a Regenerate button nor a switch for the Summarize button', () => {
+  it('offers the shape switch, Close and Copy as its only buttons', () => {
     const labels = [...show(done).querySelectorAll('button')].map(
       (each) => each.getAttribute('aria-label') ?? each.textContent,
     );
@@ -454,7 +454,6 @@ describe('Card', () => {
     });
     expect(copyButton(container)?.dataset.tip).toBe('Copy summary');
     expect(icon()).toBe(copyIcon);
-    vi.useRealTimers();
   });
 
   it('says a second copy to screen readers again, in a fresh node that the 2 s reset keeps', async () => {
@@ -471,7 +470,6 @@ describe('Card', () => {
     await act(async () => copyButton(container)?.click());
     expect(spoken()).not.toBe(first);
     expect(spoken()?.textContent).toBe('Summary copied.');
-    vi.useRealTimers();
   });
 
   it('says so when the page refuses the clipboard', async () => {

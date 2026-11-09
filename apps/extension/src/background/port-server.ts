@@ -33,7 +33,6 @@ export function startPortServer(createSummarizer: CreateSummarizer): void {
   });
 }
 
-// A malformed request closes the port without a reply.
 export function handleConnect(port: SummarizePort, createSummarizer: CreateSummarizer): void {
   const controller = new AbortController();
   let started = false;

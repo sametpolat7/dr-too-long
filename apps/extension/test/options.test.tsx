@@ -37,7 +37,6 @@ const alertText = (container: HTMLElement) =>
   container.querySelector('[role="alert"]')?.textContent;
 const testStatus = (container: HTMLElement) => container.querySelector('[role="status"]');
 
-// A form submits only once it is in the document.
 async function show() {
   const container = document.body.appendChild(document.createElement('div'));
   await act(async () => {
@@ -109,7 +108,6 @@ describe('Options', () => {
     expect(savedCard(container)).toBeNull();
     expect(button(container, 'Test key')).toBeUndefined();
     expect(button(container, 'Cancel')).toBeUndefined();
-    // The summary language and the Summarize button switch live in the window and the icon card.
     expect(container.querySelector('[role="combobox"]')).toBeNull();
     expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
   });

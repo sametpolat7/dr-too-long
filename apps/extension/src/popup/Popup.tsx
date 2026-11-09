@@ -106,7 +106,6 @@ function openSettings() {
   window.close();
 }
 
-// The line under Summarize selection: what it would summarize or, when it is off, why.
 function selectionLine(page: Page | undefined): string {
   if (!page) return 'Chrome doesn’t let extensions run on this page.';
   if (page.busy) return 'This page is busy. Try again in a moment.';

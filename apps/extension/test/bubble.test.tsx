@@ -3,7 +3,6 @@ import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { type Bubble, startBubble } from '../src/content/bubble/bubble.tsx';
 import { LONG } from './helpers.ts';
 
-// The bubble's closed shadow root, replaced by a container in an open host the test can reach.
 const { host, container } = vi.hoisted(() => {
   const host = document.createElement('dr-too-long-bubble');
   return { host, container: host.appendChild(document.createElement('div')) };
@@ -54,8 +53,9 @@ describe('startBubble', () => {
     vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(
       () => boxes() as unknown as DOMRectList,
     );
-    // The page shows the selected text, with nothing over it.
-    document.elementsFromPoint = () => [...document.querySelectorAll('p')];
+    vi.spyOn(document, 'elementsFromPoint').mockImplementation(() => [
+      ...document.querySelectorAll('p'),
+    ]);
   });
   afterEach(() => {
     bubble?.setHidden(true);

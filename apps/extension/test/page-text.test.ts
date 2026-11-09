@@ -16,8 +16,6 @@ function textNode(selector: string): Text {
   return node;
 }
 
-// happy-dom neither blockifies floated, positioned or grid-placed elements nor fills cssFloat, so
-// the matching elements get the values Chrome computes for them.
 function computeAs(styles: Record<string, object>) {
   const computed = getComputedStyle;
   vi.stubGlobal('getComputedStyle', (element: Element) => {

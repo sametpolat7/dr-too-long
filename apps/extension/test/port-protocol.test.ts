@@ -4,20 +4,15 @@ import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { handleConnect } from '../src/background/port-server.ts';
 import { writeApiKey } from '../src/settings/api-key.ts';
 import { portSummarizer, SUMMARIZE_PORT } from '../src/summarize-port.ts';
-import { linkedPorts } from './ports.ts';
+import { connectWorker } from './ports.ts';
 
 const request: SummarizeRequest = { shape: 'summary', outputLanguage: 'en', sentences: ['One.'] };
 const partial: SummaryEvent = { type: 'partial', points: [{ text: 'One', sentences: [1] }] };
 const done: SummaryEvent = { type: 'done', output: { points: [{ text: 'One.', sentences: [1] }] } };
 
-// The card's end of the port talks to the worker's, as in Chrome.
 function serve(summarizer: Summarizer): void {
-  Object.assign(fakeBrowser.runtime, {
-    connect: ({ name }: { name: string }) => {
-      const [client, worker] = linkedPorts(name);
-      if (name === SUMMARIZE_PORT) handleConnect(worker, () => summarizer);
-      return client;
-    },
+  connectWorker((worker) => {
+    if (worker.name === SUMMARIZE_PORT) handleConnect(worker, () => summarizer);
   });
 }
 

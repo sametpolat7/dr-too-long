@@ -32,7 +32,6 @@ export function endOf(selection: Selection): End {
   return { backward: isBackward(selection), rtl };
 }
 
-// Whether the selection's focus, where the reader let go, comes before its anchor.
 function isBackward(selection: Selection): boolean {
   const { anchorNode, focusNode } = selection;
   if (!anchorNode || !focusNode) return false;
@@ -44,9 +43,6 @@ function isBackward(selection: Selection): boolean {
 export const inView = ({ first, last }: Lines): boolean =>
   last.bottom > 0 && first.top < viewportSize().height;
 
-// Just past where the selection ended: below the end of the last line, or above the start of the
-// first after a backward selection, and on the other side of that line when there is no room. A
-// line starts on the left, or on the right when it runs right to left.
 export function placeBubble(
   { first, last, backward, rtl }: Lines,
   bubble: Size,

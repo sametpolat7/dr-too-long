@@ -1,6 +1,5 @@
-/* The language field in the summary window's bar, compact, with a globe at its start. Its list opens
-   below, right-aligned, and the picker flips it above when that side has more room, sizes it and
-   keeps it inside the window. */
+/* The picker flips the list above when that side has more room, sizes it and keeps it inside the
+   window. */
 .picker .field {
   position: relative;
 }

@@ -7,8 +7,6 @@ const FRAME_MS = 16;
 
 let top = 200;
 let boxes = () => [new DOMRect(40, top, 300, 20)];
-// What the page shows at the middle of the followed line, from the top: these, then the selected
-// paragraph.
 let covers: Element[] = [];
 let valid = true;
 let controller: AbortController;
@@ -64,7 +62,10 @@ describe('watchSelections', () => {
     vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(
       () => boxes() as unknown as DOMRectList,
     );
-    document.elementsFromPoint = () => [...covers, ...document.querySelectorAll('p')];
+    vi.spyOn(document, 'elementsFromPoint').mockImplementation(() => [
+      ...covers,
+      ...document.querySelectorAll('p'),
+    ]);
   });
   afterEach(() => {
     controller.abort();
