@@ -1,5 +1,6 @@
 // The content scripts run inside web pages. The key, the storage APIs and the provider hosts belong
-// to the background worker and the options page and must not reach any content script's bundle.
+// to the background worker, the options page and the popup and must not reach any content script's
+// bundle.
 import { readdirSync, readFileSync } from 'node:fs';
 import { PROVIDERS } from '@dr-too-long/shared/providers';
 
