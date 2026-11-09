@@ -5,7 +5,7 @@ import { type CardState, type View, viewKey } from './card/view.ts';
 export interface Runs {
   select(shape: ShapeId): void;
   selectLanguage(language: string): void;
-  regenerate(): void;
+  retry(): void;
 }
 
 interface RunsOptions {
@@ -73,7 +73,7 @@ export function createRuns({ summarizer, sentences, initial, show, signal }: Run
   return {
     select: (shape) => switchTo({ ...shown, shape }),
     selectLanguage: (language) => switchTo({ ...shown, language }),
-    regenerate: () => void start(shown),
+    retry: () => void start(shown),
   };
 }
 
