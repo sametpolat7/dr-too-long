@@ -60,8 +60,8 @@ async function run(
   const release = keepAlive();
   try {
     const apiKey = await readApiKey();
-    // The card closes its port when the reader closes it or regenerates; a closed port takes no
-    // messages.
+    // The card closes its port when the reader closes it or starts another run; a closed port takes
+    // no messages.
     if (signal.aborted) return;
     if (!apiKey) {
       port.postMessage({ type: 'error', code: 'no_key' });

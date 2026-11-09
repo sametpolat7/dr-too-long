@@ -4,9 +4,19 @@ import { isListedLanguage } from '../languages.ts';
 import type { Message, Replies } from '../messages.ts';
 import { readLanguageChoice, writeLanguageChoice } from '../settings/output-language.ts';
 import { readShape, writeShape } from '../settings/shape.ts';
-import { flashBadge } from './action.ts';
-import { everySiteBubbleShown, summarizeFromBubble } from './every-site.ts';
-import { isBubbleHidden, type Sender, setBubbleHidden } from './hidden-bubble.ts';
+import { flashBadge, summarizeTab } from './action.ts';
+import { everySiteBubble, summarizeFromBubble } from './every-site.ts';
+import {
+  isBubbleHidden,
+  isTabBubbleHidden,
+  type Sender,
+  setTabBubbleHidden,
+} from './hidden-bubble.ts';
+
+// Messages that name a tab are taken from the popup alone. Chrome sets the sender's address, and the
+// popup, unlike a page open in a tab, has no tab.
+const fromPopup = ({ tab, url }: Sender): boolean =>
+  tab === undefined && url === browser.runtime.getURL('/popup.html');
 
 // Returns true while an answer is still to come, which keeps Chrome's message channel open.
 export function handleMessage(
@@ -34,7 +44,7 @@ export function handleMessage(
     case 'read-language':
       return reply(message.type, readLanguageChoice(), null);
     case 'save-language':
-      // Auto or a listed language only, so the options page can always show the choice.
+      // Auto or a listed language only, so the summary window can always show the choice.
       if (message.choice === null || isListedLanguage(message.choice)) {
         void writeLanguageChoice(message.choice);
       }
@@ -46,12 +56,24 @@ export function handleMessage(
       return;
     case 'read-bubble-hidden':
       return reply(message.type, isBubbleHidden(sender), false);
-    case 'save-bubble-hidden':
-      if (typeof message.hidden === 'boolean') void setBubbleHidden(sender, message.hidden);
-      return;
     case 'read-every-site-bubble':
-      return reply(message.type, everySiteBubbleShown(sender), false);
+      return reply(message.type, everySiteBubble(sender), 'off');
     case 'summarize-from-bubble':
       return reply(message.type, summarizeFromBubble(sender), false);
+    case 'summarize-tab':
+      if (fromPopup(sender) && Number.isInteger(message.tabId)) void summarizeTab(message.tabId);
+      return;
+    case 'read-tab-bubble-hidden':
+      if (!fromPopup(sender) || !Number.isInteger(message.tabId)) return;
+      return reply(message.type, isTabBubbleHidden(message.tabId), false);
+    case 'save-tab-bubble-hidden':
+      if (
+        fromPopup(sender) &&
+        Number.isInteger(message.tabId) &&
+        typeof message.hidden === 'boolean'
+      ) {
+        void setTabBubbleHidden(message.tabId, message.hidden);
+      }
+      return;
   }
 }

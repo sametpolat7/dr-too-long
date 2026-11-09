@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
 import { EVERY_SITE } from '../every-site.ts';
+import type { EverySiteBubble } from '../messages.ts';
 import { summarizeTab } from './action.ts';
 import { isBubbleHidden, type Sender } from './hidden-bubble.ts';
 import { EVERY_SITE_SCRIPT } from './scripts.ts';
@@ -31,10 +32,9 @@ async function sync(): Promise<void> {
   ]);
 }
 
-// A page keeps the every-site script it was loaded with after the opt-in is withdrawn, so the
-// script asks before it shows the bubble.
-export async function everySiteBubbleShown(sender: Sender): Promise<boolean> {
-  return (await browser.permissions.contains(EVERY_SITE)) && !(await isBubbleHidden(sender));
+export async function everySiteBubble(sender: Sender): Promise<EverySiteBubble> {
+  if (!(await browser.permissions.contains(EVERY_SITE))) return 'off';
+  return (await isBubbleHidden(sender)) ? 'hidden' : 'shown';
 }
 
 // Without the opt-in Chrome keeps the worker out of the page, so it answers false and the script
