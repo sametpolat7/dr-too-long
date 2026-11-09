@@ -17,7 +17,6 @@ describe('providerModel', () => {
     });
   });
 
-  // The manifest grants exactly these hosts, so a call anywhere else would fail in Chrome.
   it.each(PROVIDER_IDS)('calls %s at its listed API host', async (provider) => {
     const { url } = await callProvider(provider, serverError);
     expect(new URL(String(url)).origin).toBe(PROVIDERS[provider].apiHost);

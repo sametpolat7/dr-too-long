@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Encryption = typeof import('../src/settings/encryption.ts');
 
-// Each import after a module reset stands for another context, such as the options page and the
-// worker, with nothing cached.
 async function newContext(): Promise<Encryption> {
   vi.resetModules();
   return import('../src/settings/encryption.ts');

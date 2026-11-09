@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { fitList, LanguagePicker } from '../src/LanguagePicker.tsx';
-import type { LanguageChoice } from '../src/languages.ts';
+import { LANGUAGE_TAGS, type LanguageChoice } from '../src/languages.ts';
 
 function show(choice: LanguageChoice = null) {
   const onChange = vi.fn();
@@ -96,7 +96,7 @@ describe('LanguagePicker', () => {
   it("offers Auto, naming Chrome's language without its region, before every listed language", () => {
     const [auto, ...languages] = labels(show().list);
     expect(auto).toBe('Auto (English)');
-    expect(languages).toHaveLength(47);
+    expect(languages).toHaveLength(LANGUAGE_TAGS.length);
     fakeBrowser.i18n.getUILanguage = () => 'pt-BR';
     expect(show().field.value).toBe('Auto (Portuguese)');
   });
@@ -119,7 +119,7 @@ describe('LanguagePicker', () => {
     focus(field);
     expect(field.getAttribute('aria-expanded')).toBe('true');
     expect(list.hidden).toBe(false);
-    expect(labels(list)).toHaveLength(48);
+    expect(labels(list)).toHaveLength(LANGUAGE_TAGS.length + 1);
     expect(activeLabel(field)).toBe('Turkish — Türkçe');
     expect(isSelected(field)).toBe(true);
   });
@@ -155,7 +155,6 @@ describe('LanguagePicker', () => {
     type(field, 'xyz');
     expect(labels(list)).toEqual([]);
     expect(list.textContent).toBe('No language matches');
-    // Screen readers hear it from a status, not from the list.
     const status = list.parentElement?.querySelector('[role="status"]');
     expect(status?.textContent).toBe('No language matches');
     expect(field.hasAttribute('aria-activedescendant')).toBe(false);

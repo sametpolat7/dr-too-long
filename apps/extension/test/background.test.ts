@@ -7,19 +7,7 @@ import { SUMMARIZE_SCRIPT } from '../src/background/scripts.ts';
 import background from '../src/entrypoints/background.ts';
 import { HIGHLIGHT_CSS } from '../src/highlight.ts';
 import { SUMMARIZE_PORT } from '../src/summarize-port.ts';
-
-type Listener = (...args: never[]) => unknown;
-
-// An event the fake browser leaves out, which the test fires itself.
-function fakeEvent() {
-  const listeners: Listener[] = [];
-  return {
-    addListener: (listener: Listener) => void listeners.push(listener),
-    fire: (...args: unknown[]) => {
-      for (const listener of listeners) (listener as (...args: unknown[]) => unknown)(...args);
-    },
-  };
-}
+import { fakeEvent, settle } from './helpers.ts';
 
 function fakePort(name: string) {
   return { name, onMessage: { addListener: vi.fn() }, onDisconnect: { addListener: vi.fn() } };
@@ -114,9 +102,12 @@ describe('the background worker', () => {
     expect(setAccessLevel).toHaveBeenCalledWith({ accessLevel: 'TRUSTED_CONTEXTS' });
   });
 
-  it('starts on a Chrome older than 140, which refuses to close local storage', () => {
+  it('starts on a Chrome older than 140, which refuses to close local storage', async () => {
     setAccessLevel.mockRejectedValueOnce(new Error('Not supported'));
-    expect(() => background.main()).not.toThrow();
+    fakeBrowser.runtime.onMessage.removeAllListeners();
+    background.main();
+    await settle();
+    expect(fakeBrowser.runtime.onMessage.hasListener(handleMessage)).toBe(true);
   });
 
   it('answers the content scripts and the popup', () => {

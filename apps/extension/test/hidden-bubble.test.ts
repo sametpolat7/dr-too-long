@@ -5,7 +5,6 @@ import { handleMessage } from '../src/background/message-handler.ts';
 import { settle } from './helpers.ts';
 
 const popup = { url: 'chrome-extension://test-extension-id/popup.html' };
-// Chrome reports the page's address and origin with each message from a content script.
 const page = (tabId: number, url: string, origin = new URL(url).origin) => ({
   tab: { id: tabId },
   url,
@@ -18,7 +17,6 @@ async function openTab(url?: string): Promise<number> {
   return id ?? -1;
 }
 
-// What a content script in the tab hears when it asks on start.
 async function readFromPage(sender: { tab?: { id?: number }; url?: string }): Promise<unknown> {
   const sendResponse = vi.fn();
   expect(handleMessage({ type: 'read-bubble-hidden' }, sender, sendResponse)).toBe(true);
@@ -33,7 +31,6 @@ async function readFromPopup(tabId: number): Promise<unknown> {
   return sendResponse.mock.calls[0]?.[0];
 }
 
-// Resolves once the worker has told the tab, which it does after saving.
 async function turnOff(tabId: number, hidden = true) {
   sendMessage.mockClear();
   handleMessage({ type: 'save-tab-bubble-hidden', tabId, hidden }, popup, vi.fn());

@@ -19,7 +19,6 @@ const {
   canHostShadowRoot,
 } = vi.hoisted(() => {
   const setHidden = vi.fn();
-  // The card's closed shadow root, replaced by a container in an open host the test can reach.
   const host = document.createElement('dr-too-long-card');
   return {
     host,
@@ -62,15 +61,12 @@ vi.mock('../src/content/ui.ts', async (original) => ({
   canHostShadowRoot,
 }));
 
-// A summary that never arrives keeps the card on its first view.
 const pending = () => ({
   [Symbol.asyncIterator]: () => ({ next: () => new Promise(() => undefined) }),
 });
 
 let controller: AbortController;
 let valid: boolean;
-// Each test's script is invalidated when it ends, as a newer script would, so no card it left open
-// answers the next test's keys.
 let onInvalidated: Array<() => void>;
 const context = () =>
   ({
@@ -110,10 +106,8 @@ const button = (label: string) =>
 
 const pressed = () => container.querySelector('[aria-pressed="true"]')?.textContent;
 const card = () => container.querySelector('section');
-// The worker's message when the popup turns the bubble off or on for the tab's site.
 const tell = (hidden: boolean) =>
   fakeBrowser.runtime.onMessage.trigger({ type: 'bubble-hidden', hidden }, {}, () => undefined);
-// A click the reader makes, which Chrome marks as trusted; happy-dom has no isTrusted.
 function readerClicks(target: Element | null | undefined) {
   const event = new MouseEvent('click', { bubbles: true, composed: true });
   Object.defineProperty(event, 'isTrusted', { value: true });
@@ -288,7 +282,6 @@ describe('summarizeSelection', () => {
     expect(card()).not.toBeNull();
   });
 
-  // Chrome retargets an event from inside the closed shadow root to the host.
   it('leaves an Escape from inside the card to the card', async () => {
     await summarizeSelection(context());
     await settle();
@@ -348,7 +341,6 @@ describe('summarizeSelection', () => {
     await settle();
     expect(container.querySelectorAll('section')).toHaveLength(1);
     expect(pressed()).toBe('Key points');
-    // The first card's run stops with it.
     expect(summarize.mock.calls[0]?.[1].signal.aborted).toBe(true);
   });
 

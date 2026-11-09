@@ -26,12 +26,9 @@ function anchorsOver(selector: string) {
 const highlighted = () =>
   [...(highlights.get(HIGHLIGHT_NAME) ?? [])].map((range) => range.toString());
 
-// Where the cited sentence's box stands in the viewport.
 const sentenceAt = (box: DOMRect) =>
   vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(box);
 
-// What the page shows at the sentence's centre, from the top: the paragraph holding it, under
-// whatever covers it.
 const shows = (...selectors: string[]) =>
   vi
     .spyOn(document, 'elementsFromPoint')
@@ -46,7 +43,6 @@ describe('createAnchors', () => {
     vi.stubGlobal('Highlight', FakeHighlight);
     layOutText();
     sentenceAt(new DOMRect(0, 2000, 600, 20));
-    document.elementsFromPoint = () => [];
     document.body.innerHTML =
       '<section><p>One two. Three four.</p><p>Five six.</p></section><aside></aside>';
   });

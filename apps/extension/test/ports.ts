@@ -1,6 +1,5 @@
-// Two ends of a runtime port, linked as Chrome links them. A message reaches the other end later,
-// in order and as JSON; a disconnect reaches it after the messages posted before it. A disconnected
-// end receives nothing more, and posting on it throws.
+import { fakeBrowser } from 'wxt/testing/fake-browser';
+
 export interface PortEnd {
   name: string;
   onMessage: { addListener(listener: (message: never) => void): void };
@@ -40,4 +39,14 @@ export function linkedPorts(name: string): [client: PortEnd, worker: PortEnd] {
   const client: State = { connected: true, message: [], disconnect: [] };
   const worker: State = { connected: true, message: [], disconnect: [] };
   return [end(client, worker), end(worker, client)];
+}
+
+export function connectWorker(onConnect: (worker: PortEnd) => void): void {
+  Object.assign(fakeBrowser.runtime, {
+    connect: ({ name }: { name: string }) => {
+      const [client, worker] = linkedPorts(name);
+      onConnect(worker);
+      return client;
+    },
+  });
 }

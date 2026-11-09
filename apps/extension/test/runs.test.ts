@@ -173,8 +173,7 @@ describe('createRuns', () => {
     const shown: CardState[] = [];
     createRuns({
       summarizer: {
-        // biome-ignore lint/correctness/useYield: it throws before its first event, as runtime.connect does.
-        async *summarize() {
+        summarize: () => {
           throw new Error('Extension context invalidated.');
         },
       },
