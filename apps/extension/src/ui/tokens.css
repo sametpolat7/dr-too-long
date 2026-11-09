@@ -1,0 +1,57 @@
+/* The extension's colors and font, one set per theme. The summary window and the Summarize button
+   take the page's theme, the popup and the settings page Chrome's, each through data-theme. The
+   passage mark stays yellow with dark text in both, as the page's highlight does, and so does the
+   Summarize color, which marks the summarize action and stands out on light and dark pages alike. */
+[data-theme] {
+  --mark: #ffe58f;
+  --mark-text: #1a1a1a;
+  --go: #ffe58f;
+  --go-text: #1a1a1a;
+  --go-edge: rgb(0 0 0 / 16%);
+  --font: system-ui, sans-serif;
+}
+
+[data-theme="light"] {
+  --surface: #fff;
+  --surface-2: #f3f4f6;
+  --text: #1a1a1a;
+  --text-soft: #3c4043;
+  --muted: #5f6368;
+  --border: #d3d6db;
+  /* A field's edge, at 3:1 against the surface so the field reads as one. */
+  --field: #80868b;
+  --rule: #eaecef;
+  --hover: #f1f3f4;
+  --pressed: #1a1a1a;
+  --pressed-text: #fff;
+  --danger: #b3261e;
+  --ok: #188038;
+  --link: #0b57d0;
+  --skel: #eceef1;
+  --skel-hi: #f8f9fa;
+  --shadow: 0 1px 2px rgb(0 0 0 / 8%), 0 10px 30px rgb(0 0 0 / 16%);
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --surface: #202124;
+  --surface-2: #2a2b2e;
+  --text: #e8eaed;
+  --text-soft: #dadce0;
+  --muted: #9aa0a6;
+  --border: #5f6368;
+  --field: #8e9196;
+  --rule: #3c4043;
+  --hover: #2d2e31;
+  --pressed: #e8eaed;
+  --pressed-text: #202124;
+  --danger: #f28b82;
+  --ok: #81c995;
+  --link: #8ab4f8;
+  --skel: #2f3033;
+  --skel-hi: #3b3c40;
+  --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 10px 30px rgb(0 0 0 / 55%);
+
+  color-scheme: dark;
+}
