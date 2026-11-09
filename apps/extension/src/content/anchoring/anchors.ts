@@ -62,7 +62,6 @@ function contentsOf(node: Node): Range {
   return range;
 }
 
-// Leaves the page where it is when the sentence is already in sight.
 function reveal(range: Range): void {
   let target = range.startContainer.parentElement;
   // A display: contents wrapper has no box to scroll into view.

@@ -41,7 +41,6 @@ function holdsSentence(text: string): boolean {
   return SENTENCE_END.test(trimmed) || segmentSentences(trimmed).length > 1;
 }
 
-// The range the bubble is offered for, where the reader let go, and whether the bubble shows.
 interface Offered {
   range: Range;
   end: End;
@@ -62,7 +61,6 @@ function shows(range: Range, lines: Lines): boolean {
   return element !== null && isVisible(anchorOf(lines), element);
 }
 
-// Offers the bubble as soon as the reader has finished selecting.
 export function watchSelections({
   isValid,
   signal,
@@ -145,7 +143,6 @@ export function watchSelections({
     },
     options,
   );
-  // Another selection takes the bubble away until the release or the key that ends it.
   document.addEventListener(
     'selectionchange',
     () => {
