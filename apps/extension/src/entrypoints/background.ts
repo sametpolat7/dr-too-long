@@ -18,9 +18,10 @@ export default defineBackground(() => {
     // A first install starts with setting up a key; updates leave the reader where they were.
     if (reason === 'install') void browser.runtime.openOptionsPage();
   });
-  // The keyboard shortcut is bound to _execute_action, so it arrives here as a click on the icon.
-  browser.action.onClicked.addListener((tab) => {
-    if (tab.id !== undefined) void summarizeTab(tab.id);
+  // The icon opens the popup, which asks for a summary by message. The shortcut is a command of its
+  // own and grants activeTab as a click on the icon does.
+  browser.commands.onCommand.addListener((command, tab) => {
+    if (command === 'summarize' && tab?.id !== undefined) void summarizeTab(tab.id);
   });
   // The page's own selection is summarized rather than the menu's selectionText, which cannot be
   // anchored.
