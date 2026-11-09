@@ -12,7 +12,8 @@ const { summarize } = vi.hoisted(() => ({ summarize: vi.fn() }));
 vi.mock('../src/summarize-port.ts', () => ({ portSummarizer: { summarize } }));
 
 const point = { text: 'The keeper logged every ship.', sentences: [1] };
-const UNPAID_GEMINI = 'With an unpaid Gemini key, Google may use the text you send';
+const UNPAID_GEMINI =
+  'Good to know: with an unpaid Gemini key, Google may use the text you send to improve its products, and people may review it.';
 
 function answer(...events: SummaryEvent[]) {
   summarize.mockImplementation(async function* () {
@@ -24,14 +25,17 @@ function button(container: HTMLElement, label: string): HTMLButtonElement | unde
   return [...container.querySelectorAll('button')].find((each) => each.textContent === label);
 }
 
-const picker = (container: HTMLElement) => container.querySelector<HTMLSelectElement>('#provider');
+const heading = (container: HTMLElement) => container.querySelector('h1')?.textContent;
+const providers = (container: HTMLElement) => [
+  ...container.querySelectorAll<HTMLInputElement>('input[name="provider"]'),
+];
 const keyField = (container: HTMLElement) => container.querySelector<HTMLInputElement>('#api-key');
 const agreeBox = (container: HTMLElement) =>
   container.querySelector<HTMLInputElement>('input[name="agree"]');
+const savedCard = (container: HTMLElement) => container.querySelector('.saved');
 const alertText = (container: HTMLElement) =>
   container.querySelector('[role="alert"]')?.textContent;
-const keyStatus = (container: HTMLElement) =>
-  container.querySelector('section [role="status"]')?.textContent;
+const testStatus = (container: HTMLElement) => container.querySelector('[role="status"]');
 
 // A form submits only once it is in the document.
 async function show() {
@@ -39,16 +43,21 @@ async function show() {
   await act(async () => {
     render(<Options />, container);
   });
-  await vi.waitFor(() => expect(picker(container)).not.toBeNull());
+  await vi.waitFor(() => expect(heading(container)).toBeDefined());
   return container;
+}
+
+async function press(container: HTMLElement, label: string) {
+  await act(async () => {
+    button(container, label)?.click();
+  });
 }
 
 async function pick(container: HTMLElement, provider: ProviderId) {
   await act(async () => {
-    const select = picker(container);
-    if (!select) return;
-    select.value = provider;
-    select.dispatchEvent(new Event('change', { bubbles: true }));
+    providers(container)
+      .find((radio) => radio.value === provider)
+      ?.click();
   });
 }
 
@@ -70,16 +79,12 @@ async function agree(container: HTMLElement) {
 async function saveKey(container: HTMLElement, key: string) {
   await type(container, key);
   await agree(container);
-  await act(async () => {
-    button(container, 'Save key')?.click();
-  });
+  await press(container, 'Save key');
 }
 
-async function testKey(container: HTMLElement) {
-  await vi.waitFor(() => expect(button(container, 'Test key')?.disabled).toBe(false));
-  await act(async () => {
-    button(container, 'Test key')?.click();
-  });
+async function showSavedKey(provider: ProviderId = 'openai') {
+  await writeApiKey({ provider, key: 'test-key' });
+  return show();
 }
 
 describe('Options', () => {
@@ -92,101 +97,78 @@ describe('Options', () => {
       name: 'Dr. Too Long',
       version: '1.2.3',
     });
-    fakeBrowser.permissions.contains = async () => false;
-    fakeBrowser.permissions.onAdded.addListener = () => undefined;
-    fakeBrowser.permissions.onAdded.removeListener = () => undefined;
-    fakeBrowser.permissions.onRemoved.addListener = () => undefined;
-    fakeBrowser.permissions.onRemoved.removeListener = () => undefined;
     summarize.mockReset();
   });
 
-  it('says what the extension does and groups its settings under headings', async () => {
+  it('asks for a key with a reassuring lead when none is saved, and holds nothing else', async () => {
     const container = await show();
-    expect(container.querySelector('.intro')?.textContent).toContain(
-      'summarizes the text you select, in your language',
+    expect(heading(container)).toBe('Add your API key');
+    expect(container.querySelector('.lead')?.textContent).toBe(
+      'Dr. Too Long runs on your own API key, so you stay in control. The key is encrypted on this device and is only ever sent to the provider you choose.',
     );
-    expect([...container.querySelectorAll('h2')].map((heading) => heading.textContent)).toEqual([
-      'API key',
-      'Summaries',
-      'Bubble',
-    ]);
+    expect(savedCard(container)).toBeNull();
+    expect(button(container, 'Test key')).toBeUndefined();
+    expect(button(container, 'Cancel')).toBeUndefined();
+    // The summary language and the Summarize button switch live in the window and the icon card.
+    expect(container.querySelector('[role="combobox"]')).toBeNull();
+    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
   });
 
-  it('labels the provider and key fields', async () => {
+  it('offers the three providers as one labeled choice', async () => {
     const container = await show();
-    expect(container.querySelector('label[for="provider"]')?.textContent).toBe('Provider');
-    expect(container.querySelector('label[for="api-key"]')?.textContent).toBe('OpenAI API key');
-    await pick(container, 'anthropic');
-    expect(container.querySelector('label[for="api-key"]')?.textContent).toBe('Claude API key');
-  });
-
-  it('asks for a key from any provider and tests none until one is saved', async () => {
-    const container = await show();
-    expect(keyStatus(container)).toBe(
-      'No API key is saved yet. Summaries need your own OpenAI, Claude or Gemini API key.',
-    );
-    expect(picker(container)?.value).toBe('openai');
-    expect([...(picker(container)?.options ?? [])].map((option) => option.text)).toEqual([
+    const group = container.querySelector('[role="radiogroup"]');
+    const label = group?.getAttribute('aria-labelledby');
+    expect(label && container.querySelector(`#${label}`)?.textContent).toBe('Provider');
+    expect(providers(container).map((radio) => radio.parentElement?.textContent)).toEqual([
       'OpenAI',
       'Claude',
       'Gemini',
     ]);
-    expect(button(container, 'Remove OpenAI key')).toBeUndefined();
-    expect(button(container, 'Test key')?.disabled).toBe(true);
+    expect(providers(container).find((radio) => radio.checked)?.value).toBe('openai');
   });
 
-  it.each(PROVIDER_IDS)('links to where a %s key is made', async (provider) => {
+  it('names the key field after the picked provider', async () => {
+    const container = await show();
+    expect(container.querySelector('label[for="api-key"]')?.textContent).toBe('OpenAI API key');
+    expect(keyField(container)?.placeholder).toBe('Paste your key here');
+    await pick(container, 'anthropic');
+    expect(providers(container).find((radio) => radio.checked)?.value).toBe('anthropic');
+    expect(container.querySelector('label[for="api-key"]')?.textContent).toBe('Claude API key');
+  });
+
+  it.each([
+    ['openai', 'Get an OpenAI API key'],
+    ['anthropic', 'Get a Claude API key'],
+    ['google', 'Get a Gemini API key'],
+  ] as const)('links to where a %s key is made', async (provider, text) => {
     const container = await show();
     await pick(container, provider);
-    const link = [...container.querySelectorAll('a')].find((each) =>
-      each.textContent?.startsWith('Get an API key'),
+    const note = keyField(container)?.nextElementSibling;
+    expect(note?.textContent).toMatch(
+      new RegExp(
+        `^No key yet\\? ${text}\\. A key made just for Dr\\. Too Long, with a monthly spending limit, keeps your costs predictable\\.`,
+      ),
     );
-    expect(link?.textContent).toBe(`Get an API key from ${PROVIDERS[provider].name}`);
-    expect(link?.href).toBe(PROVIDERS[provider].keysUrl);
+    expect(note?.querySelector('a')?.href).toBe(PROVIDERS[provider].keysUrl);
   });
 
-  it.each(PROVIDER_IDS)('opens on a saved %s key', async (provider) => {
-    const { name } = PROVIDERS[provider];
-    await writeApiKey({ provider, key: 'test-key' });
+  it('notes what Google may do with text sent with an unpaid Gemini key', async () => {
     const container = await show();
-    expect(keyStatus(container)).toBe(`Your ${name} API key is saved on this device.`);
-    expect(picker(container)?.value).toBe(provider);
-    expect(button(container, `Remove ${name} key`)).toBeDefined();
-  });
-
-  it('warns that saving for another provider replaces the saved key, and keeps it until then', async () => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
-    const container = await show();
-    expect(container.textContent).not.toContain('Saving replaces');
-    await pick(container, 'anthropic');
-    expect(container.textContent).toContain('Saving replaces your saved OpenAI key.');
-    expect(keyStatus(container)).toBe('Your OpenAI API key is saved on this device.');
-    expect(await readApiKey()).toEqual({ provider: 'openai', key: 'test-openai-key' });
+    expect(container.textContent).not.toContain(UNPAID_GEMINI);
+    await pick(container, 'google');
+    expect(container.textContent).toContain(UNPAID_GEMINI);
   });
 
   it('saves only once the reader agrees to where the text goes', async () => {
     const container = await show();
     await type(container, 'test-openai-key');
     expect(button(container, 'Save key')?.disabled).toBe(true);
-    expect(agreeBox(container)?.parentElement?.textContent).toContain(
-      'each summary sends the text I select, with this key, to OpenAI',
+    expect(agreeBox(container)?.parentElement?.textContent).toBe(
+      'I understand that each summary sends the text I select, with this key, to OpenAI. Nothing else from the page leaves my browser, as the privacy policy explains.',
     );
+    expect(agreeBox(container)?.parentElement?.querySelector('a')?.href).toBe(LINKS.privacy);
     await agree(container);
     expect(button(container, 'Save key')?.disabled).toBe(false);
-  });
-
-  it('saves the key for the picked provider in place of the old one', async () => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
-    const container = await show();
-    await pick(container, 'google');
-    await saveKey(container, ' AIza-test-gemini-key ');
-    await vi.waitFor(() =>
-      expect(keyStatus(container)).toBe('Your Gemini API key is saved on this device.'),
-    );
-    expect(await readApiKey()).toEqual({ provider: 'google', key: 'AIza-test-gemini-key' });
-    expect(keyField(container)?.value).toBe('');
-    expect(agreeBox(container)?.checked).toBe(false);
-    expect(document.activeElement).toBe(keyField(container));
   });
 
   it('keeps Save off for a blank key', async () => {
@@ -194,6 +176,64 @@ describe('Options', () => {
     await type(container, '   ');
     await agree(container);
     expect(button(container, 'Save key')?.disabled).toBe(true);
+  });
+
+  it('saves the key, shows it saved and moves the focus to Test key', async () => {
+    const container = await show();
+    await pick(container, 'google');
+    await saveKey(container, ' AIza-test-gemini-key ');
+    await vi.waitFor(() => expect(heading(container)).toBe('Your API key'));
+    expect(await readApiKey()).toEqual({ provider: 'google', key: 'AIza-test-gemini-key' });
+    expect(keyField(container)).toBeNull();
+    expect(document.activeElement).toBe(button(container, 'Test key'));
+    expect(document.activeElement?.getAttribute('aria-describedby')).toBe(
+      savedCard(container)?.querySelector('strong')?.id,
+    );
+  });
+
+  it.each(PROVIDER_IDS)('opens on a saved %s key', async (provider) => {
+    const { name } = PROVIDERS[provider];
+    const container = await showSavedKey(provider);
+    expect(heading(container)).toBe('Your API key');
+    expect(savedCard(container)?.textContent).toBe(
+      `Your ${name} key is saved.It’s encrypted on this device and goes only to ${name}, and only when you ask for a summary.`,
+    );
+    expect(keyField(container)).toBeNull();
+    for (const label of ['Test key', 'Replace key', 'Remove key']) {
+      expect(button(container, label)).toBeDefined();
+    }
+  });
+
+  it('replaces the key from a form that starts on the saved provider', async () => {
+    const container = await showSavedKey('openai');
+    await press(container, 'Replace key');
+    expect(heading(container)).toBe('Replace your API key');
+    expect(providers(container).find((radio) => radio.checked)?.value).toBe('openai');
+    expect(document.activeElement).toBe(keyField(container));
+    await pick(container, 'anthropic');
+    await saveKey(container, 'sk-ant-api03-test');
+    await vi.waitFor(() => expect(heading(container)).toBe('Your API key'));
+    expect(savedCard(container)?.textContent).toContain('Your Claude key is saved.');
+    expect(await readApiKey()).toEqual({ provider: 'anthropic', key: 'sk-ant-api03-test' });
+  });
+
+  it('warns that saving for another provider replaces the saved key, and keeps it until then', async () => {
+    const container = await showSavedKey('openai');
+    await press(container, 'Replace key');
+    expect(container.textContent).not.toContain('Saving replaces');
+    await pick(container, 'anthropic');
+    expect(container.textContent).toContain('Saving replaces your saved OpenAI key.');
+    expect(await readApiKey()).toEqual({ provider: 'openai', key: 'test-key' });
+  });
+
+  it('goes back to the saved key on Cancel and moves the focus to Replace key', async () => {
+    const container = await showSavedKey('openai');
+    await press(container, 'Replace key');
+    await type(container, 'sk-test-other-key');
+    await press(container, 'Cancel');
+    expect(heading(container)).toBe('Your API key');
+    expect(document.activeElement).toBe(button(container, 'Replace key'));
+    expect(await readApiKey()).toEqual({ provider: 'openai', key: 'test-key' });
   });
 
   it('refuses a key holding an invisible character and saves nothing', async () => {
@@ -205,15 +245,26 @@ describe('Options', () => {
   });
 
   it.each([
-    ['a Claude key for OpenAI', 'openai', 'sk-ant-api03-test', 'Claude'],
-    ['an OpenAI key for Gemini', 'google', 'sk-proj-test', 'OpenAI'],
-    ['a Gemini key for Claude', 'anthropic', 'AIza-test', 'Gemini'],
+    ['a Claude key for OpenAI', 'openai', 'sk-ant-api03-test', 'a Claude'],
+    ['an OpenAI key for Gemini', 'google', 'sk-proj-test', 'an OpenAI'],
+    ['a Gemini key for Claude', 'anthropic', 'AIza-test', 'a Gemini'],
   ] as const)('refuses %s and names the right provider', async (_, provider, key, owner) => {
     const container = await show();
     await pick(container, provider);
     await saveKey(container, key);
-    expect(alertText(container)).toContain(`This looks like a ${owner} key.`);
+    expect(alertText(container)).toContain(`This looks like ${owner} key.`);
     expect(await readApiKey()).toBeNull();
+  });
+
+  it('asks for the agreement again and clears a refusal when the provider changes', async () => {
+    const container = await show();
+    await pick(container, 'google');
+    await saveKey(container, 'sk-proj-test');
+    expect(alertText(container)).toContain('This looks like an OpenAI key.');
+    await pick(container, 'openai');
+    expect(alertText(container)).toBeUndefined();
+    expect(agreeBox(container)?.checked).toBe(false);
+    expect(button(container, 'Save key')?.disabled).toBe(true);
   });
 
   it('says so when the key cannot be saved, and keeps it in the field', async () => {
@@ -223,63 +274,37 @@ describe('Options', () => {
     await vi.waitFor(() =>
       expect(alertText(container)).toBe('The key could not be saved on this device. Try again.'),
     );
-    expect(keyStatus(container)).toContain('No API key is saved yet.');
+    expect(heading(container)).toBe('Add your API key');
     expect(keyField(container)?.value).toBe('sk-test-openai-key');
   });
 
   it('removes the saved key and moves the focus to the key field', async () => {
-    await writeApiKey({ provider: 'anthropic', key: 'test-claude-key' });
-    const container = await show();
-    await act(async () => {
-      button(container, 'Remove Claude key')?.click();
-    });
-    await vi.waitFor(() => expect(keyStatus(container)).toContain('No API key is saved yet.'));
+    const container = await showSavedKey('anthropic');
+    await press(container, 'Remove key');
+    await vi.waitFor(() => expect(heading(container)).toBe('Add your API key'));
     expect(await readApiKey()).toBeNull();
-    expect(button(container, 'Remove Claude key')).toBeUndefined();
-    expect(button(container, 'Test key')?.disabled).toBe(true);
+    expect(savedCard(container)).toBeNull();
     expect(document.activeElement).toBe(keyField(container));
   });
 
   it('says so when the key cannot be removed', async () => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
-    const container = await show();
+    const container = await showSavedKey('openai');
     vi.spyOn(fakeBrowser.storage.local, 'remove').mockRejectedValue(new Error('Storage is broken'));
-    await act(async () => {
-      button(container, 'Remove OpenAI key')?.click();
-    });
+    await press(container, 'Remove key');
     await vi.waitFor(() =>
       expect(alertText(container)).toBe('The key could not be removed. Try again.'),
     );
-    expect(keyStatus(container)).toBe('Your OpenAI API key is saved on this device.');
-  });
-
-  it('says so when the summary language cannot be saved', async () => {
-    const container = await show();
-    vi.spyOn(fakeBrowser.storage.local, 'set').mockRejectedValue(new Error('Storage is full'));
-    await act(async () => {
-      const select = container.querySelector<HTMLSelectElement>('select[name="language"]');
-      if (!select) return;
-      select.value = 'tr';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await vi.waitFor(() =>
-      expect(container.textContent).toContain('The summary language could not be saved.'),
-    );
-  });
-
-  it('notes what Google may do with text sent with an unpaid Gemini key', async () => {
-    const container = await show();
-    expect(container.textContent).not.toContain(UNPAID_GEMINI);
-    await pick(container, 'google');
-    expect(container.textContent).toContain(UNPAID_GEMINI);
+    expect(savedCard(container)?.textContent).toContain('Your OpenAI key is saved.');
   });
 
   it('streams the sample summary on Test key and says that the key works', async () => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
     answer({ type: 'partial', points: [point] }, { type: 'done', output: { points: [point] } });
-    const container = await show();
-    await testKey(container);
-    await vi.waitFor(() => expect(container.textContent).toContain('The key works.'));
+    const container = await showSavedKey();
+    await press(container, 'Test key');
+    await vi.waitFor(() =>
+      expect(testStatus(container)?.textContent).toBe('All set: your key works.'),
+    );
+    expect(testStatus(container)?.classList.contains('good')).toBe(true);
     expect(container.querySelector('.sample')?.textContent).toBe(point.text);
     expect(container.querySelector('.sample')?.getAttribute('lang')).toBe('en-US');
     expect(summarize).toHaveBeenCalledWith(
@@ -289,44 +314,20 @@ describe('Options', () => {
   });
 
   it('keeps one status mounted for the test, so screen readers hear each change', async () => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
     answer({ type: 'done', output: { points: [point] } });
-    const container = await show();
-    const status = [...container.querySelectorAll('[role="status"]')].at(-1);
-    await testKey(container);
-    await vi.waitFor(() => expect(status?.textContent).toBe('The key works.'));
+    const container = await showSavedKey();
+    const status = testStatus(container);
+    expect(status?.textContent).toBe('');
+    await press(container, 'Test key');
+    await vi.waitFor(() => expect(status?.textContent).toBe('All set: your key works.'));
     expect(status?.isConnected).toBe(true);
   });
 
-  it('clears the test result when another key is saved', async () => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
-    answer({ type: 'done', output: { points: [point] } });
-    const container = await show();
-    await testKey(container);
-    await vi.waitFor(() => expect(container.textContent).toContain('The key works.'));
-    await saveKey(container, 'sk-test-other-key');
-    await vi.waitFor(() => expect(container.textContent).not.toContain('The key works.'));
-    expect(container.querySelector('.sample')).toBeNull();
-  });
-
   it.each([
-    ['saved', (container: HTMLElement) => saveKey(container, 'sk-test-other-key')],
-    [
-      'removed',
-      (container: HTMLElement) =>
-        act(async () => {
-          button(container, 'Remove OpenAI key')?.click();
-        }),
-    ],
-    [
-      'canceled',
-      (container: HTMLElement) =>
-        act(async () => {
-          button(container, 'Cancel')?.click();
-        }),
-    ],
-  ])('ends a running test when a key is %s, with no message', async (_, stop) => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
+    ['canceled', 'Cancel'],
+    ['the key is replaced', 'Replace key'],
+    ['the key is removed', 'Remove key'],
+  ])('ends a running test when %s, with no message', async (_, label) => {
     let finish: () => void = () => undefined;
     let signal: AbortSignal | undefined;
     let drained = false;
@@ -342,30 +343,56 @@ describe('Options', () => {
         drained = true;
       }
     });
-    const container = await show();
-    await testKey(container);
-    await vi.waitFor(() => expect(container.textContent).toContain('Testing the key…'));
-    await stop(container);
+    const container = await showSavedKey();
+    await press(container, 'Test key');
+    await vi.waitFor(() => expect(testStatus(container)?.textContent).toBe('Checking your key…'));
+    expect(button(container, 'Cancel')?.id).toBe('test-key');
+    await press(container, label);
     await vi.waitFor(() => expect(signal?.aborted).toBe(true));
     await act(async () => finish());
     await vi.waitFor(() => expect(drained).toBe(true));
     await act(async () => undefined);
-    expect(container.textContent).not.toContain('The key works.');
-    expect(container.textContent).not.toContain('Testing the key…');
+    expect(container.textContent).not.toContain('All set');
+    expect(container.textContent).not.toContain('Checking your key…');
     expect(container.querySelector('.sample')).toBeNull();
     expect(alertText(container)).toBeUndefined();
   });
 
+  it('keeps the focus on Test key as it turns into Cancel and back', async () => {
+    let finish: () => void = () => undefined;
+    summarize.mockImplementation(async function* () {
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      yield { type: 'done', output: { points: [point] } };
+    });
+    const container = await showSavedKey();
+    const testKey = button(container, 'Test key');
+    testKey?.focus();
+    await press(container, 'Test key');
+    await vi.waitFor(() => expect(testKey?.textContent).toBe('Cancel'));
+    expect(testKey?.disabled).toBe(false);
+    await press(container, 'Cancel');
+    expect(testKey?.textContent).toBe('Test key');
+    expect(document.activeElement).toBe(testKey);
+    await press(container, 'Test key');
+    await vi.waitFor(() => expect(testKey?.textContent).toBe('Cancel'));
+    await act(async () => finish());
+    await vi.waitFor(() => expect(testKey?.textContent).toBe('Test key'));
+    expect(testStatus(container)?.textContent).toBe('All set: your key works.');
+    expect(document.activeElement).toBe(testKey);
+  });
+
   it("shows the message of an error and the provider's HTTP status", async () => {
-    await writeApiKey({ provider: 'openai', key: 'test-openai-key' });
     answer({ type: 'error', code: 'unauthorized', httpStatus: 401 });
-    const container = await show();
-    await testKey(container);
+    const container = await showSavedKey();
+    await press(container, 'Test key');
     await vi.waitFor(() =>
       expect(alertText(container)).toContain('The provider rejected the API key.'),
     );
     expect(alertText(container)).toContain('HTTP status 401');
     expect(container.querySelector('.sample')).toBeNull();
+    expect(container.textContent).not.toContain('All set');
   });
 
   it('shows the version and links to the privacy policy, the source and the issue forms', async () => {

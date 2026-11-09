@@ -1,10 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { storage } from 'wxt/utils/storage';
 import {
   readLanguageChoice,
   readOutputLanguage,
-  watchLanguageChoice,
   writeLanguageChoice,
 } from '../src/settings/output-language.ts';
 
@@ -29,15 +28,6 @@ describe('output language setting', () => {
     await storage.setItem('local:outputLanguage', 'pt-BR');
     expect(await readLanguageChoice()).toBeNull();
     expect(await readOutputLanguage()).toBe('en-US');
-  });
-
-  it('reports each new choice, an unlisted one as Auto', async () => {
-    const seen: Array<string | null> = [];
-    const unwatch = watchLanguageChoice((tag) => seen.push(tag));
-    await writeLanguageChoice('tr');
-    await storage.setItem('local:outputLanguage', 'pt-BR');
-    await vi.waitFor(() => expect(seen).toEqual(['tr', null]));
-    unwatch();
   });
 
   it('goes back to Auto when the choice is cleared', async () => {

@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BUBBLE_DELAY_MS, BUBBLE_SCROLL_PX, watchSelections } from '../src/content/bubble/watch.ts';
+import { watchSelections } from '../src/content/bubble/watch.ts';
 import { BUBBLE_UI, CARD_UI } from '../src/content/ui.ts';
 import { LONG } from './helpers.ts';
 
 const FRAME_MS = 16;
 
 let top = 200;
+let boxes = () => [new DOMRect(40, top, 300, 20)];
+// What the page shows at the middle of the followed line, from the top: these, then the selected
+// paragraph.
+let covers: Element[] = [];
 let valid = true;
 let controller: AbortController;
 
@@ -40,10 +44,13 @@ const scroll = () => {
   document.dispatchEvent(new Event('scroll'));
   vi.advanceTimersByTime(FRAME_MS);
 };
+const nextTask = () => vi.advanceTimersByTime(0);
+const offered = (offer: ReturnType<typeof vi.fn>) =>
+  offer.mock.calls.map(([lines, following, visible]) => [lines.first.top, following, visible]);
 
 function release() {
   fire('mouseup');
-  vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+  nextTask();
 }
 
 describe('watchSelections', () => {
@@ -51,10 +58,13 @@ describe('watchSelections', () => {
     vi.useFakeTimers();
     controller = new AbortController();
     top = 200;
+    boxes = () => [new DOMRect(40, top, 300, 20)];
+    covers = [];
     valid = true;
     vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(
-      () => [new DOMRect(40, top, 300, 20)] as unknown as DOMRectList,
+      () => boxes() as unknown as DOMRectList,
     );
+    document.elementsFromPoint = () => [...covers, ...document.querySelectorAll('p')];
   });
   afterEach(() => {
     controller.abort();
@@ -63,26 +73,46 @@ describe('watchSelections', () => {
     document.body.innerHTML = '';
   });
 
-  it('offers the bubble a moment after the mouse button is released', () => {
+  it('offers the bubble on the task after the mouse button is released, with no wait', () => {
     const { offer } = watch();
     fire('mousedown');
     select(LONG);
     key('keyup', 'Shift');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).not.toHaveBeenCalled();
     fire('mouseup');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS - 1);
     expect(offer).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
+    nextTask();
     expect(offer).toHaveBeenCalledOnce();
-    expect(offer.mock.calls[0]?.[0].first.top).toBe(200);
+    expect(offer.mock.calls[0]).toMatchObject([
+      { first: { top: 200 }, backward: false },
+      false,
+      true,
+    ]);
+  });
+
+  it('tells the offer when the selection was made backward, and keeps it while following', () => {
+    const { offer } = watch();
+    select(LONG);
+    const text = document.querySelector('p')?.firstChild;
+    if (!text) throw new Error('Fixture changed');
+    document.getSelection()?.setBaseAndExtent(text, LONG.length, text, 0);
+    release();
+    expect(offer.mock.calls[0]?.[0].backward).toBe(true);
+    top = 180;
+    scroll();
+    expect(offer.mock.calls[1]).toMatchObject([
+      { first: { top: 180 }, backward: true },
+      true,
+      true,
+    ]);
   });
 
   it('offers it after a selection made with the keyboard', () => {
     const { offer } = watch();
     select(LONG);
     key('keyup', 'ArrowDown');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).toHaveBeenCalledOnce();
   });
 
@@ -91,7 +121,7 @@ describe('watchSelections', () => {
     const { offer } = watch();
     release();
     key('keyup', 'ArrowDown');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).not.toHaveBeenCalled();
     select(LONG);
     release();
@@ -108,7 +138,7 @@ describe('watchSelections', () => {
       withdraw: vi.fn(),
       offerCurrent: true,
     });
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).toHaveBeenCalledOnce();
   });
 
@@ -116,9 +146,8 @@ describe('watchSelections', () => {
     const { offer } = watch();
     select(LONG);
     fire('mouseup');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS / 2);
     fire('mousedown');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).not.toHaveBeenCalled();
     release();
     expect(offer).toHaveBeenCalledOnce();
@@ -184,31 +213,48 @@ describe('watchSelections', () => {
   });
 
   it.each([CARD_UI, BUBBLE_UI])('ignores presses, releases and keys on %s', (name) => {
-    const { offer, withdraw } = watch();
+    const { offer } = watch();
     const host = document.createElement(name);
     select(LONG);
     document.body.appendChild(host);
     fire('mouseup', host);
     key('keyup', 'ArrowDown', host);
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).not.toHaveBeenCalled();
     release();
     expect(offer).toHaveBeenCalledOnce();
     fire('mousedown', host);
-    expect(withdraw).not.toHaveBeenCalled();
+    select(LONG);
+    key('keyup', 'ArrowDown');
+    nextTask();
+    expect(offer).toHaveBeenCalledTimes(2);
   });
 
-  it('withdraws the bubble on a press and when the selection collapses', () => {
+  it('keeps the bubble through a press that leaves the selection, and withdraws it when the selection collapses', () => {
     const { offer, withdraw } = watch();
     select(LONG);
     release();
     fire('mousedown');
-    expect(withdraw).toHaveBeenCalledOnce();
     release();
-    expect(offer).toHaveBeenCalledTimes(2);
+    expect(withdraw).not.toHaveBeenCalled();
+    expect(offer).toHaveBeenCalledOnce();
     document.getSelection()?.removeAllRanges();
     document.dispatchEvent(new Event('selectionchange'));
-    expect(withdraw).toHaveBeenCalledTimes(2);
+    expect(withdraw).toHaveBeenCalledOnce();
+  });
+
+  it('withdraws the bubble as soon as another selection replaces it, and offers that one on release', () => {
+    const { offer, withdraw } = watch();
+    select(LONG);
+    release();
+    top = 300;
+    select(LONG);
+    expect(withdraw).toHaveBeenCalledOnce();
+    release();
+    expect(offered(offer)).toEqual([
+      [200, false, true],
+      [300, false, true],
+    ]);
   });
 
   it('withdraws the bubble when the selection shrinks to part of a sentence', () => {
@@ -219,7 +265,7 @@ describe('watchSelections', () => {
     const range = document.getSelection()?.getRangeAt(0);
     if (text && range) range.setEnd(text, 10);
     key('keyup', 'ArrowLeft');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).toHaveBeenCalledOnce();
     expect(withdraw).toHaveBeenCalledOnce();
   });
@@ -229,6 +275,19 @@ describe('watchSelections', () => {
     select(LONG);
     release();
     window.dispatchEvent(new Event('blur'));
+    expect(withdraw).toHaveBeenCalledOnce();
+  });
+
+  it('lets Escape through while the bubble is hidden, and still dismisses it', () => {
+    const { withdraw } = watch();
+    const card = vi.fn();
+    document.addEventListener('keydown', card, { capture: true, signal: controller.signal });
+    select(LONG);
+    release();
+    top = -5000;
+    scroll();
+    key('keydown', 'Escape');
+    expect(card).toHaveBeenCalledOnce();
     expect(withdraw).toHaveBeenCalledOnce();
   });
 
@@ -251,45 +310,118 @@ describe('watchSelections', () => {
     expect(offer).toHaveBeenCalledTimes(2);
   });
 
-  it(`follows the text as it scrolls, and is dismissed past ${BUBBLE_SCROLL_PX} px`, () => {
-    const { offer, withdraw } = watch();
-    select(LONG);
-    release();
-    top = 200 - BUBBLE_SCROLL_PX;
-    scroll();
-    expect(offer).toHaveBeenCalledTimes(2);
-    expect(offer.mock.calls[1]?.[0].first.top).toBe(200 - BUBBLE_SCROLL_PX);
-    top -= 1;
-    scroll();
-    expect(withdraw).toHaveBeenCalledOnce();
-    key('keyup', 'ArrowDown');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
-    expect(offer).toHaveBeenCalledTimes(2);
-  });
-
-  it('measures the scroll from where the selection was first offered, across key presses', () => {
+  it('follows the text once a frame as it scrolls, and is not dismissed by a long scroll', () => {
     const { offer, withdraw } = watch();
     select(LONG);
     release();
     top = 150;
+    document.dispatchEvent(new Event('scroll'));
+    window.dispatchEvent(new Event('resize'));
     scroll();
-    key('keyup', 'ArrowDown');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
-    expect(offer).toHaveBeenCalledTimes(3);
-    top = 200 - BUBBLE_SCROLL_PX - 10;
+    expect(offer).toHaveBeenCalledTimes(2);
+    top = -5000;
+    scroll();
+    top = 200;
+    scroll();
+    expect(offered(offer)).toEqual([
+      [200, false, true],
+      [150, true, true],
+      [-5000, true, false],
+      [200, true, true],
+    ]);
+    expect(withdraw).not.toHaveBeenCalled();
+  });
+
+  it('keeps following a selection that keys and presses leave as it was, as Page Down does', () => {
+    const { offer, withdraw } = watch();
+    select(LONG);
+    release();
+    top = -900;
+    scroll();
+    key('keyup', 'PageDown');
+    nextTask();
+    key('keyup', 'Meta');
+    release();
+    top = 200;
+    scroll();
+    expect(offered(offer)).toEqual([
+      [200, false, true],
+      [-900, true, false],
+      [200, true, true],
+    ]);
+    expect(withdraw).not.toHaveBeenCalled();
+  });
+
+  it('places a selection the keys change afresh, and follows it in between', () => {
+    const { offer } = watch();
+    select(LONG);
+    release();
+    top = 150;
+    scroll();
+    const text = document.querySelector('p')?.firstChild;
+    if (!text) throw new Error('Fixture changed');
+    document.getSelection()?.setBaseAndExtent(text, 0, text, (LONG.length * 2) / 3);
+    document.dispatchEvent(new Event('selectionchange'));
+    key('keyup', 'ArrowUp');
+    nextTask();
+    expect(offer.mock.calls.map(([, following]) => following)).toEqual([false, true, false]);
+  });
+
+  it('hides the bubble while its scroller clips the line it stands by or something covers it', () => {
+    const { offer, withdraw } = watch();
+    document.body.innerHTML = `<header></header><div style="overflow-y: auto"><p>${LONG}</p></div>`;
+    const pane = document.querySelector('div');
+    const header = document.querySelector('header');
+    const bubble = document.body.appendChild(document.createElement(BUBBLE_UI));
+    if (!pane || !header) throw new Error('Fixture changed');
+    Object.defineProperties(pane, {
+      scrollHeight: { value: 1000 },
+      clientHeight: { value: 100 },
+      clientWidth: { value: 600 },
+    });
+    vi.spyOn(pane, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 100, 600, 100));
+    document.getSelection()?.selectAllChildren(pane);
+    document.dispatchEvent(new Event('selectionchange'));
+    release();
+    for (const [scrolledTo, over] of [
+      [150, []],
+      [210, []],
+      [150, [header]],
+      [150, [bubble]],
+    ] as const) {
+      top = scrolledTo;
+      covers = [...over];
+      scroll();
+    }
+    expect(offered(offer)).toEqual([
+      [200, false, true],
+      [150, true, true],
+      [210, true, false],
+      [150, true, false],
+      [150, true, true],
+    ]);
+    expect(withdraw).not.toHaveBeenCalled();
+  });
+
+  it('withdraws the bubble when the page removes or hides the text it follows', () => {
+    const { offer, withdraw } = watch();
+    select(LONG);
+    release();
+    boxes = () => [];
     scroll();
     expect(withdraw).toHaveBeenCalledOnce();
+    expect(offer).toHaveBeenCalledOnce();
   });
 
   it('offers a new selection elsewhere on the page', () => {
     const { offer } = watch();
     select(LONG);
     release();
-    top = 200 + 3 * BUBBLE_SCROLL_PX;
+    top = 440;
     select(LONG);
     release();
     expect(offer).toHaveBeenCalledTimes(2);
-    expect(offer.mock.calls[1]?.[0].first.top).toBe(top);
+    expect(offer.mock.calls[1]).toMatchObject([{ first: { top: 440 } }, false, true]);
   });
 
   it('offers nothing again once the bubble was clicked, until the selection changes', () => {
@@ -300,7 +432,7 @@ describe('watchSelections', () => {
     expect(withdraw).toHaveBeenCalledOnce();
     release();
     key('keyup', 'ArrowDown');
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     expect(offer).toHaveBeenCalledOnce();
   });
 
@@ -311,7 +443,7 @@ describe('watchSelections', () => {
     document.dispatchEvent(new Event('scroll'));
     fire('mouseup');
     controller.abort();
-    vi.advanceTimersByTime(BUBBLE_DELAY_MS);
+    nextTask();
     release();
     expect(offer).toHaveBeenCalledOnce();
   });

@@ -140,11 +140,11 @@ describe('createRuns', () => {
     expect(calls[0]?.signal.aborted).toBe(false);
   });
 
-  it('regenerates the shown view in place of its run and leaves another run going', async () => {
+  it('runs the shown view again in place of its run and leaves another run going', async () => {
     const { runs, calls, shown, last } = setup();
     runs.select('key-points');
     runs.select('summary');
-    runs.regenerate();
+    runs.retry();
     expect(calls[0]?.signal.aborted).toBe(true);
     expect(calls[1]?.signal.aborted).toBe(false);
     expect(calls[2]?.request).toMatchObject({ shape: 'summary', outputLanguage: 'en' });
