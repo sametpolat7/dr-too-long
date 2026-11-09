@@ -55,8 +55,8 @@ export function createSummarizer({ model, providerOptions }: ModelSetup): Summar
   };
 }
 
-// Aborts the call when the reader cancels or when the provider goes quiet. The SDK's own timeout
-// option merges signals with AbortSignal.any, from Chrome 116; the floor is 114.
+// The SDK's own timeout option merges signals with AbortSignal.any, from Chrome 116; the floor
+// is 114.
 function watchCall(signal: AbortSignal) {
   const controller = new AbortController();
   const stall = new Error('The provider stopped sending');
