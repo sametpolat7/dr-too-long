@@ -1,7 +1,5 @@
-// Loads the built extension into headless Chrome and fails on any error or DevTools issue from its
-// service worker, options page or popup. It talks to Chrome over the DevTools protocol pipe, so it
-// needs no dependency and no browser download: it uses the Chrome already installed (CHROME_PATH
-// overrides where).
+// The script talks to Chrome over the DevTools protocol pipe, so it needs no dependency and no
+// browser download: it uses the Chrome already installed (CHROME_PATH overrides where).
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,7 +10,7 @@ const EXTENSION_DIR = new URL('../.output/chrome-mv3', import.meta.url).pathname
 const TIMEOUT_MS = 30_000;
 // Long enough for the worker's and the pages' first tasks to settle.
 const SETTLE_MS = 2_000;
-// Each page opens in a tab of its own. With no key saved in the new profile, the popup asks for one.
+// With no key saved in the new profile, the popup asks for one.
 const PAGES = { 'options.html': 'options page', 'popup.html': 'popup' };
 
 interface Message {

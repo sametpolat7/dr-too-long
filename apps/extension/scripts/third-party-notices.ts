@@ -1,6 +1,5 @@
-// Writes THIRD-PARTY-NOTICES.txt into a build: every package the build bundles, its license and the
-// license text its authors ship. Each of WXT's Vite builds lists its own packages in licenses/,
-// through Vite's build.license option, and this merges the lists; the zip leaves them out.
+// Each of WXT's Vite builds lists its own packages in licenses/, through Vite's build.license
+// option, and this merges the lists; the zip leaves them out.
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
